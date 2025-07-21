@@ -1,0 +1,109 @@
+/* AboutUs.css */
+
+.about-us-hero-section {
+  background-color: #344767;
+  color: white;
+  padding: 5rem 0 3rem;
+  margin-top: 60px; /* Space for fixed header */
+}
+
+.about-us-hero-section h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.about-us-hero-section .lead {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  opacity: 0.9;
+}
+
+.subtitle-text {
+  color: #666;
+  font-size: 1.1rem;
+  margin: 1.5rem 0;
+}
+
+.feature-col {
+  padding: 1.5rem;
+  transition: transform 0.3s ease;
+}
+
+.feature-col:hover {
+  transform: translateY(-5px);
+}
+
+.feature-icon {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.feature-icon-services {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.about-us-services-section {
+  background-color: #344767;
+  color: white;
+}
+
+.about-us-services-section h6 {
+  font-size: 1.1rem;
+  margin: 1rem 0;
+}
+
+.feature-text {
+  color: #666;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.feature-text-services {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.learn-more-link {
+  color: #344767;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.learn-more-link:hover {
+  text-decoration: underline;
+}
+
+.history-text {
+  color: #666;
+  font-size: 1.1rem;
+  line-height: 1.6;
+}
+
+.about-us-numbers-section {
+  background-color: #344767;
+  color: white;
+}
+
+.about-us-numbers-section h2 {
+  color: white;
+}
+
+.number-col h3 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: white;
+}
+
+.number-col p {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1rem;
+  line-height: 1.5;
+}

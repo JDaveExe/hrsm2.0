@@ -1,0 +1,246 @@
+/* LoginSignup.css */
+
+/* Main container for the page */
+.loginsignup-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding-top: 80px; /* Space for the fixed navbar */
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* The card that holds the login/register form */
+.loginsignup-card {
+  width: 100%;
+  max-width: 900px; /* Max width for the form card */
+  background-color: rgba(255, 255, 255, 0.98); /* Slightly transparent white */
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  overflow: hidden; /* Ensures content stays within rounded corners */
+  margin: 20px; /* Some margin for smaller screens */
+}
+
+.loginsignup-card .card-header {
+  background-color: #f8f9fa; /* Light grey for header */
+  border-bottom: 1px solid #dee2e6;
+  padding: 0;
+}
+
+.loginsignup-card .nav-tabs {
+  border-bottom: none; /* Remove default border as card-header has one */
+}
+
+.loginsignup-card .nav-tabs .nav-item {
+  flex-grow: 1; /* Make tabs take equal width */
+}
+
+.loginsignup-card .nav-tabs .nav-link {
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #495057;
+  border: none;
+  border-radius: 0;
+  padding: 1rem 1.5rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.loginsignup-card .nav-tabs .nav-link:hover {
+  background-color: #e9ecef;
+  color: #344767; /* Updated color */
+}
+
+.loginsignup-card .nav-tabs .nav-link.active {
+  color: #344767; /* Updated color */
+  background-color: #fff; /* Active tab matches card body */
+  border-bottom: 3px solid #344767; /* Updated color */
+}
+
+.loginsignup-card .card-body {
+  padding: 2rem 2.5rem; /* More padding inside the card */
+}
+
+/* Common styling for both login and registration forms */
+.auth-form {
+  width: 100%;
+}
+
+.auth-form .form-label {
+  font-weight: 500;
+  color: #343a40;
+}
+
+.auth-form .form-control,
+.auth-form .form-select,
+.auth-form .react-datepicker-wrapper .form-control {
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ced4da;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.auth-form .form-control:focus,
+.auth-form .form-select:focus,
+.auth-form .react-datepicker-wrapper .form-control:focus {
+  border-color: #344767; /* Updated color */
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(52, 71, 103, 0.25); /* Updated color to match #344767 */
+}
+
+.auth-form .btn-primary {
+  background-color: #344767; /* Updated color */
+  border-color: #344767; /* Updated color */
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 6px;
+}
+
+.auth-form .btn-primary:hover {
+  background-color: #2c3a54; /* Darker shade of #344767 */
+  border-color: #2c3a54; /* Darker shade of #344767 */
+}
+
+.auth-form .btn-outline-secondary {
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+/* Password toggle icon */
+.password-toggle {
+  position: absolute;
+  top: 70%; /* Adjust based on label presence */
+  right: 15px;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #6c757d;
+}
+
+.auth-form .form-group.position-relative .form-control {
+  padding-right: 40px; /* Space for the icon */
+}
+
+/* QR Code Sections */
+.qr-scanner-section,
+.qr-code-display {
+  padding: 1rem 0;
+}
+
+.qr-reader-container {
+  border: 1px solid #eee;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Password Strength Indicator */
+.password-strength-indicator .progress {
+  height: 6px;
+  border-radius: 3px;
+  background-color: #e9ecef;
+}
+
+.password-strength-indicator .progress-bar {
+  transition: width 0.3s ease-in-out;
+}
+
+/* Navbar styling (copied from AuthPage.css for consistency, adjust if needed) */
+.navbar.fixed-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem; /* Standard padding */
+  background-color: rgba(0, 15, 40, 0.9); /* Darker, slightly more opaque */
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1030; /* Ensure it\'s above other content */
+}
+
+.navbar.fixed-top .navbar-brand { /* Increased specificity */
+  font-size: 1.4rem; /* Slightly larger brand */
+  font-weight: 600;
+  color: #87CEFA; /* Light Sky Blue - Compliments dark blue */
+  text-decoration: none;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 25px; /* Slightly more gap */
+}
+
+.navbar-links a {
+  font-size: 0.95rem; /* Standard link size */
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  padding: 8px 0;
+  position: relative;
+  transition: color 0.25s ease;
+}
+
+.navbar-links a:hover,
+.navbar-links a.active {
+  color: #fff;
+}
+
+.navbar-links a::after {
+  content: '';
+  position: absolute;
+  width: 100%; /* Changed from 0 to 100% */
+  height: 2px;
+  bottom: 0;
+  left: 0; /* Changed from 50% */
+  transform: scaleX(0); /* Changed from translateX(-50%) */
+  transform-origin: center; /* Added */
+  background-color: #fff;
+  transition: transform 0.25s ease; /* Changed from width to transform */
+}
+
+.navbar-links a:hover::after,
+.navbar-links a.active::after {
+  transform: scaleX(1); /* Changed from width: 100% */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .loginsignup-card .card-body {
+    padding: 1.5rem;
+  }
+  .loginsignup-card .nav-tabs .nav-link {
+    padding: 0.8rem 1rem;
+    font-size: 1rem;
+  }
+  .navbar.fixed-top {
+    padding: 0.8rem 1rem;
+  }
+  .navbar-brand {
+    font-size: 1.2rem;
+  }
+  .navbar-links {
+    gap: 15px;
+  }
+  .navbar-links a {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .loginsignup-card {
+    margin: 10px;
+    border-radius: 8px;
+  }
+  .loginsignup-card .card-body {
+    padding: 1rem;
+  }
+  .auth-form .btn-primary,
+  .auth-form .btn-outline-secondary {
+    font-size: 0.9rem;
+    padding: 0.6rem;
+  }
+  .password-toggle {
+    top: 65%; /* Adjust for smaller inputs if label is stacked */
+  }
+}

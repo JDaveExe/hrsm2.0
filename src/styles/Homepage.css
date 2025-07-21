@@ -1,0 +1,611 @@
+/* Homepage.css */
+.homepage {
+  font-family: 'Roboto', 'Helvetica', 'Arial', sans-serif;
+  max-width: 100%;
+  overflow-x: hidden;
+  color: #333;
+  background-color: #f8f9fa;
+}
+
+/* Material Design-inspired Navigation Bar */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 30px;
+  background-color: rgba(0, 15, 40, 0.8);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 4px 18px 0px rgba(0, 0, 0, 0.12);
+  transition: all 0.3s ease;
+}
+
+.navbar-brand a {
+  font-size: 1.25rem;
+  font-weight: 500;
+  color: white;
+  text-decoration: none;
+  letter-spacing: 0.5px;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 25px;
+}
+
+.navbar-links a {
+  color: white;
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 400;
+  letter-spacing: 0.5px;
+  transition: all 0.3s;
+  padding: 0.5rem 0;
+  position: relative;
+  text-transform: uppercase;
+}
+
+.navbar-links a:after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 2px;
+  background: #fff;
+  bottom: 0;
+  left: 0;
+  transition: width 0.3s;
+}
+
+.navbar-links a:hover:after,
+.navbar-links a.active:after {
+  width: 100%;
+}
+
+.navbar-links a:hover,
+.navbar-links a.active {
+  opacity: 1;
+}
+
+/* Hero Section - Material Design Inspired */
+.hero-section {
+  position: relative;
+  height: 75vh;
+  min-height: 600px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: white;
+  background-size: cover;
+  background-position: center;
+  padding: 100px 20px 120px;
+  overflow: visible; /* Allows feature boxes to show outside */
+  z-index: 3; /* Ensure hero section and its children are above the smart-healthcare-section */
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    195deg,
+    rgba(0, 0, 30, 0.6) 0%,
+    rgba(0, 0, 50, 0.8) 100%
+  );
+  z-index: 1;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  margin-bottom: 150px;
+  max-width: 900px;
+  padding: 0 20px;
+}
+
+.hero-content h1 {
+  font-size: 3.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-bottom: 1.5rem;
+  letter-spacing: 1px;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.hero-content p {
+  font-size: 1.25rem;
+  font-weight: 400;
+  margin-bottom: 2rem;
+  color: rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.5px;
+  line-height: 1.6;
+}
+
+/* Feature Boxes - Material Design Cards */
+.feature-boxes {
+  display: flex;
+  position: absolute;
+  bottom: -80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 1200px;
+  z-index: 3;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.feature-box {
+  flex: 1;
+  background: linear-gradient(195deg, #42424a 0%, #191919 100%);
+  border-radius: 12px;
+  padding: 40px 25px;
+  text-align: center;
+  color: white;
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 8px 26px -4px rgba(0, 0, 0, 0.15), 
+              0 8px 9px -5px rgba(0, 0, 0, 0.06);
+}
+
+.feature-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 12px 30px -6px rgba(0, 0, 0, 0.25), 
+              0 8px 15px -5px rgba(0, 0, 0, 0.15);
+}
+
+.feature-box.darker {
+  background: linear-gradient(195deg, #323a54 0%, #1a2035 100%);
+}
+
+.feature-box h3 {
+  font-size: 1.25rem;
+  margin-bottom: 20px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #fff;
+}
+
+.feature-box p {
+  font-size: 0.875rem;
+  opacity: 0.8;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Smart Healthcare Section - Material Design */
+.smart-healthcare-section {
+  display: flex;
+  padding: 140px 10% 80px;
+  background-color: #ffffff;
+  margin-top: 80px;
+  align-items: center;
+  gap: 60px;
+  box-shadow: 0 -15px 35px rgba(0, 0, 0, 0.05);
+  position: relative;
+  border-radius: 20px 20px 0 0;
+  z-index: 2;
+}
+
+.section-text {
+  flex: 1;
+}
+
+.section-text h2 {
+  font-size: 2.25rem;
+  margin-bottom: 30px;
+  font-weight: 700;
+  color: #344767;
+  line-height: 1.3;
+}
+
+.features-icons {
+  display: flex;
+  gap: 50px;
+  margin-top: 40px;
+}
+
+.feature-icon {
+  text-align: center;
+  flex: 1;
+}
+
+.feature-icon img {
+  width: 70px;
+  height: 70px;
+  margin-bottom: 15px;
+}
+
+.feature-icon p {
+  font-weight: 500;
+  font-size: 1.1rem;
+}
+
+.devices-container {
+  flex: 1;
+  text-align: center;
+  position: relative;
+  margin-top: 0;
+}
+
+.devices-container img {
+  max-width: 100%;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.devices-text {
+  margin-top: 30px;
+}
+
+.devices-text h3 {
+  font-size: 1.5rem;
+  margin-bottom: 15px;
+  color: #333;
+  line-height: 1.4;
+}
+
+/* Developers Section */
+.developers-section {
+  background-color: #1e293b;
+  color: white;
+  padding: 80px 10%;
+  text-align: center;
+}
+
+.developers-section h2 {
+  font-size: 2.2rem;
+  margin-bottom: 20px;
+  color: #fff;
+}
+
+.developers-section > p {
+  margin-bottom: 50px;
+  font-size: 1.1rem;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.6;
+}
+
+.developers-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.developer-card {
+  background-color: white;
+  border-radius: 15px;
+  padding: 40px 30px;
+  text-align: center;
+  transition: transform 0.3s ease;
+}
+
+.developer-card:hover {
+  transform: translateY(-10px);
+}
+
+.developer-card img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  margin-bottom: 20px;
+  object-fit: cover;
+}
+
+.developer-card p {
+  color: #333;
+  margin-bottom: 20px;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.social-links {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+}
+
+.social-links img {
+  width: 25px;
+  height: 25px;
+  transition: opacity 0.3s ease;
+}
+
+.social-links img:hover {
+  opacity: 0.7;
+}
+
+/* Footer Styles */
+footer {
+  background-color: #fff;
+  color: #333;
+  font-family: 'Arial', sans-serif;
+}
+
+footer .max-w-6xl {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 5%;
+}
+
+footer .flex {
+  display: flex;
+}
+
+footer .flex-col {
+  flex-direction: column;
+}
+
+footer .md\:flex-row {
+  flex-direction: row;
+}
+
+footer .justify-between {
+  justify-content: space-between;
+}
+
+footer .mb-6 {
+  margin-bottom: 1.5rem;
+}
+
+footer .md\:mb-0 {
+  margin-bottom: 0;
+}
+
+footer .px-4 {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+footer .py-8 {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+footer .text-xl {
+  font-size: 1.25rem;
+}
+
+footer .font-bold {
+  font-weight: bold;
+}
+
+footer .mb-4 {
+  margin-bottom: 1rem;
+}
+
+footer .space-x-4 {
+  gap: 1rem;
+}
+
+footer .space-y-2 > * + * {
+  margin-top: 0.5rem;
+}
+
+footer a {
+  color: #333;
+  text-decoration: none;
+}
+
+footer a.hover\:underline:hover {
+  text-decoration: underline;
+}
+
+footer .border-t {
+  border-top-width: 1px;
+  border-top-style: solid;
+}
+
+footer .border-gray-300 {
+  border-color: #e5e7eb;
+}
+
+footer .py-4 {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+footer .text-center {
+  text-align: center;
+}
+
+footer ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .feature-box {
+    padding: 35px 20px;
+    min-height: 200px;
+  }
+  
+  .smart-healthcare-section {
+    gap: 40px;
+  }
+  
+  .developers-container {
+    gap: 30px;
+  }
+}
+
+@media (max-width: 992px) {
+  .developers-container,
+  .footer-links {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .smart-healthcare-section {
+    flex-direction: column;
+    padding-top: 100px;
+    gap: 50px;
+  }
+  
+  .section-text {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  
+  .features-icons {
+    justify-content: center;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .feature-boxes {
+    flex-direction: column;
+    bottom: -250px;
+    gap: 15px;
+    width: 80%;
+  }
+  
+  .feature-box {
+    min-height: 160px;
+    padding: 30px 20px;
+  }
+  
+  .smart-healthcare-section {
+    margin-top: 270px;
+  }
+  
+  .devices-container img {
+    max-width: 80%;
+  }
+  
+  footer .md\:flex-row {
+    flex-direction: column;
+  }
+  
+  footer > div > div {
+    margin-bottom: 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px 20px;
+    background-color: rgba(0, 15, 40, 0.95);
+  }
+  
+  .navbar-links {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+  }
+  
+  .navbar-links a:after {
+    bottom: -3px;
+  }
+  
+  .hero-content h1 {
+    font-size: 2.5rem;
+  }
+  
+  .hero-content p {
+    font-size: 1rem;
+  }
+  
+  .feature-boxes {
+    flex-direction: column;
+    bottom: -120px;
+    width: 85%;
+    gap: 20px;
+  }
+  
+  .feature-box {
+    min-height: 180px;
+    padding: 30px 20px;
+  }
+  
+  .feature-box h3 {
+    font-size: 1.1rem;
+  }
+  
+  .feature-box p {
+    font-size: 0.9rem;
+  }
+  
+  .smart-healthcare-section {
+    margin-top: 140px;
+    padding-top: 100px;
+  }
+  
+  .developers-container,
+  .footer-links {
+    grid-template-columns: 1fr;
+    gap: 25px;
+  }
+  
+  .developer-card {
+    max-width: 350px;
+    margin: 0 auto;
+  }
+  
+  .footer-column {
+    text-align: center;
+  }
+  
+  .footer-links {
+    gap: 30px;
+  }
+}
+
+@media (max-width: 576px) {
+  .hero-section {
+    padding-bottom: 200px;
+  }
+  
+  .feature-boxes {
+    bottom: -160px;
+    width: 90%;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .feature-box {
+    min-height: 160px;
+    padding: 25px 15px;
+  }
+  
+  .smart-healthcare-section {
+    margin-top: 180px;
+    padding-top: 80px;
+    flex-direction: column;
+    gap: 40px;
+  }
+  
+  .features-icons {
+    flex-direction: column;
+    gap: 30px;
+  }
+  
+  .devices-container img {
+    max-width: 100%;
+  }
+  
+  footer .flex-col {
+    align-items: center;
+    text-align: center;
+  }
+}

@@ -1,0 +1,1854 @@
+/* CSS Variables for Doctor Dashboard Theme */
+:root {
+  --accent-primary: #38bdf8;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-tertiary: #f1f5f9;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --border-primary: #e2e8f0;
+  --sidebar-bg: #1e293b;
+  --sidebar-text: #ffffff;
+}
+
+/* Dark Mode Variables */
+[data-theme="dark"] {
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-tertiary: #334155;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --border-primary: #475569;
+}
+
+/* Blue Theme Text Colors */
+.doc-dashboard-wrapper {
+  color: var(--accent-primary);
+}
+
+.doc-dashboard-wrapper h1,
+.doc-dashboard-wrapper h2,
+.doc-dashboard-wrapper h3,
+.doc-dashboard-wrapper h4,
+.doc-dashboard-wrapper h5,
+.doc-dashboard-wrapper h6 {
+  color: var(--accent-primary) !important;
+}
+
+.doc-dashboard-wrapper .management-title {
+  color: var(--accent-primary) !important;
+}
+
+.doc-dashboard-wrapper .content-header h1 {
+  color: var(--accent-primary) !important;
+}
+
+.doc-dashboard-wrapper .card-header h4 {
+  color: var(--accent-primary) !important;
+}
+
+/* Settings Specific Styles */
+.doc-dashboard-wrapper .settings-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* General Card Styling */
+.doc-dashboard-wrapper .card {
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: var(--bg-secondary, #ffffff);
+  transition: box-shadow 0.3s ease;
+  max-width: 950px;
+  margin: 0 auto 1.5rem auto;
+}
+
+.doc-dashboard-wrapper .settings-section {
+  padding: 0;
+}
+
+.doc-dashboard-wrapper .settings-card {
+  margin-bottom: 25px;
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  background: var(--bg-primary);
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.doc-dashboard-wrapper .settings-card .card-header {
+  background: #f8f9fa;
+  color: #495057;
+  border-radius: 12px 12px 0 0;
+  padding: 15px 20px;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.doc-dashboard-wrapper .settings-card .card-body {
+  padding: 25px;
+  background: var(--bg-primary);
+}
+
+.doc-dashboard-wrapper .settings-actions {
+  margin-top: 30px;
+  padding: 20px;
+  text-align: center;
+  border-top: 1px solid var(--border-primary);
+  background: var(--bg-secondary);
+  border-radius: 0 0 12px 12px;
+}
+
+.doc-dashboard-wrapper .dark-mode-toggle {
+  margin-bottom: 8px;
+}
+
+.doc-dashboard-wrapper .form-switch .form-check-input:checked {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+/* Dark Mode Overrides for Settings */
+[data-theme="dark"] .doc-dashboard-wrapper .settings-card {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .settings-card .card-header {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border-bottom-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .settings-card .card-body {
+  background: var(--bg-secondary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .settings-actions {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .form-label,
+[data-theme="dark"] .doc-dashboard-wrapper .form-control,
+[data-theme="dark"] .doc-dashboard-wrapper .form-select {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .form-text {
+  color: var(--text-secondary) !important;
+}
+
+.dashboard-container {
+  padding: 20px;
+  /* margin-top: 80px; */ /* Removed or adjust if topbar is fixed */
+  text-align: center;
+}
+
+/* Doc Dashboard Specific Wrapper */
+.doc-dashboard-wrapper {
+  display: flex;
+  width: 100%;
+  height: 100vh;
+  background-color: #f5f5f5;
+  overflow: hidden;
+}
+
+/* Sidebar Styles - Applied to .doc-dashboard-wrapper .sidebar */
+.doc-dashboard-wrapper .sidebar {
+  width: 270px;
+  height: 100%;
+  background-color: #1e293b; /* Sidebar background color */
+  color: #fff;
+  transition: all 0.3s ease;
+  overflow-y: auto;
+  position: fixed; /* Fixed sidebar */
+  top: 0;
+  left: 0;
+  z-index: 1000; /* Ensure sidebar is above other content */
+}
+
+.doc-dashboard-wrapper .sidebar.closed {
+  width: 60px;
+}
+
+.doc-dashboard-wrapper .sidebar.closed .brand span,
+.doc-dashboard-wrapper .sidebar.closed .sidebar-menu ul li a span,
+.doc-dashboard-wrapper .sidebar.closed .dropdown-icon {
+  display: none;
+}
+
+.doc-dashboard-wrapper .sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  height: 60px; /* Match topbar height */
+  box-sizing: border-box;
+}
+
+.doc-dashboard-wrapper .brand {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #fff;
+}
+
+.doc-dashboard-wrapper .brand i {
+  margin-right: 10px;
+  font-size: 1.5rem;
+}
+
+.doc-dashboard-wrapper .sidebar-toggle {
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.doc-dashboard-wrapper .sidebar-menu {
+  padding: 15px 0;
+  flex-grow: 1;
+  overflow-y: auto;
+}
+
+.doc-dashboard-wrapper .sidebar-menu ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.doc-dashboard-wrapper .sidebar-menu ul li {
+  padding: 0;
+  position: relative;
+}
+
+.doc-dashboard-wrapper .sidebar-menu ul li a {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  color: #ddd;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.doc-dashboard-wrapper .sidebar-menu ul li a:hover,
+.doc-dashboard-wrapper .sidebar-menu ul li.active > a {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.doc-dashboard-wrapper .sidebar-menu ul li a i:not(.dropdown-icon) {
+  margin-right: 10px;
+  font-size: 1.2rem;
+  width: 22px;
+  text-align: center;
+}
+
+.doc-dashboard-wrapper .dropdown-icon {
+  margin-left: auto;
+  font-size: 0.8rem;
+  transition: transform 0.3s ease;
+}
+
+.doc-dashboard-wrapper .sidebar-menu ul li.active > a .dropdown-icon {
+ transform: rotate(90deg);
+}
+
+.doc-dashboard-wrapper .dropdown-menu {
+  position: relative; /* Add this to ensure it pushes down content */
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out;
+  background-color: #161f2b; /* Slightly darker background for dropdown */
+}
+
+.doc-dashboard-wrapper .dropdown-menu.show {
+  max-height: 500px; /* Adjust as needed */
+}
+
+.doc-dashboard-wrapper .dropdown-menu li a {
+  padding-left: 20px; /* Align with main button text */
+  font-size: 1rem; /* Increased font size */
+  display: flex; /* Ensure icon and text are aligned */
+  align-items: center; /* Ensure icon and text are aligned */
+}
+
+.doc-dashboard-wrapper .dropdown-menu li a i {
+  margin-right: 10px; /* Space between icon and text */
+  font-size: 1.1rem; /* Icon size */
+  width: 22px; /* Match main menu icon width */
+  text-align: center; /* Match main menu icon alignment */
+}
+
+.doc-dashboard-wrapper .sidebar.closed .dropdown-menu li a span {
+  display: none; /* Hide text when sidebar is closed */
+}
+
+/* Main Content Area */
+.doc-dashboard-wrapper .main-content {
+  flex: 1;
+  margin-left: 270px; /* Default sidebar width */
+  transition: all 0.3s ease;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* Allow scrolling for main content only */
+}
+
+.doc-dashboard-wrapper .main-content.sidebar-closed {
+  margin-left: 60px; /* Collapsed sidebar width */
+}
+
+/* Topbar Styles */
+.doc-dashboard-wrapper .topbar {
+  background: #fff;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.doc-dashboard-wrapper .path-info {
+  display: flex;
+  align-items: center;
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.doc-dashboard-wrapper .path-info i {
+  margin: 0 10px;
+  font-size: 0.7rem;
+}
+
+.doc-dashboard-wrapper .user-info {
+  display: flex;
+  align-items: center;
+}
+
+.doc-dashboard-wrapper .date-time {
+  margin-right: 20px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.doc-dashboard-wrapper .user {
+  display: flex;
+  align-items: center;
+  margin-right: 20px;
+}
+
+.doc-dashboard-wrapper .user-name {
+  margin-right: 10px;
+  font-weight: 500;
+}
+
+.doc-dashboard-wrapper .user-avatar {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  background-color: #3498db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.2rem;
+}
+
+.doc-dashboard-wrapper .logout-btn {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 1.2rem;
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.doc-dashboard-wrapper .logout-btn:hover {
+  color: #e74c3c;
+}
+
+/* Dashboard Content Area */
+.doc-dashboard-wrapper .dashboard-content {
+  padding: 20px;
+  flex: 1; /* Allow content to fill remaining space */
+  background-color: #f8f9fa; /* Light background for content area */
+}
+
+.doc-dashboard-wrapper .content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #dee2e6; /* Lighter border */
+}
+
+.doc-dashboard-wrapper .content-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.doc-dashboard-wrapper .content-header h1 {
+  margin: 0;
+  font-size: 1.75rem; /* Slightly larger */
+  color: #343a40; /* Darker heading color */
+}
+
+.doc-dashboard-wrapper .refresh-btn {
+  background: #007bff; /* Primary blue */
+  border: none;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.doc-dashboard-wrapper .refresh-btn:hover {
+  background: #0056b3; /* Darker blue */
+}
+
+.doc-dashboard-wrapper .refresh-btn i {
+  margin-right: 8px;
+  font-size: 1rem;
+}
+
+/* Patient Management & Table Styles (can be shared with Admin or specific) */
+.doc-dashboard-wrapper .patient-management {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
+  padding: 25px;
+  margin-bottom: 25px;
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.doc-dashboard-wrapper .management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.doc-dashboard-wrapper .management-title {
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: #495057;
+}
+
+.doc-dashboard-wrapper .management-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.doc-dashboard-wrapper .search-box {
+  position: relative;
+}
+
+.doc-dashboard-wrapper .search-input {
+  padding: 10px 15px 10px 40px;
+  border: 1px solid #ced4da;
+  border-radius: 5px;
+  width: 280px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.doc-dashboard-wrapper .search-input:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  outline: none;
+}
+
+.doc-dashboard-wrapper .search-icon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+}
+
+.doc-dashboard-wrapper .add-patient-btn {
+  background: #28a745; /* Bootstrap success green */
+  color: #fff;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.doc-dashboard-wrapper .add-patient-btn:hover {
+  background: #1e7e34; /* Darker green */
+}
+
+.doc-dashboard-wrapper .add-patient-btn i {
+  margin-right: 8px;
+}
+
+/* Table Styles - Match Admin Dashboard Format */
+.doc-dashboard-wrapper .table-container {
+  overflow-x: auto;
+}
+
+.doc-dashboard-wrapper .data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.doc-dashboard-wrapper .data-table th {
+  background: var(--bg-tertiary);
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-primary);
+}
+
+.doc-dashboard-wrapper .data-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--border-primary);
+  color: var(--text-primary);
+}
+
+.doc-dashboard-wrapper .data-table tr:hover {
+  background: #f9f9f9;
+}
+
+.doc-dashboard-wrapper .action-cell {
+  white-space: nowrap;
+}
+
+/* Specific column widths for the Individual Members table */
+#patient-db-tabs-tabpane-members .data-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+#patient-db-tabs-tabpane-members .data-table th,
+#patient-db-tabs-tabpane-members .data-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(1),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(1) { width: 8%; } /* Patient ID */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(2),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(2) { width: 8%; } /* Family ID */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(3),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(3) { width: 12%; } /* Name */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(4),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(4) { width: 20%; } /* Family Members */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(5),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(5) { width: 5%; text-align: center; } /* Age */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(6),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(6) { width: 7%; } /* Gender */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(7),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(7) { width: 12%; } /* Contact */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(8),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(8) { width: 10%; } /* Last Checkup */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(9),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(9) { width: 18%; text-align: center; } /* Actions */
+
+/* Status Specific Styles */
+.doc-dashboard-wrapper .status-waiting {
+  color: #ffc107; /* Bootstrap warning */
+  font-weight: bold;
+}
+
+.doc-dashboard-wrapper .status-in-progress {
+  color: #17a2b8; /* Bootstrap info */
+  font-weight: bold;
+}
+
+.doc-dashboard-wrapper .status-finished,
+.doc-dashboard-wrapper .status-completed {
+  color: #28a745; /* Bootstrap success */
+  font-weight: bold;
+}
+
+.doc-dashboard-wrapper .status-cancelled {
+  color: #dc3545; /* Bootstrap danger */
+  font-weight: bold;
+}
+
+/* Placeholder Content */
+.doc-dashboard-wrapper .content-placeholder {
+  padding: 30px;
+  text-align: center;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+}
+.doc-dashboard-wrapper .content-placeholder h2 {
+  color: #495057;
+  margin-bottom: 15px;
+}
+.doc-dashboard-wrapper .content-placeholder p {
+  color: #6c757d;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Modal Styles (using Bootstrap defaults mostly, but can be customized) */
+.doc-dashboard-wrapper .modal-backdrop.show {
+  opacity: 0.5;
+}
+
+.doc-dashboard-wrapper .modal-content {
+  border-radius: 0.3rem; /* Bootstrap default */
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.doc-dashboard-wrapper .modal-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
+}
+
+.doc-dashboard-wrapper .modal-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.doc-dashboard-wrapper .modal-footer {
+  border-top: 1px solid #dee2e6;
+  padding: 0.75rem 1.5rem;
+}
+
+/* Tabs Styling */
+.doc-dashboard-wrapper .nav-tabs .nav-link {
+  color: #007bff;
+  border-bottom-width: 2px;
+}
+
+.doc-dashboard-wrapper .nav-tabs .nav-link.active {
+  color: #495057;
+  border-color: #dee2e6 #dee2e6 #fff;
+  font-weight: 500;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 991.98px) { /* Medium devices (tablets, less than 992px) */
+  .doc-dashboard-wrapper .sidebar {
+    width: 0; /* Hide sidebar by default on smaller screens */
+  }
+  .doc-dashboard-wrapper .sidebar.open {
+    width: 270px; /* Show sidebar when toggled */
+  }
+  .doc-dashboard-wrapper .main-content,
+  .doc-dashboard-wrapper .topbar {
+    margin-left: 0;
+    width: 100%;
+  }
+  .doc-dashboard-wrapper .main-content.sidebar-open {
+    margin-left: 270px; /* Push content when sidebar is open */
+  }
+  .doc-dashboard-wrapper .topbar.sidebar-open {
+     width: calc(100% - 270px);
+     margin-left: 270px;
+  }
+
+  .doc-dashboard-wrapper .path-info span:first-child { /* "YOU ARE HERE" text */
+    display: none; /* Hide on smaller screens for brevity */
+  }
+  .doc-dashboard-wrapper .path-info i {
+    display: none; /* Hide chevron */
+  }
+}
+
+@media (max-width: 767.98px) { /* Small devices (landscape phones, less than 768px) */
+  .doc-dashboard-wrapper .topbar {
+    padding: 0 15px;
+  }
+  .doc-dashboard-wrapper .date-time {
+    display: none; /* Hide date/time on very small screens */
+  }
+  .doc-dashboard-wrapper .content-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .doc-dashboard-wrapper .content-header h1 {
+    margin-bottom: 10px;
+  }
+  .doc-dashboard-wrapper .refresh-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .doc-dashboard-wrapper .management-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .doc-dashboard-wrapper .management-actions {
+    width: 100%;
+    margin-top: 15px;
+    flex-direction: column;
+  }
+  .doc-dashboard-wrapper .search-input {
+    width: 100%;
+  }
+  .doc-dashboard-wrapper .add-patient-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Ensure this is at the end or has high specificity if overriding Bootstrap */
+.doc-dashboard-wrapper .table-container .data-table .status-waiting {
+    color: #ffc107; /* Bootstrap warning */
+    font-weight: bold;
+}
+
+.doc-dashboard-wrapper .table-container .data-table .status-in-progress {
+    color: #17a2b8; /* Bootstrap info */
+    font-weight: bold;
+}
+
+/* Ensure admin-dashboard-wrapper specific styles are not bleeding if not intended */
+/* For example, if .admin-dashboard-wrapper .sidebar has styles that conflict */
+/* It's better to namespace everything under .doc-dashboard-wrapper */
+
+/* Remove any conflicting .admin-dashboard-wrapper styles below or ensure they are not loaded */
+
+.sidebar-hamburger {
+  background: none;
+  border: none;
+  color: #fff;
+  width: 100%;
+  padding: 8px 0 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: auto;
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 40px;
+  z-index: 2;
+}
+
+.sidebar-hamburger:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.sidebar-hamburger i {
+  font-size: 1.3rem;
+  color: #fff;
+  margin: 0;
+}
+
+.doc-dashboard-wrapper .sidebar.closed .sidebar-hamburger i {
+  margin: 0;
+}
+
+/* ================================
+   COMPREHENSIVE DARK MODE STYLES
+   ================================ */
+
+/* Main Layout Dark Mode */
+[data-theme="dark"] .doc-dashboard-wrapper {
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Main Content Dark Mode */
+[data-theme="dark"] .doc-dashboard-wrapper .main-content {
+  background: var(--bg-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .dashboard-content {
+  background: var(--bg-primary) !important;
+}
+
+/* Topbar Dark Mode */
+[data-theme="dark"] .doc-dashboard-wrapper .topbar {
+  background: var(--bg-secondary) !important;
+  border-bottom-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .path-info {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .date-time {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .user-name {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .user-avatar i {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .logout-btn {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .logout-btn:hover {
+  background: var(--bg-tertiary) !important;
+}
+
+/* Content Headers Dark Mode */
+[data-theme="dark"] .doc-dashboard-wrapper .content-header {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .content-placeholder {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Patient Management Dark Mode */
+[data-theme="dark"] .doc-dashboard-wrapper .patient-management {
+  background: var(--bg-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .management-header {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .search-input {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .search-input::placeholder {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .add-patient-btn,
+[data-theme="dark"] .doc-dashboard-wrapper .refresh-btn {
+  background: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+  color: white !important;
+}
+
+/* Table Dark Mode */
+[data-theme="dark"] .doc-dashboard-wrapper .table-container {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .data-table {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .data-table th {
+  background: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .data-table td {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .data-table tbody tr:hover {
+  background: var(--bg-tertiary) !important;
+}
+
+/* Action Buttons Dark Mode */
+[data-theme="dark"] .doc-dashboard-wrapper .action-button {
+  color: var(--accent-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .action-button:hover {
+  background: var(--bg-tertiary) !important;
+  color: var(--accent-primary) !important;
+}
+
+/* Bootstrap Components Dark Mode */
+[data-theme="dark"] .doc-dashboard-wrapper .nav-tabs {
+  border-bottom-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .nav-tabs .nav-link {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .nav-tabs .nav-link.active {
+  background: var(--bg-primary) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .tab-content {
+  background: var(--bg-primary) !important;
+}
+
+/* Form Controls Dark Mode */
+[data-theme="dark"] .doc-dashboard-wrapper .form-control {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .form-control:focus {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--text-primary) !important;
+  box-shadow: 0 0 0 0.2rem rgba(56, 189, 248, 0.25) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .form-select {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Modal Dark Mode */
+[data-theme="dark"] .modal-content {
+  background: var(--bg-secondary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .modal-header {
+  background: var(--bg-tertiary) !important;
+  border-bottom-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .modal-title {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .modal-body {
+  background: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .modal-footer {
+  background: var(--bg-tertiary) !important;
+  border-top-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .btn-close {
+  filter: invert(1) !important;
+}
+
+/* Status Colors Dark Mode */
+[data-theme="dark"] .doc-dashboard-wrapper .status-waiting {
+  color: #fbbf24 !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .status-in-progress {
+  color: var(--accent-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .status-finished,
+[data-theme="dark"] .doc-dashboard-wrapper .status-completed {
+  color: #10b981 !important;
+}
+
+/* Button Dark Mode */
+[data-theme="dark"] .doc-dashboard-wrapper .btn-primary {
+  background: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .btn-outline-primary {
+  border-color: var(--accent-primary) !important;
+  color: var(--accent-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .btn-outline-primary:hover {
+  background: var(--accent-primary) !important;
+  border-color: var(--accent-primary) !important;
+  color: white !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .btn-secondary {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .btn-outline-secondary {
+  border-color: var(--border-primary) !important;
+  color: var(--text-secondary) !important;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .btn-outline-secondary:hover {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-primary) !important;
+}
+
+.doc-dashboard-wrapper .status-indicators {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.doc-dashboard-wrapper .status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.doc-dashboard-wrapper .status-badge.waiting {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.doc-dashboard-wrapper .status-badge.in-progress {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+/* Modern Checkup Table */
+.doc-dashboard-wrapper .modern-checkup-table {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.doc-dashboard-wrapper .checkup-row.waiting {
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.doc-dashboard-wrapper .checkup-row.in-progress {
+  background: rgba(34, 197, 94, 0.05);
+}
+
+.doc-dashboard-wrapper .patient-name-cell .patient-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.doc-dashboard-wrapper .patient-name-cell .patient-meta {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.doc-dashboard-wrapper .status-badge-table {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+.doc-dashboard-wrapper .status-badge-table.status-waiting {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.doc-dashboard-wrapper .status-badge-table.status-in-progress {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+}
+
+.doc-dashboard-wrapper .doctor-action-buttons {
+  display: flex;
+  gap: 6px;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 140px;
+}
+
+.doc-dashboard-wrapper .doctor-action-buttons .action-btn {
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  font-weight: 500;
+  border-radius: 4px;
+  white-space: nowrap;
+  text-align: center;
+  margin-bottom: 2px;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove all weird outlines and borders */
+.doc-dashboard-wrapper .doctor-action-buttons .action-btn:hover {
+  background-color: rgba(0,0,0,0.05) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+  border: 1px solid transparent !important;
+  outline: none !important;
+}
+
+.doc-dashboard-wrapper .doctor-action-buttons .action-btn:focus {
+  background-color: rgba(0,0,0,0.05) !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+  border: 1px solid transparent !important;
+  outline: none !important;
+}
+
+.doc-dashboard-wrapper .doctor-action-buttons .action-btn:active {
+  background-color: rgba(0,0,0,0.1) !important;
+  transform: translateY(0);
+  border: 1px solid transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Maintain button colors without weird borders */
+.doc-dashboard-wrapper .doctor-action-buttons .btn-outline-primary {
+  color: #0d6efd !important;
+  border: 1px solid transparent !important;
+}
+
+.doc-dashboard-wrapper .doctor-action-buttons .btn-outline-warning {
+  color: #fd7e14 !important;
+  border: 1px solid transparent !important;
+}
+
+.doc-dashboard-wrapper .doctor-action-buttons .btn-outline-success {
+  color: #198754 !important;
+  border: 1px solid transparent !important;
+}
+
+.doc-dashboard-wrapper .doctor-action-buttons .btn-outline-info {
+  color: #0dcaf0 !important;
+  border: 1px solid transparent !important;
+}
+
+/* Remove Bootstrap's default button focus styles */
+.doc-dashboard-wrapper .doctor-action-buttons .btn:focus,
+.doc-dashboard-wrapper .doctor-action-buttons .btn:focus-visible,
+.doc-dashboard-wrapper .doctor-action-buttons .btn.focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+.doc-dashboard-wrapper .action-cell {
+  min-width: 160px;
+  padding: 8px;
+}
+
+/* Session Management - Modern Tabs */
+.doc-dashboard-wrapper .modern-session-tabs {
+  border-radius: 12px;
+  background: var(--bg-secondary);
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.doc-dashboard-wrapper .modern-session-tabs .nav-link {
+  border-radius: 8px;
+  padding: 12px 20px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+  margin-right: 10px;
+}
+
+.doc-dashboard-wrapper .modern-session-tabs .nav-link.active {
+  background: var(--accent-primary);
+  color: white;
+  border-color: var(--accent-primary);
+}
+
+/* Ongoing Sessions - Card Grid */
+.doc-dashboard-wrapper .ongoing-sessions-container {
+  padding: 25px 0;
+}
+
+.doc-dashboard-wrapper .session-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  gap: 25px;
+  max-width: 100%;
+}
+
+.doc-dashboard-wrapper .session-card {
+  border: 1px solid var(--border-primary);
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+  background: var(--bg-primary);
+  transition: all 0.3s ease;
+  min-width: 500px;
+}
+
+.doc-dashboard-wrapper .session-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+}
+
+.doc-dashboard-wrapper .session-card-header {
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+  color: white;
+  border-radius: 16px 16px 0 0;
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Dark mode header adjustment */
+[data-theme="dark"] .doc-dashboard-wrapper .session-card-header {
+  background: linear-gradient(135deg, #1e293b, #334155);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.doc-dashboard-wrapper .session-patient-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.doc-dashboard-wrapper .patient-avatar-sm {
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.8rem;
+  color: white;
+}
+
+.doc-dashboard-wrapper .patient-details .patient-name {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.doc-dashboard-wrapper .patient-details .patient-id {
+  font-size: 0.85rem;
+  opacity: 0.9;
+}
+
+.doc-dashboard-wrapper .session-status .status-badge.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.doc-dashboard-wrapper .session-card-body {
+  padding: 25px;
+}
+
+.doc-dashboard-wrapper .session-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 15px;
+  margin-bottom: 25px;
+  padding: 15px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.doc-dashboard-wrapper .info-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.doc-dashboard-wrapper .info-item i {
+  color: var(--accent-primary);
+  font-size: 1.2rem;
+  margin-bottom: 5px;
+}
+
+.doc-dashboard-wrapper .info-label {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.doc-dashboard-wrapper .info-value {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.doc-dashboard-wrapper .session-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.doc-dashboard-wrapper .section-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  margin-bottom: 8px;
+}
+
+.doc-dashboard-wrapper .session-notes,
+.doc-dashboard-wrapper .prescription-select {
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.doc-dashboard-wrapper .session-notes:focus,
+.doc-dashboard-wrapper .prescription-select:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.1);
+}
+
+.doc-dashboard-wrapper .session-card-footer {
+  background: var(--bg-secondary);
+  border-radius: 0 0 16px 16px;
+  padding: 20px;
+}
+
+.doc-dashboard-wrapper .session-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* No Sessions Message */
+.doc-dashboard-wrapper .no-sessions-message {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.doc-dashboard-wrapper .no-sessions-content {
+  color: var(--text-secondary);
+}
+
+.doc-dashboard-wrapper .no-sessions-content i {
+  font-size: 4rem;
+  color: var(--accent-primary);
+  opacity: 0.5;
+  margin-bottom: 20px;
+}
+
+.doc-dashboard-wrapper .no-sessions-content h4 {
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+/* Finished Appointments */
+.doc-dashboard-wrapper .finished-appointments-container {
+  padding: 25px 0;
+}
+
+.doc-dashboard-wrapper .finished-appointments-header {
+  margin-bottom: 25px;
+}
+
+.doc-dashboard-wrapper .filter-controls {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.doc-dashboard-wrapper .time-filter,
+.doc-dashboard-wrapper .type-filter {
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.doc-dashboard-wrapper .modern-finished-table {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.doc-dashboard-wrapper .finished-appointments-table th {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 600;
+  border: none;
+  padding: 15px;
+}
+
+.doc-dashboard-wrapper .finished-appointment-row {
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.doc-dashboard-wrapper .patient-info-finished .patient-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.doc-dashboard-wrapper .patient-info-finished .patient-id {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.doc-dashboard-wrapper .service-badge {
+  padding: 4px 8px;
+  background: rgba(56, 189, 248, 0.1);
+  color: var(--accent-primary);
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.doc-dashboard-wrapper .duration {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.doc-dashboard-wrapper .finished-actions {
+  display: flex;
+  gap: 6px;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.doc-dashboard-wrapper .finished-actions .action-btn {
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  white-space: nowrap;
+  margin-bottom: 2px;
+}
+
+.doc-dashboard-wrapper .finished-appointments-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.doc-dashboard-wrapper .finished-appointments-table th:nth-child(1) { width: 20%; } /* Patient */
+.doc-dashboard-wrapper .finished-appointments-table th:nth-child(2) { width: 12%; } /* Date */
+.doc-dashboard-wrapper .finished-appointments-table th:nth-child(3) { width: 12%; } /* Completed */
+.doc-dashboard-wrapper .finished-appointments-table th:nth-child(4) { width: 15%; } /* Service */
+.doc-dashboard-wrapper .finished-appointments-table th:nth-child(5) { width: 12%; } /* Duration */
+.doc-dashboard-wrapper .finished-appointments-table th:nth-child(6) { width: 29%; } /* Actions */
+
+.doc-dashboard-wrapper .finished-appointments-table td {
+  padding: 12px 8px;
+  vertical-align: middle;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .doc-dashboard-wrapper .session-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .doc-dashboard-wrapper .session-info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .doc-dashboard-wrapper .session-actions {
+    flex-direction: column;
+  }
+  
+  .doc-dashboard-wrapper .doctor-action-buttons {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .doc-dashboard-wrapper .filter-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .doc-dashboard-wrapper .finished-actions {
+    flex-direction: column;
+  }
+}
+
+/* Dark Mode Adjustments */
+[data-theme="dark"] .doc-dashboard-wrapper .session-card {
+  background: var(--bg-secondary);
+  border-color: var(--border-primary);
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .session-info-grid {
+  background: var(--bg-tertiary);
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .session-notes,
+[data-theme="dark"] .doc-dashboard-wrapper .prescription-select {
+  background: var(--bg-tertiary);
+  border-color: var(--border-primary);
+  color: var(--text-primary);
+}
+
+/* ========================
+   END DOCTOR DASHBOARD MODERNIZATION
+   ======================== */
+
+/* ========================
+   APPOINTMENT HISTORY & NOTES MODAL STYLES
+   ======================== */
+
+/* Appointment History Section Styles */
+.appointment-history-container {
+  margin-top: 1rem;
+}
+
+.history-filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  align-items: center;
+}
+
+.history-filter,
+.type-filter {
+  max-width: 200px;
+  border-radius: 8px;
+  border: 2px solid var(--border-color);
+  background: var(--card-bg);
+  color: var(--text-color);
+  transition: all 0.3s ease;
+}
+
+.history-filter:focus,
+.type-filter:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.modern-history-table {
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.appointment-history-table {
+  margin-bottom: 0;
+}
+
+.appointment-history-table th {
+  background: var(--header-bg);
+  color: var(--header-text);
+  border: none;
+  padding: 1rem 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.appointment-history-table td {
+  padding: 1rem 0.75rem;
+  border-color: var(--border-color);
+  vertical-align: middle;
+}
+
+.history-row:hover {
+  background-color: var(--hover-bg);
+  transition: background-color 0.2s ease;
+}
+
+.patient-info-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.patient-name {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.patient-id {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.date-cell,
+.time-cell {
+  font-family: 'Courier New', monospace;
+  color: var(--text-muted);
+}
+
+.service-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.service-badge.consultation {
+  background-color: rgba(13, 202, 240, 0.1);
+  color: #0dcaf0;
+  border: 1px solid rgba(13, 202, 240, 0.3);
+}
+
+.service-badge.follow-up {
+  background-color: rgba(25, 135, 84, 0.1);
+  color: #198754;
+  border: 1px solid rgba(25, 135, 84, 0.3);
+}
+
+.service-badge.dental {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.service-badge.vaccination {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #ffc107;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-badge.completed {
+  background-color: rgba(25, 135, 84, 0.1);
+  color: #198754;
+  border: 1px solid rgba(25, 135, 84, 0.3);
+}
+
+.history-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.history-actions .action-btn {
+  min-width: 100px;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.history-actions .action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+/* Notes Modal Styles */
+.notes-modal-header {
+  background: var(--header-bg);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.notes-modal-header .modal-title {
+  color: var(--header-text);
+  font-weight: 600;
+}
+
+.notes-modal-body {
+  background: var(--card-bg);
+  color: var(--text-color);
+  padding: 1.5rem;
+}
+
+.appointment-details-header {
+  background: var(--secondary-bg);
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid var(--primary-color);
+}
+
+.detail-item {
+  margin-bottom: 0.5rem;
+}
+
+.detail-item strong {
+  color: var(--text-color);
+}
+
+.notes-content {
+  margin-top: 1rem;
+}
+
+.notes-title {
+  color: var(--text-color);
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.notes-text {
+  background: var(--input-bg);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  line-height: 1.6;
+  color: var(--text-color);
+  font-size: 0.95rem;
+  white-space: pre-wrap;
+}
+
+.notes-modal-footer {
+  background: var(--card-bg);
+  border-top: 1px solid var(--border-color);
+}
+
+/* Dark mode adjustments for modal */
+[data-bs-theme="dark"] .modal-content {
+  background-color: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+[data-bs-theme="dark"] .modal-header {
+  border-bottom-color: var(--border-color);
+}
+
+[data-bs-theme="dark"] .modal-footer {
+  border-top-color: var(--border-color);
+}
+
+/* Responsive adjustments for appointment history */
+@media (max-width: 768px) {
+  .history-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .history-filter,
+  .type-filter {
+    max-width: 100%;
+  }
+  
+  .history-actions {
+    flex-direction: column;
+  }
+  
+  .history-actions .action-btn {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .appointment-details-header .row .col-md-6 {
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Patient Database Table Improvements for Doctor Dashboard - Copy Admin Format */
+.doc-dashboard-wrapper .patient-management .table-container {
+  overflow-x: auto;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  margin-top: 1rem;
+}
+
+.doc-dashboard-wrapper .patient-management .data-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 0;
+}
+
+.doc-dashboard-wrapper .patient-management .data-table th {
+  background: var(--bg-tertiary);
+  padding: 12px 15px;
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-primary);
+  border-bottom: 2px solid var(--border-primary);
+  white-space: nowrap;
+}
+
+.doc-dashboard-wrapper .patient-management .data-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid var(--border-primary);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.doc-dashboard-wrapper .patient-management .data-table tr:hover {
+  background: #f9f9f9;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .patient-management .data-table tr:hover {
+  background: var(--bg-tertiary);
+}
+
+.doc-dashboard-wrapper .patient-management .action-cell {
+  white-space: nowrap;
+}
+
+/* Specific column widths for the Individual Members table */
+#patient-db-tabs-tabpane-members .data-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+#patient-db-tabs-tabpane-members .data-table th,
+#patient-db-tabs-tabpane-members .data-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(1),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(1) { width: 8%; } /* Patient ID */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(2),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(2) { width: 8%; } /* Family ID */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(3),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(3) { width: 12%; } /* Name */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(4),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(4) { width: 20%; } /* Family Members */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(5),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(5) { width: 5%; text-align: center; } /* Age */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(6),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(6) { width: 7%; } /* Gender */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(7),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(7) { width: 12%; } /* Contact */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(8),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(8) { width: 10%; } /* Last Checkup */
+
+#patient-db-tabs-tabpane-members .data-table th:nth-child(9),
+#patient-db-tabs-tabpane-members .data-table td:nth-child(9) { width: 18%; text-align: center; } /* Actions */
