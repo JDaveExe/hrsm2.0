@@ -1,10 +1,115 @@
-# Getting Started with Create React App
+# 🏥 Maybunga Health Station Management System
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A comprehensive healthcare management system built with React.js frontend and Node.js backend, designed specifically for Maybunga Health Station.
 
-## Available Scripts
+## 📋 Features
 
-In the project directory, you can run:
+### 👨‍💼 Admin Dashboard
+- **Patient Management**: Complete patient database with family grouping
+- **User Management**: Create and manage system users (Doctors, Nurses, Aides, etc.)
+- **Appointment Scheduling**: Comprehensive appointment management system
+- **Today's Checkups**: Real-time monitoring of daily patient checkups
+- **Reports & Analytics**: Healthcare data analysis and reporting
+- **Settings**: System configuration and preferences
+
+### 👨‍⚕️ Doctor Dashboard
+- **Today's Checkups**: View patients ready for consultation
+- **Session Management**: Handle ongoing patient sessions
+- **Patient Database**: Access to patient records and history
+- **Appointment History**: Complete appointment tracking
+- **Medical Records**: Create and manage patient medical records
+- **Settings**: Personal preferences and clinical settings
+
+### 🎨 Design Features
+- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
+- **Dark/Light Mode**: Full theme switching support
+- **Modern UI**: Clean, professional healthcare interface
+- **Role-Based Access**: Secure access control for different user types
+
+## 🛠️ Technology Stack
+
+### Frontend
+- **React.js 18+**: Modern React with functional components and hooks
+- **Bootstrap 5**: Responsive CSS framework
+- **React Bootstrap**: Bootstrap components for React
+- **CSS Variables**: Dynamic theming system
+- **Bootstrap Icons**: Comprehensive icon library
+
+### Backend (In Development)
+- **Node.js**: JavaScript runtime
+- **Express.js**: Web application framework
+- **MongoDB**: NoSQL database
+- **Mongoose**: MongoDB object modeling
+- **JWT**: Authentication and authorization
+- **bcrypt**: Password hashing
+- **Multer**: File upload handling
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (v16 or higher)
+- npm or yarn package manager
+- Git
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/[your-username]/maybunga-health-system.git
+   cd maybunga-health-system
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start the development server**
+   ```bash
+   npm start
+   ```
+
+4. **Access the application**
+   - Frontend: http://localhost:3000
+
+## 📱 Usage
+
+### Default Login Credentials (Development)
+- **Admin**: admin@maybunga.health / password123
+- **Doctor**: doctor@maybunga.health / password123
+
+### Navigation
+1. **Homepage**: Overview of the health station
+2. **Admin Dashboard**: Complete system management
+3. **Doctor Dashboard**: Clinical workflow management
+4. **About Us**: Information about the health station
+5. **Contact Us**: Contact information and location
+
+## 🚧 Development Status
+
+### ✅ Completed Features
+- Frontend UI/UX design
+- Admin Dashboard functionality
+- Doctor Dashboard interface
+- Responsive design implementation
+- Dark/Light mode theming
+- User management system
+- Patient database interface
+
+### 🔄 In Progress
+- Backend API development
+- Database integration
+- Authentication system
+- File upload functionality
+
+### 📅 Planned Features
+- Real-time notifications
+- QR code patient check-in
+- Medical record templates
+- Prescription management
+- Report generation
+
+## 📄 Available Scripts
 
 ### `npm start`
 
