@@ -30,9 +30,12 @@ const DocDashboard = () => {
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
   const [showPatientDetailsModal, setShowPatientDetailsModal] = useState(false);
+  const [showFamilyModal, setShowFamilyModal] = useState(false);
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [selectedAppointmentNotes, setSelectedAppointmentNotes] = useState(null);
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [selectedFamily, setSelectedFamily] = useState(null);
+  const [showManageDropdown, setShowManageDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [tabKey, setTabKey] = useState('families');
   
@@ -40,6 +43,14 @@ const DocDashboard = () => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [workingHours, setWorkingHours] = useState({ start: '08:00', end: '17:00' });
   const [defaultAppointmentDuration, setDefaultAppointmentDuration] = useState(30);
+
+  // Helper function for date formatting will be used from the common function below
+
+  // Placeholder for vital signs handler
+  const handleVitalSignsPlaceholder = (patient) => {
+    console.log('Open vital signs for patient:', patient.id);
+    // TODO: Implement vital signs view
+  };
   const [vitalSignsUnit, setVitalSignsUnit] = useState('metric');
   const [autoSaveNotes, setAutoSaveNotes] = useState(true);
   const [reminderMinutes, setReminderMinutes] = useState(10);
@@ -182,6 +193,29 @@ const DocDashboard = () => {
   const handleQRCode = (patient) => {
     setSelectedPatient(patient);
     setShowQRCodeModal(true);
+  };
+
+  const handleViewFamily = (family) => {
+    setSelectedFamily(family);
+    setShowFamilyModal(true);
+  };
+
+  const getFamilyMembers = (familyId) => {
+    return patients.filter(patient => patient.familyId === familyId);
+  };
+
+  const handleManageDropdown = () => {
+    setShowManageDropdown(!showManageDropdown);
+  };
+
+  const handleReassignFamily = () => {
+    alert(`Patient reassignment feature will be available once backend is integrated.`);
+    setShowManageDropdown(false);
+  };
+
+  const handleDeletePatient = () => {
+    alert(`Patient deletion feature will be available once backend is integrated.`);
+    setShowManageDropdown(false);
   };
 
   const handleStartSession = (checkup) => {
@@ -832,95 +866,118 @@ const DocDashboard = () => {
   const renderPatientDatabase = () => (
     <>
       <div className="content-header">
-        <h1>Patient Management</h1>
+        <h1>
+          <i className="bi bi-person-badge me-2 text-primary"></i>
+          Patient Database
+        </h1>
+        <button className="refresh-btn" onClick={handleRefreshData}>
+          <i className="bi bi-arrow-clockwise"></i> Refresh Data
+        </button>
       </div>
       <div className="patient-management">
         <div className="management-header">
-          <h2 className="management-title">Patient Database</h2>
+          <h2 className="management-title">Manage Patient and Family Records</h2>
           <div className="management-actions">
             <div className="search-box">
               <i className="bi bi-search search-icon"></i>
-              <input 
-                type="text" 
-                placeholder="Search patient or family..." 
+              <input
+                type="text"
+                placeholder="Search patient or family..."
                 className="search-input"
                 value={searchTerm}
                 onChange={handlePatientSearch}
               />
             </div>
-            <button className="refresh-btn" onClick={handleRefreshData}>
-              <i className="bi bi-arrow-clockwise"></i>
-              Refresh Data
-            </button>
           </div>
         </div>
-        <Tabs
-          activeKey={tabKey}
-          onSelect={(k) => setTabKey(k)}
-          className="mb-3"
-        >
+        
+        <Tabs activeKey={tabKey} onSelect={(k) => setTabKey(k)} id="patient-database-tabs" className="mb-3">
           <Tab eventKey="families" title="Family Records">
             <div className="table-container">
               <Table hover responsive className="data-table">
                 <thead>
                   <tr>
-                    <th style={{textAlign: 'left'}}>Family ID</th>
-                    <th style={{textAlign: 'left'}}>Family Name</th>
-                    <th style={{textAlign: 'left'}}>Contact Number</th>
-                    <th style={{textAlign: 'right'}}>Members</th>
-                    <th style={{textAlign: 'left'}}>Registration Date</th>
-                    <th style={{textAlign: 'center'}}>Actions</th>
+                    <th>Family ID</th>
+                    <th>Family Name</th>
+                    <th>Members</th>
+                    <th>Primary Contact</th>
+                    <th>Contact Number</th>
+                    <th>Registration Date</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredFamilies().map((family) => (
+                  {filteredFamilies().map(family => (
                     <tr key={family.id}>
-                      <td style={{textAlign: 'left'}}>{family.id}</td>
-                      <td style={{textAlign: 'left'}}>{family.familyName}</td>
-                      <td style={{textAlign: 'left'}}>{family.contact}</td>
-                      <td style={{textAlign: 'right'}}>{family.memberCount}</td>
-                      <td style={{textAlign: 'left'}}>{formatShortDate(family.registrationDate)}</td>
-                      <td style={{textAlign: 'center'}} className="action-cell">
-                        <Button variant="outline-primary" size="sm" onClick={() => alert('View Members for ' + family.familyName)}>View Members</Button>
+                      <td>{family.id}</td>
+                      <td>{family.familyName}</td>
+                      <td>{getFamilyMembers(family.id).length}</td>
+                      <td>{family.contactPerson}</td>
+                      <td>{family.contact}</td>
+                      <td>{formatShortDate(family.registrationDate)}</td>
+                      <td>
+                        <Button 
+                          variant="outline-primary" 
+                          size="sm"
+                          onClick={() => handleViewFamily(family)}
+                        >
+                          <i className="bi bi-eye-fill me-1"></i>
+                          View Members
+                        </Button>
                       </td>
                     </tr>
                   ))}
+                  {filteredFamilies().length === 0 && (
+                    <tr>
+                      <td colSpan="7" className="text-center no-data">No families found.</td>
+                    </tr>
+                  )}
                 </tbody>
               </Table>
             </div>
           </Tab>
-          <Tab eventKey="members" title="Individual Members">
+          <Tab eventKey="individuals" title="Individual Members">
             <div className="table-container">
               <Table hover responsive className="data-table">
                 <thead>
                   <tr>
-                    <th style={{textAlign: 'left'}}>Patient ID</th>
-                    <th style={{textAlign: 'left'}}>Family ID</th>
-                    <th style={{textAlign: 'left'}}>Name</th>
-                    <th style={{textAlign: 'left'}}>Family Members</th>
-                    <th style={{textAlign: 'right'}}>Age</th>
-                    <th style={{textAlign: 'left'}}>Gender</th>
-                    <th style={{textAlign: 'left'}}>Contact Number</th>
-                    <th style={{textAlign: 'left'}}>Last Checkup</th>
-                    <th style={{textAlign: 'center'}}>Actions</th>
+                    <th>Patient ID</th>
+                    <th>Name</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>Family ID</th>
+                    <th>Contact</th>
+                    <th>Last Checkup</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPatients().map((patient) => (
+                  {filteredPatients().map(patient => (
                     <tr key={patient.id}>
-                      <td style={{textAlign: 'left'}}>PT-{String(patient.id).padStart(4, '0')}</td>
-                      <td style={{textAlign: 'left'}}>{patient.familyId}</td>
-                      <td style={{textAlign: 'left'}}>{patient.name}</td>
-                      <td style={{textAlign: 'left'}}>{patients.filter(m => m.familyId === patient.familyId).map(m => m.name).join(', ')}</td>
-                      <td style={{textAlign: 'right'}}>{patient.age}</td>
-                      <td style={{textAlign: 'left'}}>{patient.gender}</td>
-                      <td style={{textAlign: 'left'}}>{patient.contact}</td>
-                      <td style={{textAlign: 'left'}}>{formatShortDate(patient.lastCheckup)}</td>
-                      <td style={{textAlign: 'center'}} className="action-cell">
-                        <Button variant="outline-primary" size="sm" onClick={() => handleViewPatient(patient)}>View Information</Button>
+                      <td>PT-{String(patient.id).padStart(4, '0')}</td>
+                      <td>{patient.name}</td>
+                      <td>{patient.age}</td>
+                      <td>{patient.gender}</td>
+                      <td>{patient.familyId}</td>
+                      <td>{patient.contact}</td>
+                      <td>{formatShortDate(patient.lastCheckup)}</td>
+                      <td>
+                        <Button 
+                          variant="outline-info" 
+                          size="sm"
+                          onClick={() => handleViewPatient(patient)}
+                        >
+                          <i className="bi bi-person-circle me-1"></i>
+                          View Info
+                        </Button>
                       </td>
                     </tr>
                   ))}
+                  {filteredPatients().length === 0 && (
+                    <tr>
+                      <td colSpan="8" className="text-center no-data">No patients found.</td>
+                    </tr>
+                  )}
                 </tbody>
               </Table>
             </div>
@@ -1332,16 +1389,183 @@ const DocDashboard = () => {
         </Modal.Footer>
       </Modal>
 
-      {/* Patient Details Modal (copied from AdminDashboard) */}
+      {/* Patient Details Modal - System-Compliant Design */}
       {selectedPatient && (
-        <Modal show={showPatientDetailsModal} onHide={() => setShowPatientDetailsModal(false)} size="xl">
-          <Modal.Header closeButton><Modal.Title>Patient Details: {selectedPatient.name}</Modal.Title></Modal.Header>
-          <Modal.Body>
-            <p><em>Placeholder: Detailed patient information, medical history, etc. Backend integration needed.</em></p>
-            <pre>{JSON.stringify(selectedPatient, null, 2)}</pre>
+        <Modal 
+          show={showPatientDetailsModal} 
+          onHide={() => {
+            setShowPatientDetailsModal(false);
+            setShowManageDropdown(false);
+          }}
+          size="xl"
+          centered
+          className="patient-details-modal"
+        >
+          <Modal.Header 
+            closeButton 
+            style={{
+              background: 'var(--sidebar-bg)', 
+              color: 'var(--sidebar-text)', 
+              border: 'none',
+              borderRadius: '12px 12px 0 0'
+            }}
+          >
+            <Modal.Title className="d-flex align-items-center">
+              <i className="bi bi-person-circle me-3" style={{fontSize: '1.5rem'}}></i>
+              Patient Information
+            </Modal.Title>
+          </Modal.Header>
+          
+          <Modal.Body style={{background: 'var(--bg-primary)', padding: 0}}>
+            <div style={{padding: '24px'}}>
+              {/* Header Section with Patient Name */}
+              <div className="d-flex justify-content-between align-items-center mb-4" style={{
+                background: 'var(--bg-secondary)', 
+                padding: '20px', 
+                borderRadius: '12px',
+                border: '1px solid var(--border-primary)'
+              }}>
+                <div>
+                  <h3 style={{color: 'var(--text-primary)', margin: 0, fontWeight: 600}}>
+                    {selectedPatient.name || 'Maria Santos'}
+                  </h3>
+                  <span style={{
+                    color: 'var(--accent-primary)', 
+                    fontSize: '0.9rem', 
+                    fontWeight: 500
+                  }}>
+                    Patient ID: PT-{String(selectedPatient.id).padStart(4, '0')}
+                  </span>
+                </div>
+                
+                <div className="d-flex gap-2">
+                  <Button 
+                    variant="outline-success" 
+                    size="sm"
+                    style={{borderRadius: '8px', fontWeight: 500}}
+                    onClick={() => handleQRCode(selectedPatient)}
+                  >
+                    <i className="bi bi-qr-code me-1"></i>
+                    Generate QR
+                  </Button>
+                  <Button 
+                    variant="outline-warning" 
+                    size="sm"
+                    style={{borderRadius: '8px', fontWeight: 500}}
+                    onClick={() => handleVitalSigns(selectedPatient)}
+                  >
+                    <i className="bi bi-heart-pulse me-1"></i>
+                    Vital Signs
+                  </Button>
+                </div>
+              </div>
+
+              {/* Information Cards Grid */}
+              <div className="row g-3 mb-4">
+                {/* Personal Information Card */}
+                <div className="col-md-6">
+                  <div style={{
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '12px',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      background: 'var(--accent-primary)',
+                      color: 'white',
+                      padding: '12px 16px',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <i className="bi bi-person-circle"></i>
+                      Personal Information
+                    </div>
+                    <div style={{padding: '16px'}}>
+                      <div className="row g-2">
+                        <div className="col-4">
+                          <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Age</small>
+                          <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
+                            {selectedPatient.age || '35'}
+                          </div>
+                        </div>
+                        <div className="col-4">
+                          <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Gender</small>
+                          <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
+                            {selectedPatient.gender || 'Female'}
+                          </div>
+                        </div>
+                        <div className="col-4">
+                          <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Last Checkup</small>
+                          <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
+                            {formatShortDate(selectedPatient.lastCheckup) || 'May 15, 2023'}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Information Card */}
+                <div className="col-md-6">
+                  <div style={{
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-primary)',
+                    borderRadius: '12px',
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      background: 'var(--success)',
+                      color: 'white',
+                      padding: '12px 16px',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <i className="bi bi-telephone"></i>
+                      Contact Information
+                    </div>
+                    <div style={{padding: '16px'}}>
+                      <div className="mb-2">
+                        <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Phone</small>
+                        <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
+                          {selectedPatient.contact || '09123456789'}
+                        </div>
+                      </div>
+                      <div className="mb-2">
+                        <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Family ID</small>
+                        <div style={{color: 'var(--accent-primary)', fontWeight: 500}}>
+                          {selectedPatient.familyId || 'FAM-001'}
+                        </div>
+                      </div>
+                      <div>
+                        <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Address</small>
+                        <div style={{color: 'var(--text-primary)', fontWeight: 500, fontSize: '0.9rem'}}>
+                          {selectedPatient.address || '15 San Guillermo Street, Palatiw, Pasig, Metro Manila'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Note */}
+              <div className="text-center mt-3">
+                <small style={{color: 'var(--text-secondary)', fontStyle: 'italic'}}>
+                  More patient details and medical history will be available once backend is integrated.
+                </small>
+              </div>
+            </div>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowPatientDetailsModal(false)}>Close</Button>
+            <Button variant="secondary" onClick={() => {
+              setShowPatientDetailsModal(false);
+              setShowManageDropdown(false);
+            }}>
+              Close
+            </Button>
           </Modal.Footer>
         </Modal>
       )}
@@ -1459,6 +1683,56 @@ const DocDashboard = () => {
           >
             <i className="bi bi-printer me-1"></i>
             Print Record
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Family Members Modal */}
+      <Modal show={showFamilyModal} onHide={() => setShowFamilyModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Family Members</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedFamily && (
+            <>
+              <h5>Family Name: {selectedFamily.familyName}</h5>
+              <p><strong>Family ID:</strong> {selectedFamily.id}</p>
+              <p><strong>Contact Number:</strong> {selectedFamily.contact}</p>
+              <p><strong>Registration Date:</strong> {formatShortDate(selectedFamily.registrationDate)}</p>
+              <Table hover responsive className="data-table mt-4">
+                <thead>
+                  <tr>
+                    <th style={{textAlign: 'left'}}>Patient ID</th>
+                    <th style={{textAlign: 'left'}}>Name</th>
+                    <th style={{textAlign: 'right'}}>Age</th>
+                    <th style={{textAlign: 'left'}}>Gender</th>
+                    <th style={{textAlign: 'left'}}>Contact Number</th>
+                    <th style={{textAlign: 'left'}}>Last Checkup</th>
+                    <th style={{textAlign: 'center'}}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {getFamilyMembers(selectedFamily.id).map(member => (
+                    <tr key={member.id}>
+                      <td style={{textAlign: 'left'}}>PT-{String(member.id).padStart(4, '0')}</td>
+                      <td style={{textAlign: 'left'}}>{member.name}</td>
+                      <td style={{textAlign: 'right'}}>{member.age}</td>
+                      <td style={{textAlign: 'left'}}>{member.gender}</td>
+                      <td style={{textAlign: 'left'}}>{member.contact}</td>
+                      <td style={{textAlign: 'left'}}>{formatShortDate(member.lastCheckup)}</td>
+                      <td style={{textAlign: 'center'}} className="action-cell">
+                        <Button variant="outline-primary" size="sm" onClick={() => { setShowFamilyModal(false); setTimeout(() => handleViewPatient(member), 300); }}>View Information</Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowFamilyModal(false)}>
+            Close
           </Button>
         </Modal.Footer>
       </Modal>

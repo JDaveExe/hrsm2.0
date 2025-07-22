@@ -1386,10 +1386,17 @@
 }
 
 .admin-dashboard-wrapper .forecast-card .card-header {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-  color: white;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
   padding: 12px 15px;
   border-radius: 10px 10px 0 0;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+/* Dark mode specific gradient for forecast card headers */
+[data-theme="dark"] .admin-dashboard-wrapper .forecast-card .card-header {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  color: white;
   border-bottom: none;
 }
 

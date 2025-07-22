@@ -16,12 +16,15 @@ const logger = require('./middleware/logger');
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const adminRoutes = require('./routes/admin');
 const userRoutes = require('./routes/users');
 const patientRoutes = require('./routes/patients');
 const doctorRoutes = require('./routes/doctors');
 const appointmentRoutes = require('./routes/appointments');
 const medicalRecordRoutes = require('./routes/medicalRecords');
 const prescriptionRoutes = require('./routes/prescriptions');
+const checkinRoutes = require('./routes/checkin');
+const systemRoutes = require('./routes/system');
 
 // Security middleware
 app.use(helmet());
@@ -52,14 +55,17 @@ app.use(cookieParser());
 // Custom middleware
 app.use(logger);
 
-// API Routes
+// Mount routes
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/doctors', doctorRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/medical-records', medicalRecordRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
+app.use('/api/checkin', checkinRoutes);
+app.use('/api/system', systemRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

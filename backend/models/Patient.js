@@ -77,6 +77,20 @@ const patientSchema = new mongoose.Schema({
   familyId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Family',
+    default: null // null means "Unsorted Member"
+  },
+  registrationType: {
+    type: String,
+    enum: ['online', 'admin', 'staff'],
+    default: 'online'
+  },
+  assignedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null // Track who assigned the patient to a family
+  },
+  assignedAt: {
+    type: Date,
     default: null
   },
   medicalHistory: [{
