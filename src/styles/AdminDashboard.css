@@ -4536,3 +4536,463 @@
     width: 100%;
   }
 }
+
+/* Unsorted Members Styles */
+.unsorted-section {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.unsorted-section .section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--border-primary);
+}
+
+.unsorted-section .section-info h4 {
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.unsorted-section .section-info p {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 14px;
+}
+
+.unsorted-section .section-actions .add-patient-btn {
+  background: #28a745;
+  border: none;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.unsorted-section .section-actions .add-patient-btn:hover:not(:disabled) {
+  background: #218838;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.unsorted-section .section-actions .add-patient-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.unsorted-section .empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-secondary);
+}
+
+.unsorted-section .empty-state i {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: #28a745;
+}
+
+.unsorted-section .empty-state h4 {
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.unsorted-section .empty-state p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Autosort Modal Styles */
+.autosort-results {
+  color: var(--text-primary);
+}
+
+.autosort-results .sorted-section h5,
+.autosort-results .needs-family-section h5 {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.autosort-results .sorted-list,
+.autosort-results .needs-family-list {
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid var(--border-primary);
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--bg-tertiary);
+}
+
+.autosort-results .sorted-list div,
+.autosort-results .needs-family-list div {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-secondary);
+  color: var(--text-primary);
+}
+
+.autosort-results .sorted-list div:last-child,
+.autosort-results .needs-family-list div:last-child {
+  border-bottom: none;
+}
+
+/* User Management Table Styles */
+.users-table-container {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.users-table {
+  margin-bottom: 0;
+  transition: all 0.3s ease;
+}
+
+.users-table th {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 600;
+  border: none;
+  padding: 16px;
+  transition: all 0.3s ease;
+}
+
+.users-table td {
+  color: var(--text-primary);
+  padding: 16px;
+  vertical-align: middle;
+  border-color: var(--border-primary);
+  transition: all 0.3s ease;
+}
+
+/* Edit Mode Transitions */
+.users-table tr {
+  transition: all 0.3s ease;
+}
+
+.users-table tr:hover {
+  background-color: var(--bg-tertiary);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Action Buttons Column with Smooth Transitions */
+.users-table .action-column-header {
+  opacity: 0;
+  width: 0;
+  padding: 0;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  transform: translateX(-20px);
+}
+
+.users-table .action-column-header.show {
+  opacity: 1;
+  width: 120px;
+  padding: 16px;
+  transform: translateX(0);
+}
+
+.users-table .action-column {
+  opacity: 0;
+  width: 0;
+  padding: 0;
+  overflow: hidden;
+  transition: all 0.4s ease;
+  transform: translateX(-20px);
+}
+
+.users-table .action-column.show {
+  opacity: 1;
+  width: 120px;
+  padding: 16px;
+  transform: translateX(0);
+}
+
+.users-table .action-column .action-btn {
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.3s ease;
+  transition-delay: 0.1s;
+}
+
+.users-table .action-column.show .action-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.users-table .action-column.show .action-btn:nth-child(2) {
+  transition-delay: 0.2s;
+}
+
+/* Enhanced Action Button Transitions */
+.action-btn {
+  padding: 6px 8px;
+  border: none;
+  border-radius: 4px;
+  margin: 0 2px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  transform: scale(1);
+}
+
+.user-type-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.user-type-badge.admin {
+  background: #dc3545;
+  color: white;
+}
+
+.user-type-badge.doctor {
+  background: #007bff;
+  color: white;
+}
+
+.password-mask {
+  font-family: monospace;
+  font-size: 16px;
+  color: var(--text-secondary);
+}
+
+/* Manage Button and Dropdown Enhancements */
+.manage-dropdown-container {
+  position: relative;
+  display: inline-block;
+}
+
+.manage-btn {
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.manage-btn:hover {
+  background: var(--accent-secondary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.manage-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
+}
+
+.manage-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 180px;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(-10px) scale(0.95);
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  pointer-events: none;
+}
+
+.manage-dropdown-menu.show {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: all;
+}
+
+.manage-dropdown-menu .dropdown-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  text-align: left;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  opacity: 0;
+  transform: translateX(-10px);
+  animation: slideInRight 0.3s ease forwards;
+}
+
+.manage-dropdown-menu .dropdown-item:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.manage-dropdown-menu .dropdown-item:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.manage-dropdown-menu .dropdown-item:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes slideInRight {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.manage-dropdown-menu .dropdown-item:hover {
+  background: var(--bg-tertiary);
+  padding-left: 20px;
+}
+
+.action-btn {
+  padding: 6px 8px;
+  border: none;
+  border-radius: 4px;
+  margin: 0 2px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-btn.edit {
+  background: #ffc107;
+  color: #000;
+}
+
+.action-btn.edit:hover {
+  background: #ffca2c;
+  transform: scale(1.1);
+}
+
+.action-btn.delete {
+  background: #dc3545;
+  color: white;
+}
+
+.action-btn.delete:hover {
+  background: #e55a65;
+  transform: scale(1.1);
+}
+
+.access-rights-user {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+}
+
+.access-rights-user h5 {
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.access-rights-user .form-check {
+  margin-bottom: 8px;
+}
+
+.access-rights-user .form-check-label {
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+/* Header Actions */
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Responsive User Management */
+@media (max-width: 768px) {
+  .users-table-container {
+    padding: 16px;
+    margin: 0 16px;
+  }
+  
+  .manage-dropdown-menu {
+    right: -16px;
+    left: -16px;
+    min-width: auto;
+  }
+  
+  .header-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .manage-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .users-table {
+    font-size: 12px;
+  }
+  
+  .users-table th,
+  .users-table td {
+    padding: 8px;
+  }
+  
+  .action-btn {
+    padding: 4px 6px;
+    font-size: 12px;
+  }
+}
+
+.autosort-results .needs-family-section p {
+  color: var(--text-secondary);
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+/* Responsive Unsorted Members */
+@media (max-width: 768px) {
+  .unsorted-section .section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  
+  .unsorted-section .section-actions {
+    align-self: stretch;
+  }
+  
+  .unsorted-section .section-actions .add-patient-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .unsorted-section {
+    padding: 16px;
+    margin: 0 16px 24px 16px;
+  }
+}

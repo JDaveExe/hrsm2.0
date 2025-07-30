@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Modal, Button, Form, InputGroup, Row, Col, Table, Card, Tabs, Tab, Accordion } from 'react-bootstrap';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, BarElement, ArcElement } from 'chart.js';
@@ -9,6 +9,9 @@ import 'react-datepicker/dist/react-datepicker.css';
 import '../styles/AdminDashboard.css';
 // Import icons from bootstrap-icons
 import 'bootstrap-icons/font/bootstrap-icons.css';
+// Import admin services
+import { patientService, familyService } from '../services/adminService';
+import userService from '../services/userService';
 
 // Register ChartJS components
 ChartJS.register(
@@ -25,6 +28,66 @@ ChartJS.register(
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  
+  // User Management states - Move these BEFORE useEffect to avoid initialization errors
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [showAccessRightsModal, setShowAccessRightsModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [showUserManageDropdown, setShowUserManageDropdown] = useState(false);
+  const [showUserTypeSelection, setShowUserTypeSelection] = useState(true);
+  const [selectedUserType, setSelectedUserType] = useState('');
+  const [userFormData, setUserFormData] = useState({
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    emailInitials: '',
+    password: '',
+    confirmPassword: '',
+    role: 'aide',
+    position: 'Aide',
+    userType: '' // admin or doctor access level
+  });
+  
+  // Password visibility states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Add browser navigation control
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      // Check if there's unsaved form data
+      if (userFormData.firstName || userFormData.lastName || userFormData.emailInitials) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+      }
+    };
+
+    const handlePopState = (e) => {
+      // Check if there's unsaved form data
+      if (userFormData.firstName || userFormData.lastName || userFormData.emailInitials) {
+        const confirmLeave = window.confirm('You have unsaved changes. Are you sure you want to leave?');
+        if (!confirmLeave) {
+          e.preventDefault();
+          window.history.pushState(null, '', window.location.href);
+        }
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('popstate', handlePopState);
+    
+    // Push current state to prevent immediate back navigation
+    window.history.pushState(null, '', window.location.href);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [userFormData]);
+  
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -45,20 +108,11 @@ const AdminDashboard = () => {
   const [inventoryTabKey, setInventoryTabKey] = useState('vaccines');
   const [isDarkMode, setIsDarkMode] = useState(false);
   
-  // User Management states
-  const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [showEditUserModal, setShowEditUserModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [userFormData, setUserFormData] = useState({
-    firstName: '',
-    middleName: '',
-    lastName: '',
-    emailInitials: '',
-    password: '',
-    confirmPassword: '',
-    role: 'aide',
-    position: 'Aide'
-  });
+  // Users data and loading state
+  const [users, setUsers] = useState([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [userError, setUserError] = useState(null);
+  const [backendConnected, setBackendConnected] = useState(false);
   
   // Unit conversion preferences
   const [weightUnit, setWeightUnit] = useState('kg'); // 'kg' or 'lbs'
@@ -77,12 +131,45 @@ const AdminDashboard = () => {
     pendingAppointments: 8,
     completedToday: 7
   });
+
+  // Unsorted members states
+  const [unsortedPatients, setUnsortedPatients] = useState([]);
+  const [autosortResults, setAutosortResults] = useState(null);
+  const [showAutosortModal, setShowAutosortModal] = useState(false);
+  const [isLoadingAutosort, setIsLoadingAutosort] = useState(false);
+  const [families, setFamilies] = useState([]);
+  const [familySortConfig, setFamilySortConfig] = useState({ key: 'familyName', direction: 'ascending' });
+  const [memberSortConfig, setMemberSortConfig] = useState({ key: 'id', direction: 'ascending' });
+
+  const requestSort = (key, config, setConfig) => {
+    let direction = 'ascending';
+    if (config.key === key && config.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setConfig({ key, direction });
+  };
+
+  const sortedFamilies = useMemo(() => {
+    let sortableItems = [...families];
+    if (familySortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        if (a[familySortConfig.key] < b[familySortConfig.key]) {
+          return familySortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (a[familySortConfig.key] > b[familySortConfig.key]) {
+          return familySortConfig.direction === 'ascending' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [families, familySortConfig]);
   
   // Sample patients data
   const [patients, setPatients] = useState([
     { 
       id: 1, 
-      familyId: 'FAM-001',
+      familyId: 'SANTOS-001',
       name: 'Maria Santos', 
       age: 35, 
       gender: 'Female',
@@ -94,7 +181,7 @@ const AdminDashboard = () => {
     },
     { 
       id: 2, 
-      familyId: 'FAM-001',
+      familyId: 'SANTOS-001',
       name: 'Juan Santos', 
       age: 38, 
       gender: 'Male',
@@ -106,7 +193,7 @@ const AdminDashboard = () => {
     },
     { 
       id: 3, 
-      familyId: 'FAM-002',
+      familyId: 'REYES-002',
       name: 'Ana Reyes', 
       age: 42, 
       gender: 'Female',
@@ -118,7 +205,7 @@ const AdminDashboard = () => {
     },
     { 
       id: 4, 
-      familyId: 'FAM-003',
+      familyId: 'MENDOZA-003',
       name: 'Carlos Mendoza', 
       age: 55, 
       gender: 'Male',
@@ -130,19 +217,20 @@ const AdminDashboard = () => {
     }
   ]);
   
-  // Sample families data
-  const [families, setFamilies] = useState([
-    {
-      id: 'FAM-001',
-      familyName: 'Santos Family',
-      address: '123 Maybunga St, Pasig City',
-      contactPerson: 'Juan Santos',
-      contact: '09123456790',
-      memberCount: 4,
+  // Sample families data (using the existing families state)
+  useEffect(() => {
+    setFamilies([
+      {
+        id: 'SANTOS-001',
+        familyName: 'Santos Family',
+        address: '123 Maybunga St, Pasig City',
+        contactPerson: 'Juan Santos',
+        contact: '09123456790',
+        memberCount: 4,
       registrationDate: '2023-01-15'
     },
     {
-      id: 'FAM-002',
+      id: 'REYES-002',
       familyName: 'Reyes Family',
       address: '45 E. Rodriguez Ave, Pasig City',
       contactPerson: 'Ana Reyes',
@@ -151,7 +239,7 @@ const AdminDashboard = () => {
       registrationDate: '2023-02-10'
     },
     {
-      id: 'FAM-003',
+      id: 'MENDOZA-003',
       familyName: 'Mendoza Family',
       address: '78 C. Raymundo Ave, Pasig City',
       contactPerson: 'Carlos Mendoza',
@@ -159,7 +247,78 @@ const AdminDashboard = () => {
       memberCount: 2,
       registrationDate: '2023-03-22'
     }
-  ]);
+    ]);
+  }, []); // Close useEffect
+
+  // Fetch users on component mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setLoadingUsers(true);
+      setUserError(null);
+      try {
+        const response = await userService.getUsers();
+        setUsers(response.users || []);
+        setBackendConnected(true);
+      } catch (error) {
+        setUserError(error.message);
+        setBackendConnected(false);
+        console.error('Error fetching users:', error);
+        
+        // Check if it's a connection error
+        if (error.message.includes('Network Error') || error.code === 'ECONNREFUSED') {
+          setUserError('Backend server is not running. Please start the backend server.');
+        }
+      } finally {
+        setLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  // Form persistence with localStorage
+  useEffect(() => {
+    // Load saved form data on component mount
+    const savedFormData = localStorage.getItem('adminUserFormData');
+    const savedUserType = localStorage.getItem('adminSelectedUserType');
+    const savedShowTypeSelection = localStorage.getItem('adminShowUserTypeSelection');
+    
+    if (savedFormData) {
+      try {
+        const parsedData = JSON.parse(savedFormData);
+        setUserFormData(parsedData);
+      } catch (error) {
+        console.error('Error parsing saved form data:', error);
+      }
+    }
+    
+    if (savedUserType) {
+      setSelectedUserType(savedUserType);
+    }
+    
+    if (savedShowTypeSelection) {
+      setShowUserTypeSelection(savedShowTypeSelection === 'true');
+    }
+  }, []);
+
+  // Save form data to localStorage whenever it changes
+  useEffect(() => {
+    if (userFormData.firstName || userFormData.lastName || userFormData.emailInitials) {
+      localStorage.setItem('adminUserFormData', JSON.stringify(userFormData));
+    }
+  }, [userFormData]);
+
+  // Save user type selection to localStorage
+  useEffect(() => {
+    if (selectedUserType) {
+      localStorage.setItem('adminSelectedUserType', selectedUserType);
+    }
+  }, [selectedUserType]);
+
+  // Save show type selection state
+  useEffect(() => {
+    localStorage.setItem('adminShowUserTypeSelection', showUserTypeSelection.toString());
+  }, [showUserTypeSelection]);
   
   // Sample appointments data
   const [appointments, setAppointments] = useState([
@@ -242,6 +401,12 @@ const AdminDashboard = () => {
       clearInterval(timer);
     };
   }, []);
+
+  // Fetch initial data
+  useEffect(() => {
+    fetchUnsortedPatients();
+    fetchFamilies();
+  }, []);
   
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -272,6 +437,28 @@ const AdminDashboard = () => {
 
   const handleNavigation = (path) => {
     setCurrentPath(path);
+    
+    // Reset user type selection when navigating to Add User
+    if (path === 'Add User') {
+      setShowUserTypeSelection(true);
+      setSelectedUserType('');
+      setUserFormData({
+        firstName: '',
+        middleName: '',
+        lastName: '',
+        emailInitials: '',
+        password: '',
+        confirmPassword: '',
+        role: 'aide',
+        position: 'Aide',
+        userType: ''
+      });
+      // Clear localStorage when navigating to Add User
+      localStorage.removeItem('adminUserFormData');
+      localStorage.removeItem('adminSelectedUserType');
+      localStorage.removeItem('adminShowUserTypeSelection');
+    }
+    
     // Here you would handle actual navigation if needed
   };
 
@@ -511,6 +698,80 @@ const AdminDashboard = () => {
     alert('Refreshing dashboard data...');
     // In a real application, this would call an API to fetch fresh data
   };
+
+  // Fetch unsorted patients
+  const fetchUnsortedPatients = async () => {
+    try {
+      const data = await patientService.getUnsortedPatients();
+      setUnsortedPatients(data);
+    } catch (error) {
+      console.error('Error fetching unsorted patients:', error);
+      alert('Error fetching unsorted patients. Please try again.');
+    }
+  };
+
+  // Fetch all families
+  const fetchFamilies = async () => {
+    try {
+      const data = await familyService.getAllFamilies();
+      setFamilies(data);
+    } catch (error) {
+      console.error('Error fetching families:', error);
+    }
+  };
+
+  // Handle autosort
+  const handleAutosort = async () => {
+    setIsLoadingAutosort(true);
+    try {
+      const results = await patientService.autosortPatients();
+      setAutosortResults(results);
+      
+      if (results.needsNewFamily.length > 0) {
+        setShowAutosortModal(true);
+      } else {
+        alert(`Successfully sorted ${results.sorted.length} patients into existing families!`);
+        fetchUnsortedPatients(); // Refresh unsorted list
+        fetchFamilies(); // Refresh families list
+      }
+    } catch (error) {
+      console.error('Error autosorting patients:', error);
+      alert('Error during autosort. Please try again.');
+    } finally {
+      setIsLoadingAutosort(false);
+    }
+  };
+
+  // Create families for unmatched patients
+  const handleCreateFamilies = async () => {
+    try {
+      const patientIds = autosortResults.needsNewFamily.map(p => p.id);
+      const results = await patientService.createFamiliesForPatients(patientIds);
+      
+      alert(`Successfully created ${results.length} new families and sorted patients!`);
+      
+      setShowAutosortModal(false);
+      setAutosortResults(null);
+      fetchUnsortedPatients();
+      fetchFamilies();
+    } catch (error) {
+      console.error('Error creating families:', error);
+      alert('Error creating families. Please try again.');
+    }
+  };
+
+  // Manually assign patient to family
+  const handleAssignToFamily = async (patientId, familyId) => {
+    try {
+      await patientService.assignPatientToFamily(patientId, familyId);
+      alert('Patient assigned to family successfully!');
+      fetchUnsortedPatients();
+      fetchFamilies();
+    } catch (error) {
+      console.error('Error assigning patient to family:', error);
+      alert('Error assigning patient to family. Please try again.');
+    }
+  };
   
   const getFamilyMembers = (familyId) => {
     return patients.filter(patient => patient.familyId === familyId);
@@ -565,8 +826,6 @@ const AdminDashboard = () => {
         return renderTodaysCheckup();
       case 'Patient Database':
         return renderPatientDatabase();
-      case 'Unsorted Members':
-        return renderUnsortedMembers();
       case 'Generate Reports':
         return renderGenerateReports();
       case 'Report History':
@@ -579,6 +838,8 @@ const AdminDashboard = () => {
         return renderAppointmentHistory();
       case 'Manage Inventories':
         return renderManageInventories();
+      case 'User Management':
+        return renderUserManagement();
       case 'Add User':
         return renderAddUser();
       case 'View/Edit Users':
@@ -1029,9 +1290,9 @@ const AdminDashboard = () => {
                   <tr>
                     <th style={{textAlign: 'left'}}>Family ID</th>
                     <th style={{textAlign: 'left'}}>Family Name</th>
-                    <th style={{textAlign: 'left'}}>Contact Number</th>
-                    <th style={{textAlign: 'right'}}>Members</th>
-                    <th style={{textAlign: 'left'}}>Registration Date</th>
+                    <th style={{textAlign: 'left'}}>Family Head (Optional)</th>
+                    <th style={{textAlign: 'right'}}>Number of Members</th>
+                    <th style={{textAlign: 'left'}}>Date Registered</th>
                     <th style={{textAlign: 'center'}}>Actions</th>
                   </tr>
                 </thead>
@@ -1040,7 +1301,7 @@ const AdminDashboard = () => {
                     <tr key={family.id}>
                       <td style={{textAlign: 'left'}}>{family.id}</td>
                       <td style={{textAlign: 'left'}}>{family.familyName}</td>
-                      <td style={{textAlign: 'left'}}>{family.contact}</td>
+                      <td style={{textAlign: 'left'}}>{family.familyHead || 'N/A'}</td>
                       <td style={{textAlign: 'right'}}>{family.memberCount}</td>
                       <td style={{textAlign: 'left'}}>{formatShortDate(family.registrationDate)}</td>
                       <td style={{textAlign: 'center'}} className="action-cell">
@@ -1091,17 +1352,85 @@ const AdminDashboard = () => {
               </Table>
             </div>
           </Tab>
+          <Tab eventKey="unsorted" title={`Unsorted Members (${unsortedPatients.length})`}>
+            <div className="unsorted-section">
+              <div className="section-header" style={{marginBottom: '20px'}}>
+                <div className="section-info">
+                  <h4>Patients Without Family Assignment</h4>
+                  <p style={{margin: 0, color: '#666'}}>
+                    These patients registered through the public form and need to be assigned to families.
+                  </p>
+                </div>
+                <div className="section-actions">
+                  <button 
+                    className="add-patient-btn"
+                    onClick={handleAutosort}
+                    disabled={unsortedPatients.length === 0 || isLoadingAutosort}
+                    style={{backgroundColor: '#28a745'}}
+                  >
+                    <i className="bi bi-magic"></i>
+                    {isLoadingAutosort ? 'Autosorting...' : 'AutoSort by Surname'}
+                  </button>
+                </div>
+              </div>
+              
+              {unsortedPatients.length === 0 ? (
+                <div className="empty-state" style={{textAlign: 'center', padding: '40px', color: '#666'}}>
+                  <i className="bi bi-check-circle" style={{fontSize: '48px', marginBottom: '16px', color: '#28a745'}}></i>
+                  <h4>All patients are sorted into families!</h4>
+                  <p>No unsorted patients found. All patients have been assigned to families.</p>
+                </div>
+              ) : (
+                <div className="table-container">
+                  <Table hover responsive className="data-table">
+                    <thead>
+                      <tr>
+                        <th style={{textAlign: 'left'}}>Name</th>
+                        <th style={{textAlign: 'left'}}>Gender</th>
+                        <th style={{textAlign: 'right'}}>Age</th>
+                        <th style={{textAlign: 'left'}}>Contact</th>
+                        <th style={{textAlign: 'left'}}>Registration Date</th>
+                        <th style={{textAlign: 'center'}}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {unsortedPatients.map(patient => (
+                        <tr key={patient.id}>
+                          <td style={{textAlign: 'left'}}>
+                            <strong>{patient.firstName} {patient.lastName}</strong>
+                          </td>
+                          <td style={{textAlign: 'left'}}>{patient.gender}</td>
+                          <td style={{textAlign: 'right'}}>{patient.age || 'N/A'}</td>
+                          <td style={{textAlign: 'left'}}>{patient.contactNumber || 'N/A'}</td>
+                          <td style={{textAlign: 'left'}}>
+                            {patient.createdAt ? new Date(patient.createdAt).toLocaleDateString() : 'N/A'}
+                          </td>
+                          <td style={{textAlign: 'center'}} className="action-cell">
+                            <Button 
+                              variant="outline-success" 
+                              size="sm" 
+                              onClick={() => {
+                                // For now, just show families to choose from
+                                const familyId = prompt(`Choose family ID to assign ${patient.firstName} ${patient.lastName} to:`);
+                                if (familyId) {
+                                  handleAssignToFamily(patient.id, parseInt(familyId));
+                                }
+                              }}
+                            >
+                              Assign to Family
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          </Tab>
         </Tabs>
       </div>
     </>
-  );
-
-  // Placeholder for other content sections
-  const renderUnsortedMembers = () => (
-    <div className="content-placeholder">
-      <h2>Unsorted Members</h2>
-      <p>This feature will be implemented soon.</p>
-    </div>
   );
 
   const renderGenerateReports = () => (
@@ -3266,6 +3595,147 @@ const AdminDashboard = () => {
   );
 
   // User Management Functions
+  const renderUserManagement = () => (
+    <>
+      <div className="content-header">
+        <h1>
+          <i className="bi bi-people-fill me-2"></i>
+          User Management
+          <span className={`badge ms-3 ${backendConnected ? 'bg-success' : 'bg-danger'}`}>
+            <i className={`bi ${backendConnected ? 'bi-check-circle' : 'bi-x-circle'} me-1`}></i>
+            {backendConnected ? 'Connected' : 'Disconnected'}
+          </span>
+        </h1>
+        <div className="header-actions">
+          <div className="manage-dropdown-container">
+            <button 
+              className="manage-btn"
+              onClick={() => setShowUserManageDropdown(!showUserManageDropdown)}
+            >
+              <i className="bi bi-gear me-2"></i>
+              Manage
+              <i className={`bi ${showUserManageDropdown ? 'bi-chevron-up' : 'bi-chevron-down'} ms-2`}></i>
+            </button>
+            <div className={`manage-dropdown-menu ${showUserManageDropdown ? 'show' : ''}`}>
+              <button 
+                className="dropdown-item"
+                onClick={() => {
+                  setShowAddUserModal(true);
+                  setShowUserManageDropdown(false);
+                  setShowUserTypeSelection(true);
+                  setSelectedUserType('');
+                  setUserFormData({
+                    firstName: '',
+                    middleName: '',
+                    lastName: '',
+                    emailInitials: '',
+                    password: '',
+                    confirmPassword: '',
+                    role: 'aide',
+                    position: 'Aide',
+                    userType: ''
+                  });
+                }}
+              >
+                <i className="bi bi-person-plus me-2"></i>
+                Add User
+              </button>
+              <button 
+                className="dropdown-item"
+                onClick={() => {
+                  setIsEditMode(!isEditMode);
+                  setShowUserManageDropdown(false);
+                }}
+              >
+                <i className="bi bi-pencil me-2"></i>
+                {isEditMode ? 'Cancel Edit' : 'Edit Users'}
+              </button>
+              <button 
+                className="dropdown-item"
+                onClick={() => {
+                  setShowAccessRightsModal(true);
+                  setShowUserManageDropdown(false);
+                }}
+              >
+                <i className="bi bi-shield-check me-2"></i>
+                Access Rights
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="users-table-container">
+        <div className="table-responsive">
+          <Table hover className="users-table">
+            <thead>
+              <tr>
+                <th>Username</th>
+                <th>Full Name</th>
+                <th>Role</th>
+                <th>User Type</th>
+                <th>Password</th>
+                {isEditMode && <th className={`action-column-header ${isEditMode ? 'show' : ''}`}>Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {users.map(user => (
+                <tr key={user.id}>
+                  <td>{user.username}</td>
+                  <td>{user.firstName} {user.lastName}</td>
+                  <td>{user.role}</td>
+                  <td>
+                    <span className={`user-type-badge ${user.userType}`}>
+                      {user.userType === 'admin' ? 'Administrator' : 'Doctor/Staff'}
+                    </span>
+                  </td>
+                  <td>
+                    <span className="password-mask">••••••••</span>
+                  </td>
+                  {isEditMode && (
+                    <td className={`action-column ${isEditMode ? 'show' : ''}`}>
+                      <button 
+                        className="action-btn edit"
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setUserFormData({
+                            firstName: user.firstName,
+                            middleName: '',
+                            lastName: user.lastName,
+                            emailInitials: user.username,
+                            password: '',
+                            confirmPassword: '',
+                            role: user.userType,
+                            position: user.role
+                          });
+                          setShowEditUserModal(true);
+                        }}
+                        title="Edit User"
+                      >
+                        <i className="bi bi-pencil"></i>
+                      </button>
+                      <button 
+                        className="action-btn delete"
+                        onClick={() => {
+                          if (window.confirm(`Are you sure you want to delete ${user.username}?`)) {
+                            setUsers(users.filter(u => u.id !== user.id));
+                          }
+                        }}
+                        title="Delete User"
+                      >
+                        <i className="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
+      </div>
+    </>
+  );
+
   const renderAddUser = () => (
     <>
       <div className="add-user-container">
@@ -3286,7 +3756,10 @@ const AdminDashboard = () => {
                       type="text"
                       placeholder="Enter first name"
                       value={userFormData.firstName}
-                      onChange={(e) => setUserFormData({...userFormData, firstName: e.target.value})}
+                      onChange={(e) => setUserFormData({
+                        ...userFormData,
+                        firstName: e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1).toLowerCase()
+                      })}
                       required
                     />
                   </Form.Group>
@@ -3298,7 +3771,10 @@ const AdminDashboard = () => {
                       type="text"
                       placeholder="Enter middle name (optional)"
                       value={userFormData.middleName}
-                      onChange={(e) => setUserFormData({...userFormData, middleName: e.target.value})}
+                      onChange={(e) => setUserFormData({
+                        ...userFormData,
+                        middleName: e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1).toLowerCase()
+                      })}
                     />
                   </Form.Group>
                 </Col>
@@ -3309,7 +3785,10 @@ const AdminDashboard = () => {
                       type="text"
                       placeholder="Enter last name"
                       value={userFormData.lastName}
-                      onChange={(e) => setUserFormData({...userFormData, lastName: e.target.value})}
+                      onChange={(e) => setUserFormData({
+                        ...userFormData,
+                        lastName: e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1).toLowerCase()
+                      })}
                       required
                     />
                   </Form.Group>
@@ -3362,14 +3841,22 @@ const AdminDashboard = () => {
                 <Col md={6}>
                   <Form.Group className="mb-3">
                     <Form.Label><strong>Password *</strong></Form.Label>
-                    <Form.Control
-                      type="password"
-                      placeholder="Enter password"
-                      value={userFormData.password}
-                      onChange={(e) => setUserFormData({...userFormData, password: e.target.value})}
-                      required
-                      minLength={8}
-                    />
+                    <InputGroup>
+                      <Form.Control
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter password"
+                        value={userFormData.password}
+                        onChange={(e) => setUserFormData({...userFormData, password: e.target.value})}
+                        required
+                        minLength={8}
+                      />
+                      <InputGroup.Text 
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                      </InputGroup.Text>
+                    </InputGroup>
                     <Form.Text className="text-muted">
                       Minimum 8 characters, must include uppercase, lowercase, number, and special character
                     </Form.Text>
@@ -3378,14 +3865,22 @@ const AdminDashboard = () => {
                 <Col md={6}>
                   <Form.Group className="mb-3">
                     <Form.Label><strong>Confirm Password *</strong></Form.Label>
-                    <Form.Control
-                      type="password"
-                      placeholder="Re-enter password"
-                      value={userFormData.confirmPassword}
-                      onChange={(e) => setUserFormData({...userFormData, confirmPassword: e.target.value})}
-                      required
-                      isInvalid={userFormData.password !== userFormData.confirmPassword && userFormData.confirmPassword !== ''}
-                    />
+                    <InputGroup>
+                      <Form.Control
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Re-enter password"
+                        value={userFormData.confirmPassword}
+                        onChange={(e) => setUserFormData({...userFormData, confirmPassword: e.target.value})}
+                        required
+                        isInvalid={userFormData.password !== userFormData.confirmPassword && userFormData.confirmPassword !== ''}
+                      />
+                      <InputGroup.Text 
+                        style={{ cursor: 'pointer' }}
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        <i className={`bi ${showConfirmPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                      </InputGroup.Text>
+                    </InputGroup>
                     <Form.Control.Feedback type="invalid">
                       Passwords do not match
                     </Form.Control.Feedback>
@@ -3393,35 +3888,52 @@ const AdminDashboard = () => {
                 </Col>
               </Row>
               
-              <div className="form-actions">
-                <Button 
-                  variant="success" 
-                  type="submit" 
-                  size="lg"
-                  disabled={!userFormData.firstName || !userFormData.lastName || !userFormData.emailInitials || !userFormData.password || !userFormData.confirmPassword || userFormData.password !== userFormData.confirmPassword}
-                >
-                  <i className="bi bi-person-plus me-2"></i>
-                  Create User Account
-                </Button>
-                <Button 
-                  variant="outline-secondary" 
-                  size="lg" 
-                  className="ms-3"
-                  onClick={() => setUserFormData({
-                    firstName: '',
-                    middleName: '',
-                    lastName: '',
-                    emailInitials: '',
-                    password: '',
-                    confirmPassword: '',
-                    role: 'aide',
-                    position: 'Aide'
-                  })}
-                >
-                  <i className="bi bi-arrow-clockwise me-2"></i>
-                  Reset Form
-                </Button>
-              </div>
+              {/* Form Action Buttons */}
+              <Row className="mt-4">
+                <Col md={12} className="d-flex justify-content-end gap-2">
+                  <Button 
+                    variant="outline-secondary" 
+                    onClick={() => {
+                      // Clear form and localStorage
+                      setUserFormData({
+                        firstName: '',
+                        middleName: '',
+                        lastName: '',
+                        emailInitials: '',
+                        password: '',
+                        confirmPassword: '',
+                        role: 'aide',
+                        position: 'Aide',
+                        userType: ''
+                      });
+                      localStorage.removeItem('adminUserFormData');
+                      localStorage.removeItem('adminSelectedUserType');
+                      setShowPassword(false);
+                      setShowConfirmPassword(false);
+                    }}
+                  >
+                    <i className="bi bi-arrow-clockwise me-1"></i>
+                    Clear Form
+                  </Button>
+                  <Button 
+                    variant="primary" 
+                    type="submit"
+                    disabled={loadingUsers}
+                  >
+                    {loadingUsers ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Creating...
+                      </>
+                    ) : (
+                      <>
+                        <i className="bi bi-person-plus me-1"></i>
+                        Create User Account
+                      </>
+                    )}
+                  </Button>
+                </Col>
+              </Row>
             </Form>
           </Card.Body>
         </Card>
@@ -3554,22 +4066,74 @@ const AdminDashboard = () => {
   );
 
   // User form handlers
-  const handleAddUser = (e) => {
+  const handleAddUser = async (e) => {
     e.preventDefault();
-    // TODO: Implement backend API call
-    alert(`Creating user account for ${userFormData.firstName} ${userFormData.lastName} (${userFormData.emailInitials}@maybunga.health) with role: ${userFormData.position}`);
     
-    // Reset form
-    setUserFormData({
-      firstName: '',
-      middleName: '',
-      lastName: '',
-      emailInitials: '',
-      password: '',
-      confirmPassword: '',
-      role: 'aide',
-      position: 'Aide'
-    });
+    // Basic validation
+    if (userFormData.password !== userFormData.confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    if (!userFormData.firstName || !userFormData.lastName || !userFormData.emailInitials || !userFormData.password) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setLoadingUsers(true);
+      
+      // Create email from initials
+      const email = `${userFormData.emailInitials}@maybunga.health`;
+      
+      // Use the selected user type (admin/doctor) as the role
+      const userData = {
+        username: userFormData.emailInitials,
+        firstName: userFormData.firstName,
+        lastName: userFormData.lastName,
+        email: email,
+        password: userFormData.password,
+        role: selectedUserType, // Use selected user type (admin or doctor)
+        contactNumber: '', // You might want to add this to the form
+        address: '' // You might want to add this to the form
+      };
+
+      await userService.createUser(userData);
+      
+      // Refresh users list
+      const response = await userService.getUsers();
+      setUsers(response.users || []);
+      
+      alert(`Successfully created user account for ${userFormData.firstName} ${userFormData.lastName}`);
+      
+      // Reset form and go back to user type selection
+      setUserFormData({
+        firstName: '',
+        middleName: '',
+        lastName: '',
+        emailInitials: '',
+        password: '',
+        confirmPassword: '',
+        role: 'aide',
+        position: 'Aide',
+        userType: ''
+      });
+      setShowUserTypeSelection(true);
+      setSelectedUserType('');
+      
+      // Clear localStorage
+      localStorage.removeItem('adminUserFormData');
+      localStorage.removeItem('adminSelectedUserType');
+      localStorage.removeItem('adminShowUserTypeSelection');
+      
+      // Close modal if it's open
+      setShowAddUserModal(false);
+      
+    } catch (error) {
+      alert(`Error creating user: ${error.message}`);
+    } finally {
+      setLoadingUsers(false);
+    }
   };
 
   return (
@@ -3618,12 +4182,6 @@ const AdminDashboard = () => {
                   <Link to="#">
                     <i className="bi bi-archive"></i>
                     <span>Patient Database</span>
-                  </Link>
-                </li>
-                <li onClick={() => handleNavigation('Unsorted Members')}>
-                  <Link to="#">
-                    <i className="bi bi-person-lines-fill"></i>
-                    <span>Unsorted Members</span>
                   </Link>
                 </li>
               </ul>
@@ -3687,32 +4245,11 @@ const AdminDashboard = () => {
                 <i className={`bi ${activeDropdown === 'settings' ? 'bi-chevron-down' : 'bi-chevron-right'} dropdown-icon`}></i>
               </Link>
               <ul className={activeDropdown === 'settings' ? 'dropdown-menu show' : 'dropdown-menu'}>
-                <li className={activeSubDropdown === 'userManagement' ? 'sub-dropdown active' : 'sub-dropdown'}>
-                  <Link to="#" onClick={(e) => handleSubDropdownToggle('userManagement', e)}>
+                <li onClick={() => handleNavigation('User Management')}>
+                  <Link to="#">
                     <i className="bi bi-people-fill"></i>
                     <span>User Management</span>
-                    <i className={`bi ${activeSubDropdown === 'userManagement' ? 'bi-chevron-down' : 'bi-chevron-right'} dropdown-icon`}></i>
                   </Link>
-                  <ul className={activeSubDropdown === 'userManagement' ? 'sub-dropdown-menu show' : 'sub-dropdown-menu'}>
-                    <li onClick={() => handleNavigation('Add User')}>
-                      <Link to="#" className="sub-dropdown-item">
-                        <i className="bi bi-person-plus"></i>
-                        <span>Add User</span>
-                      </Link>
-                    </li>
-                    <li onClick={() => handleNavigation('View/Edit Users')}>
-                      <Link to="#" className="sub-dropdown-item">
-                        <i className="bi bi-person-lines-fill"></i>
-                        <span>View/Edit Users</span>
-                      </Link>
-                    </li>
-                    <li>
-                      <Link to="#" className="sub-dropdown-item">
-                        <i className="bi bi-shield-check"></i>
-                        <span>Access Rights</span>
-                      </Link>
-                    </li>
-                  </ul>
                 </li>
                 <li className={activeSubDropdown === 'systemConfig' ? 'sub-dropdown active' : 'sub-dropdown'}>
                   <Link to="#" onClick={(e) => handleSubDropdownToggle('systemConfig', e)}>
@@ -4963,6 +5500,377 @@ const AdminDashboard = () => {
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowFamilyModal(false)}>
             Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Autosort Results Modal */}
+      <Modal show={showAutosortModal} onHide={() => setShowAutosortModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-magic me-2"></i>
+            Autosort Results
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {autosortResults && (
+            <div className="autosort-results">
+              {autosortResults.sorted.length > 0 && (
+                <div className="sorted-section" style={{marginBottom: '20px'}}>
+                  <h5 style={{color: '#28a745'}}>
+                    <i className="bi bi-check-circle me-2"></i>
+                    Successfully Sorted ({autosortResults.sorted.length})
+                  </h5>
+                  <div className="sorted-list" style={{maxHeight: '150px', overflowY: 'auto', border: '1px solid #ddd', padding: '10px', borderRadius: '4px'}}>
+                    {autosortResults.sorted.map((item, index) => (
+                      <div key={index} style={{padding: '5px 0', borderBottom: '1px solid #eee'}}>
+                        <strong>{item.patient.firstName} {item.patient.lastName}</strong> → {item.assignedToFamily}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {autosortResults.needsNewFamily.length > 0 && (
+                <div className="needs-family-section">
+                  <h5 style={{color: '#ffc107'}}>
+                    <i className="bi bi-exclamation-triangle me-2"></i>
+                    Need New Families ({autosortResults.needsNewFamily.length})
+                  </h5>
+                  <p style={{marginBottom: '15px', color: '#666'}}>
+                    The following patients don't have matching family surnames. We can automatically create new families for them:
+                  </p>
+                  <div className="needs-family-list" style={{maxHeight: '150px', overflowY: 'auto', border: '1px solid #ddd', padding: '10px', borderRadius: '4px', marginBottom: '20px'}}>
+                    {autosortResults.needsNewFamily.map((patient, index) => (
+                      <div key={index} style={{padding: '5px 0', borderBottom: '1px solid #eee'}}>
+                        <strong>{patient.firstName} {patient.lastName}</strong> (Will create: <em>{patient.lastName} Family</em>)
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          {autosortResults && autosortResults.needsNewFamily.length > 0 && (
+            <Button variant="success" onClick={handleCreateFamilies}>
+              <i className="bi bi-plus-circle me-2"></i>
+              Auto-Create Families
+            </Button>
+          )}
+          <Button variant="secondary" onClick={() => setShowAutosortModal(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Add User Modal */}
+      <Modal show={showAddUserModal} onHide={() => setShowAddUserModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-person-plus me-2"></i>
+            Add New User
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={(e) => {
+            e.preventDefault();
+            // Add logic to create user
+            const newUser = {
+              id: users.length + 1,
+              username: userFormData.emailInitials,
+              firstName: userFormData.firstName,
+              lastName: userFormData.lastName,
+              role: userFormData.position,
+              userType: userFormData.role === 'admin' ? 'admin' : 'doctor',
+              email: `${userFormData.emailInitials}@maybunga.health`,
+              accessRights: {
+                dashboard: true,
+                patients: true,
+                families: userFormData.role === 'admin',
+                appointments: true,
+                reports: userFormData.role === 'admin',
+                users: userFormData.role === 'admin',
+                settings: userFormData.role === 'admin'
+              }
+            };
+            setUsers([...users, newUser]);
+            setShowAddUserModal(false);
+            setUserFormData({
+              firstName: '',
+              middleName: '',
+              lastName: '',
+              emailInitials: '',
+              password: '',
+              confirmPassword: '',
+              role: 'aide',
+              position: 'Aide'
+            });
+          }}>
+            <Row>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label><strong>First Name *</strong></Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter first name"
+                    value={userFormData.firstName}
+                    onChange={(e) => setUserFormData({
+                      ...userFormData,
+                      firstName: e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1).toLowerCase()
+                    })}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label><strong>Middle Name</strong></Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter middle name (optional)"
+                    value={userFormData.middleName}
+                    onChange={(e) => setUserFormData({
+                      ...userFormData,
+                      middleName: e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1).toLowerCase()
+                    })}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label><strong>Last Name *</strong></Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter last name"
+                    value={userFormData.lastName}
+                    onChange={(e) => setUserFormData({
+                      ...userFormData,
+                      lastName: e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1).toLowerCase()
+                    })}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label><strong>Email Initials for Login *</strong></Form.Label>
+                  <InputGroup>
+                    <Form.Control
+                      type="text"
+                      placeholder="e.g., j.santos"
+                      value={userFormData.emailInitials}
+                      onChange={(e) => setUserFormData({...userFormData, emailInitials: e.target.value.toLowerCase()})}
+                      required
+                    />
+                    <InputGroup.Text>@maybunga.health</InputGroup.Text>
+                  </InputGroup>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label><strong>Position/Role *</strong></Form.Label>
+                  <Form.Select
+                    value={userFormData.position}
+                    onChange={(e) => {
+                      const selectedPosition = e.target.value;
+                      const isAdmin = ['Admin', 'Administrator'].includes(selectedPosition);
+                      setUserFormData({
+                        ...userFormData,
+                        position: selectedPosition,
+                        role: isAdmin ? 'admin' : 'doctor'
+                      });
+                    }}
+                    required
+                  >
+                    <option value="Aide">Aide</option>
+                    <option value="Nurse">Nurse</option>
+                    <option value="Nutritionist">Nutritionist</option>
+                    <option value="Medical Personnel">Medical Personnel</option>
+                    <option value="Doctor">Doctor</option>
+                    <option value="Admin">Administrator</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+            
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label><strong>Password *</strong></Form.Label>
+                  <Form.Control
+                    type="password"
+                    placeholder="Enter password"
+                    value={userFormData.password}
+                    onChange={(e) => setUserFormData({...userFormData, password: e.target.value})}
+                    required
+                    minLength={8}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label><strong>Confirm Password *</strong></Form.Label>
+                  <Form.Control
+                    type="password"
+                    placeholder="Re-enter password"
+                    value={userFormData.confirmPassword}
+                    onChange={(e) => setUserFormData({...userFormData, confirmPassword: e.target.value})}
+                    required
+                    isInvalid={userFormData.password !== userFormData.confirmPassword && userFormData.confirmPassword !== ''}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowAddUserModal(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="success" 
+            onClick={() => {
+              // Trigger form submission
+              const form = document.querySelector('form');
+              if (form) form.requestSubmit();
+            }}
+            disabled={!userFormData.firstName || !userFormData.lastName || !userFormData.emailInitials || !userFormData.password || !userFormData.confirmPassword || userFormData.password !== userFormData.confirmPassword}
+          >
+            <i className="bi bi-person-plus me-2"></i>
+            Create User
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Access Rights Modal */}
+      <Modal show={showAccessRightsModal} onHide={() => setShowAccessRightsModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-shield-check me-2"></i>
+            Access Rights Management
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Select users and configure their access permissions:</p>
+          {users.map(user => (
+            <div key={user.id} className="access-rights-user">
+              <h5>{user.firstName} {user.lastName} ({user.role})</h5>
+              <Row>
+                <Col md={6}>
+                  <Form.Check
+                    type="checkbox"
+                    label="Dashboard Access"
+                    checked={user.accessRights.dashboard}
+                    onChange={(e) => {
+                      const updatedUsers = users.map(u => 
+                        u.id === user.id 
+                          ? {...u, accessRights: {...u.accessRights, dashboard: e.target.checked}}
+                          : u
+                      );
+                      setUsers(updatedUsers);
+                    }}
+                  />
+                  <Form.Check
+                    type="checkbox"
+                    label="Patient Management"
+                    checked={user.accessRights.patients}
+                    onChange={(e) => {
+                      const updatedUsers = users.map(u => 
+                        u.id === user.id 
+                          ? {...u, accessRights: {...u.accessRights, patients: e.target.checked}}
+                          : u
+                      );
+                      setUsers(updatedUsers);
+                    }}
+                  />
+                  <Form.Check
+                    type="checkbox"
+                    label="Family Management"
+                    checked={user.accessRights.families}
+                    onChange={(e) => {
+                      const updatedUsers = users.map(u => 
+                        u.id === user.id 
+                          ? {...u, accessRights: {...u.accessRights, families: e.target.checked}}
+                          : u
+                      );
+                      setUsers(updatedUsers);
+                    }}
+                  />
+                  <Form.Check
+                    type="checkbox"
+                    label="Appointments"
+                    checked={user.accessRights.appointments}
+                    onChange={(e) => {
+                      const updatedUsers = users.map(u => 
+                        u.id === user.id 
+                          ? {...u, accessRights: {...u.accessRights, appointments: e.target.checked}}
+                          : u
+                      );
+                      setUsers(updatedUsers);
+                    }}
+                  />
+                </Col>
+                <Col md={6}>
+                  <Form.Check
+                    type="checkbox"
+                    label="Reports Access"
+                    checked={user.accessRights.reports}
+                    onChange={(e) => {
+                      const updatedUsers = users.map(u => 
+                        u.id === user.id 
+                          ? {...u, accessRights: {...u.accessRights, reports: e.target.checked}}
+                          : u
+                      );
+                      setUsers(updatedUsers);
+                    }}
+                  />
+                  <Form.Check
+                    type="checkbox"
+                    label="User Management"
+                    checked={user.accessRights.users}
+                    onChange={(e) => {
+                      const updatedUsers = users.map(u => 
+                        u.id === user.id 
+                          ? {...u, accessRights: {...u.accessRights, users: e.target.checked}}
+                          : u
+                      );
+                      setUsers(updatedUsers);
+                    }}
+                  />
+                  <Form.Check
+                    type="checkbox"
+                    label="System Settings"
+                    checked={user.accessRights.settings}
+                    onChange={(e) => {
+                      const updatedUsers = users.map(u => 
+                        u.id === user.id 
+                          ? {...u, accessRights: {...u.accessRights, settings: e.target.checked}}
+                          : u
+                      );
+                      setUsers(updatedUsers);
+                    }}
+                  />
+                </Col>
+              </Row>
+              <hr />
+            </div>
+          ))}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowAccessRightsModal(false)}>
+            Close
+          </Button>
+          <Button variant="success" onClick={() => {
+            alert('Access rights updated successfully!');
+            setShowAccessRightsModal(false);
+          }}>
+            <i className="bi bi-check-circle me-2"></i>
+            Save Changes
           </Button>
         </Modal.Footer>
       </Modal>

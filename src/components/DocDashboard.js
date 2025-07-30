@@ -1,23 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Modal, Button, Form, InputGroup, Row, Col, Table, Card, Tabs, Tab } from 'react-bootstrap';
-// import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, BarElement, ArcElement } from 'chart.js';
-// import { Line, Bar, Pie } from 'react-chartjs-2'; // Charts removed for DocDashboard
 import { QRCodeCanvas as QRCode } from 'qrcode.react';
+import { patientService, familyService } from '../services/adminService';
 import '../styles/DocDashboard.css'; // Use DocDashboard.css
 import 'bootstrap-icons/font/bootstrap-icons.css';
-
-// ChartJS.register( // Charts removed
-//   CategoryScale,
-//   LinearScale,
-//   PointElement,
-//   LineElement,
-//   BarElement,
-//   ArcElement,
-//   Title,
-//   Tooltip,
-//   Legend
-// );
 
 const DocDashboard = () => {
   const navigate = useNavigate();
@@ -38,37 +25,8 @@ const DocDashboard = () => {
   const [showManageDropdown, setShowManageDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [tabKey, setTabKey] = useState('families');
-  
-  // Settings state
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [workingHours, setWorkingHours] = useState({ start: '08:00', end: '17:00' });
-  const [defaultAppointmentDuration, setDefaultAppointmentDuration] = useState(30);
-
-  // Helper function for date formatting will be used from the common function below
-
-  // Placeholder for vital signs handler
-  const handleVitalSignsPlaceholder = (patient) => {
-    console.log('Open vital signs for patient:', patient.id);
-    // TODO: Implement vital signs view
-  };
-  const [vitalSignsUnit, setVitalSignsUnit] = useState('metric');
-  const [autoSaveNotes, setAutoSaveNotes] = useState(true);
-  const [reminderMinutes, setReminderMinutes] = useState(10);
-  const [fontSize, setFontSize] = useState('medium');
-  
-  // Sample data - to be replaced with backend data
-  const [patients, setPatients] = useState([
-    { id: 1, familyId: 'FAM-001', name: 'Maria Santos', age: 35, gender: 'Female', address: '123 Maybunga St, Pasig City', contact: '09123456789', lastCheckup: '2023-05-15', status: 'Active'},
-    { id: 2, familyId: 'FAM-001', name: 'Juan Santos', age: 38, gender: 'Male', address: '123 Maybunga St, Pasig City', contact: '09123456790', lastCheckup: '2023-04-22', status: 'Active'},
-    { id: 3, familyId: 'FAM-002', name: 'Ana Reyes', age: 42, gender: 'Female', address: '45 E. Rodriguez Ave, Pasig City', contact: '09187654321', lastCheckup: '2023-05-20', status: 'Active'},
-    { id: 4, familyId: 'FAM-003', name: 'Carlos Mendoza', age: 55, gender: 'Male', address: '78 C. Raymundo Ave, Pasig City', contact: '09198765432', lastCheckup: '2023-05-10', status: 'Inactive'}
-  ]);
-  
-  const [families, setFamilies] = useState([
-    { id: 'FAM-001', familyName: 'Santos Family', address: '123 Maybunga St, Pasig City', contactPerson: 'Juan Santos', contact: '09123456790', memberCount: 4, registrationDate: '2023-01-15'},
-    { id: 'FAM-002', familyName: 'Reyes Family', address: '45 E. Rodriguez Ave, Pasig City', contactPerson: 'Ana Reyes', contact: '09187654321', memberCount: 3, registrationDate: '2023-02-10'},
-    { id: 'FAM-003', familyName: 'Mendoza Family', address: '78 C. Raymundo Ave, Pasig City', contactPerson: 'Carlos Mendoza', contact: '09198765432', memberCount: 2, registrationDate: '2023-03-22'}
-  ]);
+  const [patients, setPatients] = useState([]);
+  const [families, setFamilies] = useState([]);
   
   const [todaysCheckups, setTodaysCheckups] = useState([ // Sample data for doctor's checkups
     { id: 201, patientId: 'PT-0023', name: 'Maria Santos', time: '09:30 AM', type: 'Follow-up', status: 'Waiting'},
@@ -83,30 +41,45 @@ const DocDashboard = () => {
     { id: 302, patientName: 'Juan Santos', date: '2025-06-09', time: '02:00 PM', type: 'Follow-up', status: 'Finished'},
   ]);
 
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [workingHours, setWorkingHours] = useState({ start: '08:00', end: '17:00' });
+  const [defaultAppointmentDuration, setDefaultAppointmentDuration] = useState(30);
+  const [vitalSignsUnit, setVitalSignsUnit] = useState('metric');
+  const [autoSaveNotes, setAutoSaveNotes] = useState(true);
+  const [reminderMinutes, setReminderMinutes] = useState(10);
+  const [fontSize, setFontSize] = useState('medium');
 
+  // Fetch initial data on component mount
   useEffect(() => {
-    const timer = setInterval(() => setCurrentDateTime(new Date()), 60000);
-    return () => clearInterval(timer);
-  }, []);
+    const fetchInitialData = async () => {
+      try {
+        const patientData = await patientService.getUnsortedPatients();
+        const familyData = await familyService.getAllFamilies();
+        
+        // Combine with some mock data for demo
+        const allPatients = [
+          ...patientData,
+          { id: 1, familyId: 'SANTOS-001', name: 'Maria Santos', age: 35, gender: 'Female', address: '123 Maybunga St, Pasig City', contact: '09123456789', lastCheckup: '2023-05-15', status: 'Active' },
+          { id: 2, familyId: 'SANTOS-001', name: 'Juan Santos', age: 38, gender: 'Male', address: '123 Maybunga St, Pasig City', contact: '09123456790', lastCheckup: '2023-04-22', status: 'Active' },
+          { id: 3, familyId: 'REYES-002', name: 'Ana Reyes', age: 42, gender: 'Female', address: '45 E. Rodriguez Ave, Pasig City', contact: '09187654321', lastCheckup: '2023-05-20', status: 'Active' },
+        ];
 
-  // Placeholder for fetching data from backend
-  useEffect(() => {
-    // Placeholder: Simulating fetching initial data
-    console.log("Backend call placeholder: Fetching today's checkups...");
-    // e.g., fetchTodaysCheckupsAPI().then(data => setTodaysCheckups(data)).catch(err => console.error("Error fetching today's checkups:", err));
-    
-    console.log("Backend call placeholder: Fetching appointments (ongoing, finished, history)...");
-    // e.g., fetchAppointmentsAPI().then(data => {
-    //   setOngoingAppointments(data.ongoing);
-    //   setFinishedAppointments(data.finished);
-    //   // setAppointmentHistory(data.history); // If a separate state for full history
-    // }).catch(err => console.error("Error fetching appointments:", err));
+        setPatients(allPatients);
+        setFamilies(familyData);
+      } catch (error) {
+        console.error("Error fetching initial data:", error);
+        // Fallback to mock data
+        setPatients([
+          { id: 1, familyId: 'SANTOS-001', name: 'Maria Santos', age: 35, gender: 'Female', address: '123 Maybunga St, Pasig City', contact: '09123456789', lastCheckup: '2023-05-15', status: 'Active' },
+          { id: 2, familyId: 'SANTOS-001', name: 'Juan Santos', age: 38, gender: 'Male', address: '123 Maybunga St, Pasig City', contact: '09123456790', lastCheckup: '2023-04-22', status: 'Active' },
+        ]);
+        setFamilies([
+          { id: 'SANTOS-001', familyName: 'Santos Family', address: '123 Maybunga St, Pasig City', contactPerson: 'Juan Santos', contact: '09123456790', memberCount: 2, registrationDate: '2023-01-15' },
+        ]);
+      }
+    };
 
-    console.log("Backend call placeholder: Fetching patient database (patients and families)...");
-    // e.g., fetchPatientsAPI().then(data => setPatients(data)).catch(err => console.error("Error fetching patients:", err));
-    // e.g., fetchFamiliesAPI().then(data => setFamilies(data)).catch(err => console.error("Error fetching families:", err));
-    
-    console.log("Backend call placeholder: Initial data fetch for doctor dashboard complete (simulated).");
+    fetchInitialData();
   }, []);
 
   const toggleSidebar = () => {
@@ -154,33 +127,32 @@ const DocDashboard = () => {
   const formatShortDate = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr; // Return original if invalid
+    if (isNaN(date)) return dateStr; // Return original if invalid
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
-  const handlePatientSearch = (e) => setSearchTerm(e.target.value);
+  const handlePatientSearch = (e) => {
+    setSearchTerm(e.target.value);
+  };
 
   const filteredPatients = () => {
     if (!searchTerm) return patients;
     const term = searchTerm.toLowerCase();
-    return patients.filter(p => 
-      p.name.toLowerCase().includes(term) || 
-      p.familyId.toLowerCase().includes(term) ||
-      (p.contact && p.contact.includes(term))
+    return patients.filter(patient =>
+      patient.name.toLowerCase().includes(term) ||
+      (patient.familyId && patient.familyId.toLowerCase().includes(term))
     );
   };
 
   const filteredFamilies = () => {
     if (!searchTerm) return families;
     const term = searchTerm.toLowerCase();
-    return families.filter(f => 
-      f.familyName.toLowerCase().includes(term) || 
-      f.id.toLowerCase().includes(term) ||
-      f.contactPerson.toLowerCase().includes(term) ||
-      (f.contact && f.contact.includes(term))
+    return families.filter(family =>
+      family.familyName.toLowerCase().includes(term) ||
+      family.id.toLowerCase().includes(term)
     );
   };
-  
+
   const handleAddPatient = () => setShowAddPatientModal(true);
   const handleViewPatient = (patient) => {
     setSelectedPatient(patient);
@@ -199,7 +171,7 @@ const DocDashboard = () => {
     setSelectedFamily(family);
     setShowFamilyModal(true);
   };
-
+  
   const getFamilyMembers = (familyId) => {
     return patients.filter(patient => patient.familyId === familyId);
   };
@@ -864,127 +836,93 @@ const DocDashboard = () => {
   );
 
   const renderPatientDatabase = () => (
-    <>
-      <div className="content-header">
-        <h1>
-          <i className="bi bi-person-badge me-2 text-primary"></i>
-          Patient Database
-        </h1>
-        <button className="refresh-btn" onClick={handleRefreshData}>
-          <i className="bi bi-arrow-clockwise"></i> Refresh Data
-        </button>
-      </div>
-      <div className="patient-management">
-        <div className="management-header">
-          <h2 className="management-title">Manage Patient and Family Records</h2>
-          <div className="management-actions">
-            <div className="search-box">
-              <i className="bi bi-search search-icon"></i>
-              <input
-                type="text"
-                placeholder="Search patient or family..."
-                className="search-input"
-                value={searchTerm}
-                onChange={handlePatientSearch}
-              />
-            </div>
+    <div className="patient-management">
+      <div className="management-header">
+        <h2 className="management-title">Patient Database</h2>
+        <div className="management-actions">
+          <div className="search-box">
+            <i className="bi bi-search search-icon"></i>
+            <input 
+              type="text" 
+              placeholder="Search patient or family..." 
+              className="search-input"
+              value={searchTerm}
+              onChange={handlePatientSearch}
+            />
           </div>
         </div>
-        
-        <Tabs activeKey={tabKey} onSelect={(k) => setTabKey(k)} id="patient-database-tabs" className="mb-3">
-          <Tab eventKey="families" title="Family Records">
-            <div className="table-container">
-              <Table hover responsive className="data-table">
-                <thead>
-                  <tr>
-                    <th>Family ID</th>
-                    <th>Family Name</th>
-                    <th>Members</th>
-                    <th>Primary Contact</th>
-                    <th>Contact Number</th>
-                    <th>Registration Date</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredFamilies().map(family => (
-                    <tr key={family.id}>
-                      <td>{family.id}</td>
-                      <td>{family.familyName}</td>
-                      <td>{getFamilyMembers(family.id).length}</td>
-                      <td>{family.contactPerson}</td>
-                      <td>{family.contact}</td>
-                      <td>{formatShortDate(family.registrationDate)}</td>
-                      <td>
-                        <Button 
-                          variant="outline-primary" 
-                          size="sm"
-                          onClick={() => handleViewFamily(family)}
-                        >
-                          <i className="bi bi-eye-fill me-1"></i>
-                          View Members
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredFamilies().length === 0 && (
-                    <tr>
-                      <td colSpan="7" className="text-center no-data">No families found.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </Table>
-            </div>
-          </Tab>
-          <Tab eventKey="individuals" title="Individual Members">
-            <div className="table-container">
-              <Table hover responsive className="data-table">
-                <thead>
-                  <tr>
-                    <th>Patient ID</th>
-                    <th>Name</th>
-                    <th>Age</th>
-                    <th>Gender</th>
-                    <th>Family ID</th>
-                    <th>Contact</th>
-                    <th>Last Checkup</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredPatients().map(patient => (
-                    <tr key={patient.id}>
-                      <td>PT-{String(patient.id).padStart(4, '0')}</td>
-                      <td>{patient.name}</td>
-                      <td>{patient.age}</td>
-                      <td>{patient.gender}</td>
-                      <td>{patient.familyId}</td>
-                      <td>{patient.contact}</td>
-                      <td>{formatShortDate(patient.lastCheckup)}</td>
-                      <td>
-                        <Button 
-                          variant="outline-info" 
-                          size="sm"
-                          onClick={() => handleViewPatient(patient)}
-                        >
-                          <i className="bi bi-person-circle me-1"></i>
-                          View Info
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                  {filteredPatients().length === 0 && (
-                    <tr>
-                      <td colSpan="8" className="text-center no-data">No patients found.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </Table>
-            </div>
-          </Tab>
-        </Tabs>
       </div>
-    </>
+      <Tabs
+        activeKey={tabKey}
+        onSelect={(k) => setTabKey(k)}
+        className="mb-3"
+      >
+        <Tab eventKey="families" title="Family Records">
+          <div className="table-container">
+            <Table hover responsive className="data-table">
+              <thead>
+                <tr>
+                  <th style={{textAlign: 'left'}}>Family ID</th>
+                  <th style={{textAlign: 'left'}}>Family Name</th>
+                  <th style={{textAlign: 'left'}}>Family Head (Optional)</th>
+                  <th style={{textAlign: 'right'}}>Number of Members</th>
+                  <th style={{textAlign: 'left'}}>Date Registered</th>
+                  <th style={{textAlign: 'center'}}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredFamilies().map((family) => (
+                  <tr key={family.id}>
+                    <td style={{textAlign: 'left'}}>{family.id}</td>
+                    <td style={{textAlign: 'left'}}>{family.familyName}</td>
+                    <td style={{textAlign: 'left'}}>{family.contactPerson || 'N/A'}</td>
+                    <td style={{textAlign: 'right'}}>{getFamilyMembers(family.id).length}</td>
+                    <td style={{textAlign: 'left'}}>{formatShortDate(family.registrationDate)}</td>
+                    <td style={{textAlign: 'center'}} className="action-cell">
+                      <Button variant="outline-primary" size="sm" onClick={() => handleViewFamily(family)}>View Members</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        </Tab>
+        <Tab eventKey="members" title="Individual Members">
+          <div className="table-container">
+            <Table hover responsive className="data-table">
+              <thead>
+                <tr>
+                  <th style={{textAlign: 'left'}}>Patient ID</th>
+                  <th style={{textAlign: 'left'}}>Family ID</th>
+                  <th style={{textAlign: 'left'}}>Name</th>
+                  <th style={{textAlign: 'right'}}>Age</th>
+                  <th style={{textAlign: 'left'}}>Gender</th>
+                  <th style={{textAlign: 'left'}}>Contact Number</th>
+                  <th style={{textAlign: 'left'}}>Last Checkup</th>
+                  <th style={{textAlign: 'center'}}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPatients().map((patient) => (
+                  <tr key={patient.id}>
+                    <td style={{textAlign: 'left'}}>PT-{String(patient.id).padStart(4, '0')}</td>
+                    <td style={{textAlign: 'left'}}>{patient.familyId || 'N/A'}</td>
+                    <td style={{textAlign: 'left'}}>{patient.name}</td>
+                    <td style={{textAlign: 'right'}}>{patient.age}</td>
+                    <td style={{textAlign: 'left'}}>{patient.gender}</td>
+                    <td style={{textAlign: 'left'}}>{patient.contact}</td>
+                    <td style={{textAlign: 'left'}}>{formatShortDate(patient.lastCheckup)}</td>
+                    <td style={{textAlign: 'center'}} className="action-cell">
+                      <Button variant="outline-primary" size="sm" onClick={() => handleViewPatient(patient)}>View Information</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        </Tab>
+      </Tabs>
+    </div>
   );
   
   const renderSettings = () => (
@@ -1268,12 +1206,18 @@ const DocDashboard = () => {
 
   const renderContent = () => {
     switch(currentPath) {
-      case "Doctor's Checkup Today": return renderDoctorsCheckupToday();
-      case "Ongoing & Finished": return renderOngoingAndFinishedAppointments();
-      case "Appointment History": return renderAppointmentHistory();
-      case "Patient Database": return renderPatientDatabase();
-      case "Settings": return renderSettings();
-      default: return renderDoctorsCheckupToday();
+      case "Doctor's Checkup Today":
+        return renderDoctorsCheckupToday();
+      case 'Session Management':
+        return renderOngoingAndFinishedAppointments();
+      case 'Appointment History':
+        return renderAppointmentHistory();
+      case 'Patient Database':
+        return renderPatientDatabase();
+      case 'Settings':
+        return renderSettings();
+      default:
+        return renderDoctorsCheckupToday();
     }
   };
 
@@ -1712,7 +1656,7 @@ const DocDashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {getFamilyMembers(selectedFamily.id).map(member => (
+                  {getFamilyMembers(selectedFamily.id).map((member) => (
                     <tr key={member.id}>
                       <td style={{textAlign: 'left'}}>PT-{String(member.id).padStart(4, '0')}</td>
                       <td style={{textAlign: 'left'}}>{member.name}</td>
@@ -1721,7 +1665,9 @@ const DocDashboard = () => {
                       <td style={{textAlign: 'left'}}>{member.contact}</td>
                       <td style={{textAlign: 'left'}}>{formatShortDate(member.lastCheckup)}</td>
                       <td style={{textAlign: 'center'}} className="action-cell">
-                        <Button variant="outline-primary" size="sm" onClick={() => { setShowFamilyModal(false); setTimeout(() => handleViewPatient(member), 300); }}>View Information</Button>
+                        <Button variant="outline-primary" size="sm" onClick={() => handleViewPatient(member)}>
+                          View Details
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -1736,7 +1682,6 @@ const DocDashboard = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-
     </div>
   );
 };

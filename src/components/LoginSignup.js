@@ -5,6 +5,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import { QRCodeCanvas as QRCode } from 'qrcode.react';
 import { QrReader } from 'react-qr-reader';
+import authService from '../services/authService';
 import { Link } from 'react-router-dom'; // Assuming you'll use React Router for navigation
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -113,19 +114,36 @@ const LoginSignup = () => {
     }
   };
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    setLoginError(''); // Clear previous errors
+    setLoginError('');
 
-    // Hardcoded login logic
-    if (emailOrPhone === 'doctor' && password === 'passworddoc') {
-      navigate('/docdashboard');
-    } else if (emailOrPhone === 'admin' && password === 'passwordadm') {
-      navigate('/admdashboard');
-    } else if (emailOrPhone === 'patient' && password === 'passwordpat') {
-      navigate('/patientdashboard');
-    } else {
-      setLoginError('Invalid email or password.');
+    try {
+      const response = await authService.login(emailOrPhone, password);
+      if (response && response.user) {
+        // Redirect based on user role
+        switch (response.user.role) {
+          case 'admin':
+            navigate('/admdashboard');
+            break;
+          case 'doctor':
+            navigate('/docdashboard');
+            break;
+          case 'patient':
+            navigate('/patientdashboard');
+            break;
+          default:
+            navigate('/'); // Or a default dashboard
+        }
+      }
+    } catch (error) {
+      const errorMessage =
+        (error.response &&
+          error.response.data &&
+          error.response.data.message) ||
+        error.message ||
+        error.toString();
+      setLoginError(errorMessage);
     }
   };
 
@@ -168,17 +186,21 @@ const LoginSignup = () => {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+    let newValue = value;
+    // Auto-capitalize first, middle, last name fields
+    if (["firstName", "middleName", "lastName"].includes(name)) {
+      newValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    }
     if (name === 'street') {
       setFormData((prev) => ({
         ...prev,
-        street: value,
+        street: newValue,
         barangay: '' // Reset barangay when street changes
       }));
     } else {
       setFormData((prev) => ({
         ...prev,
-        [name]: type === 'checkbox' ? checked : value
+        [name]: type === 'checkbox' ? checked : newValue
       }));
     }
   };

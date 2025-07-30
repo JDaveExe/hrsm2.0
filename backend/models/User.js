@@ -1,216 +1,149 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
 const bcrypt = require('bcryptjs');
+const { sequelize } = require('../config/database');
 
-const userSchema = new mongoose.Schema({
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.INTEGER,
+    primaryKey: true,
+    autoIncrement: true,
+  },
   username: {
-    type: String,
-    required: [true, 'Username is required'],
+    type: DataTypes.STRING,
+    allowNull: false,
     unique: true,
-    trim: true,
-    minlength: [3, 'Username must be at least 3 characters long'],
-    maxlength: [30, 'Username cannot exceed 30 characters']
   },
   email: {
-    type: String,
-    required: [true, 'Email is required'],
+    type: DataTypes.STRING,
+    allowNull: false,
     unique: true,
-    trim: true,
-    lowercase: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
+    validate: {
+      isEmail: true,
+    },
   },
   password: {
-    type: String,
-    required: [true, 'Password is required'],
-    minlength: [8, 'Password must be at least 8 characters long']
+    type: DataTypes.STRING,
+    allowNull: false,
   },
   role: {
-    type: String,
-    enum: ['admin', 'doctor', 'patient'],
-    required: [true, 'User role is required']
+    type: DataTypes.ENUM('admin', 'doctor', 'patient'),
+    allowNull: false,
+    defaultValue: 'patient',
   },
-  profile: {
-    firstName: {
-      type: String,
-      required: [true, 'First name is required'],
-      trim: true,
-      maxlength: [50, 'First name cannot exceed 50 characters']
-    },
-    lastName: {
-      type: String,
-      required: [true, 'Last name is required'],
-      trim: true,
-      maxlength: [50, 'Last name cannot exceed 50 characters']
-    },
-    contactNumber: {
-      type: String,
-      trim: true,
-      match: [/^[\+]?[0-9\s\-\(\)]+$/, 'Please enter a valid contact number']
-    },
-    address: {
-      type: String,
-      trim: true,
-      maxlength: [200, 'Address cannot exceed 200 characters']
-    },
-    avatar: {
-      type: String,
-      default: null
-    },
-    dateOfBirth: {
-      type: Date,
-      validate: {
-        validator: function(date) {
-          return date <= new Date();
-        },
-        message: 'Date of birth cannot be in the future'
-      }
-    },
-    gender: {
-      type: String,
-      enum: ['Male', 'Female', 'Other'],
-      default: null
-    }
+  firstName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  lastName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  contactNumber: {
+    type: DataTypes.STRING,
+  },
+  address: {
+    type: DataTypes.STRING,
   },
   isActive: {
-    type: Boolean,
-    default: true
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
   },
-  isVerified: {
-    type: Boolean,
-    default: false
-  },
-  lastLogin: {
-    type: Date,
-    default: null
-  },
-  passwordResetToken: {
-    type: String,
-    default: null
-  },
-  passwordResetExpires: {
-    type: Date,
-    default: null
-  },
-  emailVerificationToken: {
-    type: String,
-    default: null
-  },
-  preferences: {
-    darkMode: {
-      type: Boolean,
-      default: false
+}, {
+  hooks: {
+    beforeCreate: async (user) => {
+      if (user.password) {
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(user.password, salt);
+      }
     },
-    notifications: {
-      email: {
-        type: Boolean,
-        default: true
-      },
-      sms: {
-        type: Boolean,
-        default: false
-      },
-      push: {
-        type: Boolean,
-        default: true
+    beforeUpdate: async (user) => {
+      if (user.changed('password')) {
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(user.password, salt);
+      }
+    },
+  },
+});
+
+// Instance method to compare password
+User.prototype.comparePassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Static method to create default users
+User.createDefaultUsers = async function() {
+  try {
+    // Check if admin exists
+    const adminExists = await User.findOne({ where: { role: 'admin' } });
+    
+    if (!adminExists) {
+      await User.create({
+        username: 'admin',
+        email: 'admin@maybunga.healthcare',
+        password: 'admin123',
+        role: 'admin',
+        firstName: 'System',
+        lastName: 'Administrator',
+        contactNumber: '09123456789',
+        address: 'Maybunga Health Center'
+      });
+      console.log('✅ Default admin user created');
+    }
+
+    // Check if doctor exists
+    const doctorExists = await User.findOne({ where: { role: 'doctor' } });
+    
+    if (!doctorExists) {
+      await User.create({
+        username: 'doctor',
+        email: 'doctor@maybunga.healthcare',
+        password: 'doctor123',
+        role: 'doctor',
+        firstName: 'Dr. John',
+        lastName: 'Smith',
+        contactNumber: '09123456790',
+        address: 'Maybunga Health Center'
+      });
+      console.log('✅ Default doctor user created');
+    }
+
+    console.log('✅ Default users initialization complete');
+  } catch (error) {
+    console.error('❌ Error creating default users:', error.message);
+  }
+};
+
+// Static method to check if user can be deleted (prevent deletion of default admin/doctor)
+User.canDeleteUser = async function(userId) {
+  try {
+    const user = await User.findByPk(userId);
+    if (!user) return false; // User not found
+
+    // Prevent deletion of the default admin and doctor accounts
+    if (user.username === 'admin' || user.username === 'doctor') {
+      return false;
+    }
+
+    // Prevent deletion of the last active admin or doctor
+    if (user.role === 'admin') {
+      const adminCount = await User.count({ where: { role: 'admin', isActive: true } });
+      if (adminCount <= 1) {
+        return false; // Do not allow deleting the last admin
       }
     }
-  }
-}, {
-  timestamps: true,
-  toJSON: { virtuals: true },
-  toObject: { virtuals: true }
-});
 
-// Virtual for full name
-userSchema.virtual('profile.fullName').get(function() {
-  return `${this.profile.firstName} ${this.profile.lastName}`;
-});
+    if (user.role === 'doctor') {
+      const doctorCount = await User.count({ where: { role: 'doctor', isActive: true } });
+      if (doctorCount <= 1) {
+        return false; // Do not allow deleting the last doctor
+      }
+    }
 
-// Index for performance
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
-userSchema.index({ role: 1 });
-userSchema.index({ 'profile.firstName': 1, 'profile.lastName': 1 });
-
-// Pre-save middleware to hash password
-userSchema.pre('save', async function(next) {
-  // Only hash the password if it has been modified (or is new)
-  if (!this.isModified('password')) return next();
-
-  try {
-    // Hash password with cost of 12
-    const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS) || 12;
-    this.password = await bcrypt.hash(this.password, saltRounds);
-    next();
+    return true; // Allow deletion for other users
   } catch (error) {
-    next(error);
-  }
-});
-
-// Instance method to check password
-userSchema.methods.comparePassword = async function(candidatePassword) {
-  try {
-    return await bcrypt.compare(candidatePassword, this.password);
-  } catch (error) {
-    throw new Error('Password comparison failed');
+    console.error('Error checking user deletion permission:', error);
+    return false;
   }
 };
 
-// Instance method to generate password reset token
-userSchema.methods.generatePasswordResetToken = function() {
-  const crypto = require('crypto');
-  const resetToken = crypto.randomBytes(32).toString('hex');
-  
-  this.passwordResetToken = crypto
-    .createHash('sha256')
-    .update(resetToken)
-    .digest('hex');
-  
-  // Token expires in 10 minutes
-  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
-  
-  return resetToken;
-};
-
-// Instance method to generate email verification token
-userSchema.methods.generateEmailVerificationToken = function() {
-  const crypto = require('crypto');
-  const verificationToken = crypto.randomBytes(32).toString('hex');
-  
-  this.emailVerificationToken = crypto
-    .createHash('sha256')
-    .update(verificationToken)
-    .digest('hex');
-  
-  return verificationToken;
-};
-
-// Static method to find by credentials
-userSchema.statics.findByCredentials = async function(email, password) {
-  const user = await this.findOne({ 
-    email: email.toLowerCase(),
-    isActive: true 
-  });
-  
-  if (!user) {
-    throw new Error('Invalid login credentials');
-  }
-  
-  const isMatch = await user.comparePassword(password);
-  if (!isMatch) {
-    throw new Error('Invalid login credentials');
-  }
-  
-  return user;
-};
-
-// Remove password from JSON output
-userSchema.methods.toJSON = function() {
-  const user = this.toObject();
-  delete user.password;
-  delete user.passwordResetToken;
-  delete user.passwordResetExpires;
-  delete user.emailVerificationToken;
-  return user;
-};
-
-module.exports = mongoose.model('User', userSchema);
+module.exports = User;
