@@ -101,3 +101,322 @@ backend/
 6.  **Deployment**:
     *   Containerize your application using **Docker** for easier deployment and scalability.
     *   Deploy to a cloud provider like **Heroku**, **AWS**, or **DigitalOcean**.
+
+**Available Vaccines:**
+
+**Routine Childhood Immunization Program:**
+1. **BCG (Bacillus Calmette-Guérin)** - Administered at birth to prevent tuberculosis
+2. **Hepatitis B Vaccine** - Given at birth and as part of the Pentavalent vaccine series
+3. **Pentavalent Vaccine (DTP-HepB-Hib)** - Protects against diphtheria, tetanus, pertussis, hepatitis B, and Haemophilus influenzae type B; administered at 6, 10, and 14 weeks
+4. **Oral Polio Vaccine (OPV)** - Given at 6, 10, and 14 weeks, with boosters at 9 months and 4–6 years
+5. **Inactivated Polio Vaccine (IPV)** - Given at 14 weeks and 9 months
+6. **Pneumococcal Conjugate Vaccine (PCV)** - Administered at 6, 10, and 14 weeks, with a booster at 12–15 months
+7. **Measles, Mumps, and Rubella (MMR) Vaccine** - First dose at 9 months, second at 12–15 months, and a third at 4–6 years
+8. **Japanese Encephalitis (JE) Vaccine** - Given at 12 months
+9. **Influenza Vaccine** - First dose at 6 months, with annual boosters
+10. **Rotavirus Vaccine** - Administered orally starting at 6 weeks
+
+**Additional Routine Vaccines:**
+11. **Rabies Vaccine** - Recently included in the routine immunization schedule
+12. **Tetanus Toxoid (TT)** - Given to pregnant women and for wound management
+13. **Tetanus-Diphtheria (Td)** - Booster vaccine for adolescents and adults
+14. **Tetanus-Diphtheria-Pertussis (Tdap)** - Booster vaccine with pertussis component
+15. **Varicella (Chickenpox) Vaccine** - Prevents chickenpox, typically given at 12-15 months
+16. **Hepatitis A Vaccine** - Protects against hepatitis A virus
+17. **Meningococcal Vaccine** - Protects against meningococcal disease
+18. **Human Papillomavirus (HPV) Vaccine** - Prevents cervical cancer, given to adolescents
+
+**Travel and Special Circumstance Vaccines:**
+19. **Yellow Fever Vaccine** - Required for travel to endemic areas
+20. **Typhoid Vaccine** - Protects against typhoid fever
+21. **Cholera Vaccine** - Oral vaccine for cholera prevention
+22. **Dengue Vaccine (Dengvaxia)** - For prevention of dengue fever in endemic areas
+23. **Pneumococcal Polysaccharide Vaccine (PPSV23)** - For adults and high-risk individuals
+24. **Haemophilus influenzae type b (Hib) Vaccine** - Standalone Hib vaccine when needed
+25. **Anthrax Vaccine** - For high-risk occupational exposure
+26. **Smallpox Vaccine** - For emergency preparedness
+27. **Shingles (Zoster) Vaccine** - Prevents shingles in older adults
+
+**COVID-19 Vaccine Series:**
+28. **COVID-19 mRNA Vaccine (Pfizer)** - mRNA vaccine against SARS-CoV-2
+29. **COVID-19 mRNA Vaccine (Moderna)** - mRNA vaccine against SARS-CoV-2
+30. **COVID-19 Viral Vector Vaccine (AstraZeneca)** - Viral vector vaccine against SARS-CoV-2
+31. **COVID-19 Viral Vector Vaccine (Johnson & Johnson)** - Single-dose viral vector vaccine
+32. **COVID-19 Protein Subunit Vaccine (Novavax)** - Protein subunit vaccine against SARS-CoV-2
+
+**Recent Additions:**
+33. **Respiratory Syncytial Virus (RSV) Vaccine** - Protects against RSV in infants and elderly
+
+**Backend Implementation:**
+
+1. **Vaccination Services** (`vaccinationUtils.js`):
+   - Service validation for vaccination requirements
+   - Standard vaccination list with descriptions
+   - Utility functions for vaccination checking
+
+2. **Vaccination Component** (`VaccinationCheck.js`):
+   - Comprehensive vaccine selection interface
+   - Immunization history tracking
+   - Integration with medical analytics
+   - Real-time vaccination recording
+
+3. **Database Integration**:
+   - Vaccination records stored with patient data
+   - Immunization history tracking
+   - Analytics integration for vaccine usage statistics
+   - Service-based vaccination requirements
+
+**Key Features:**
+
+1. **Comprehensive Coverage**: 33 vaccines covering routine childhood immunization, adult boosters, travel vaccines, and emergency preparedness
+2. **Schedule-Based Administration**: Vaccines tracked with proper timing and dosage schedules
+3. **Analytics Integration**: Vaccine usage tracked for medical analytics and reporting
+4. **Service Integration**: Automatic vaccination checks for services requiring immunization
+5. **Historical Tracking**: Complete immunization history for each patient
+
+**Vaccination Workflow:**
+
+1. **Service Assessment** → Determines if vaccination is required for the scheduled service
+2. **History Review** → Checks patient's previous immunization records
+3. **Vaccine Selection** → Healthcare provider selects appropriate vaccine from comprehensive list
+4. **Administration** → Records vaccine administration with date, notes, and provider
+5. **Analytics Update** → Updates vaccine usage statistics for reporting
+6. **Patient Record** → Updates patient's immunization history
+
+### SMS Notification System Analysis
+
+**Overview:**
+
+The system includes a comprehensive SMS notification service using Twilio for real SMS delivery with Philippine phone number support. The service supports both production (real SMS) and development (mock) modes.
+
+**Key Components:**
+
+1. **SMS Service (`backend/services/smsService.js`)**:
+   - Singleton service class managing SMS operations
+   - Twilio client initialization and management
+   - Philippine phone number formatting and validation
+   - Mock SMS for development/testing
+   - Delivery status tracking and error handling
+
+2. **SMS Configuration (`backend/config/sms.config.js`)**:
+   - Environment-based credential management
+   - Provider selection (Twilio or mock)
+   - Rate limiting configuration
+   - Message settings and formatting rules
+
+3. **API Endpoints (`backend/routes/api.routes.js`)**:
+   - `POST /api/send-sms` - Send SMS notifications
+   - `GET /api/sms-status` - Check service status
+   - `POST /api/sms-delivery-status` - Webhook for delivery receipts
+
+**Philippine Phone Number Support:**
+
+**Supported Formats:**
+- `09171234567` → `+639171234567` (Most common Philippine mobile format)
+- `+639171234567` → `+639171234567` (International format)
+- `639171234567` → `+639171234567` (Without plus sign)
+- `9171234567` → `+639171234567` (Without country code)
+
+**Validation Rules:**
+- Must be valid Philippine mobile number (+639xxxxxxxxx)
+- Supports all major carriers (Globe, Smart, Sun, DITO)
+- Automatic format conversion and validation
+- Error handling for invalid formats
+
+**SMS Service Features:**
+
+1. **Twilio Integration**:
+   - Full Twilio SDK implementation
+   - Account SID and Auth Token management
+   - Delivery receipt tracking
+   - Cost monitoring and reporting
+
+2. **Mock Mode for Development**:
+   - No credentials required for testing
+   - Simulates realistic delivery delays (1-3 seconds)
+   - 5% failure rate simulation for testing error handling
+   - Console logging for debugging
+
+3. **Message Management**:
+   - Maximum 1600 character limit (Twilio standard)
+   - Message length validation
+   - Urgency level support (normal, high, urgent)
+   - Delivery status callbacks
+
+4. **Error Handling**:
+   - Graceful fallback to mock mode if Twilio fails
+   - Detailed error logging and reporting
+   - Invalid phone number handling
+   - Network failure recovery
+
+**Environment Configuration:**
+
+**Required Environment Variables:**
+```env
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your_auth_token_here
+TWILIO_PHONE_NUMBER=+1234567890
+SMS_PROVIDER=twilio
+BASE_URL=http://localhost:5000
+```
+
+**Optional Settings:**
+```env
+MAX_SMS_PER_HOUR=100
+MAX_SMS_PER_DAY=500
+```
+
+**Database Integration:**
+
+**SMS Notifications Table Schema:**
+```sql
+CREATE TABLE sms_notifications (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  message_id VARCHAR(255) UNIQUE,
+  recipient VARCHAR(20) NOT NULL,
+  message TEXT NOT NULL,
+  urgency ENUM('normal', 'high', 'urgent') DEFAULT 'normal',
+  patient_id INT NULL,
+  patient_name VARCHAR(255),
+  sent_at DATETIME,
+  status VARCHAR(50),
+  provider VARCHAR(50),
+  cost VARCHAR(20),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (patient_id) REFERENCES users(id)
+);
+```
+
+**API Usage Examples:**
+
+1. **Send SMS Notification:**
+```javascript
+POST /api/send-sms
+{
+  "recipient": "09171234567",
+  "message": "Your appointment is scheduled for tomorrow at 2:00 PM",
+  "urgency": "normal",
+  "patientId": 123,
+  "patientName": "Juan Dela Cruz",
+  "type": "appointment_reminder"
+}
+```
+
+2. **Check SMS Service Status:**
+```javascript
+GET /api/sms-status
+Response: {
+  "success": true,
+  "status": {
+    "provider": "twilio",
+    "twilioConfigured": true,
+    "ready": true
+  }
+}
+```
+
+**Service Response Format:**
+```javascript
+{
+  "success": true,
+  "messageId": "SM1234567890abcdef",
+  "status": "queued",
+  "to": "+639171234567",
+  "from": "+15551234567",
+  "provider": "twilio",
+  "cost": "$0.075",
+  "direction": "outbound-api"
+}
+```
+
+**Integration Features:**
+
+1. **Patient Management Integration**:
+   - Send appointment reminders
+   - Vaccination schedule notifications
+   - Health checkup reminders
+   - Emergency alerts to family members
+
+2. **Admin Dashboard Integration**:
+   - Bulk SMS capabilities
+   - Message templates for common notifications
+   - Delivery status monitoring
+   - Cost tracking and reporting
+
+3. **Automated Notifications**:
+   - Appointment confirmations
+   - Prescription ready notifications
+   - Follow-up reminders
+   - Health program announcements
+
+**Security Considerations:**
+
+1. **Credential Management**:
+   - Environment variables for sensitive data
+   - No hardcoded credentials in code
+   - Secure webhook endpoints for callbacks
+
+2. **Rate Limiting**:
+   - Prevents SMS spam and abuse
+   - Configurable limits per hour/day
+   - Cost control mechanisms
+
+3. **Data Privacy**:
+   - Secure storage of patient phone numbers
+   - Audit trail for all SMS communications
+   - GDPR-compliant data handling
+
+**Cost Management:**
+
+**Twilio Pricing (Philippines):**
+- SMS to Philippine mobile: ~$0.075 per message
+- Free trial credit: $15 (approximately 200 SMS)
+- Production pricing: Pay-as-you-use model
+
+**Usage Monitoring:**
+- Real-time cost tracking
+- Message count analytics
+- Provider performance metrics
+- Delivery success rates
+
+**Testing and Development:**
+
+1. **Mock Mode Testing**:
+   - No Twilio account required
+   - Immediate setup for development
+   - Realistic behavior simulation
+   - Console logging for debugging
+
+2. **Production Testing**:
+   - Test with verified phone numbers
+   - Gradual rollout approach
+   - Monitor delivery rates and costs
+   - Error handling validation
+
+**Implementation Recommendations for New System:**
+
+1. **Enhanced Features**:
+   - Scheduled SMS sending
+   - SMS template management system
+   - Bulk SMS with CSV import
+   - Advanced analytics dashboard
+
+2. **Integration Improvements**:
+   - Calendar integration for automatic reminders
+   - Multi-language SMS support (Filipino/English)
+   - SMS-based patient feedback system
+   - Emergency broadcast capabilities
+
+3. **Technical Enhancements**:
+   - Redis queue for high-volume SMS
+   - Webhook signature verification
+   - Retry logic for failed messages
+   - Alternative SMS providers (redundancy)
+
+4. **Monitoring and Analytics**:
+   - Real-time delivery monitoring
+   - Cost analysis and budgeting
+   - Patient engagement metrics
+   - SMS campaign effectiveness tracking
+
+The SMS notification system provides robust, scalable communication capabilities essential for modern healthcare operations, ensuring patients stay informed about their healthcare needs while maintaining cost efficiency and security.

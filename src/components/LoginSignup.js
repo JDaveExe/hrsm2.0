@@ -7,6 +7,8 @@ import { QRCodeCanvas as QRCode } from 'qrcode.react';
 import { QrReader } from 'react-qr-reader';
 import authService from '../services/authService';
 import { Link } from 'react-router-dom'; // Assuming you'll use React Router for navigation
+import { useAuth } from '../context/AuthContext'; // Import the auth context
+import { useData } from '../context/DataContext'; // Import the data context
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../styles/LoginSignup.css'; // New CSS file
@@ -16,6 +18,8 @@ const LoginSignup = () => {
   const [activeTab, setActiveTab] = useState('login'); // 'login' or 'register'
   const [activeKey, setActiveKey] = useState('login');
   const navigate = useNavigate(); // Initialize useNavigate
+  const { login, logout, isAuthenticated, user } = useAuth(); // Use auth context
+  const { addUnsortedMember } = useData(); // Use data context
 
   // ===== LOGIN STATE (Copied from AuthPage.js) =====
   const [emailOrPhone, setEmailOrPhone] = useState("");
@@ -99,6 +103,9 @@ const LoginSignup = () => {
     setRegPasswordStrength(checkPasswordStrength(formData.password));
   }, [formData.password]);
 
+  // Don't automatically redirect - let users access login page even when authenticated
+  // They might want to logout or switch accounts
+
   // ===== LOGIN FUNCTIONS (Placeholders - Copied from AuthPage.js) =====
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
   const toggleRegPasswordVisibility = () => setShowRegPassword(!showRegPassword);
@@ -121,28 +128,26 @@ const LoginSignup = () => {
     try {
       const response = await authService.login(emailOrPhone, password);
       if (response && response.user) {
+        // Use auth context to store user data
+        login(response.user, response.token);
+        
         // Redirect based on user role
         switch (response.user.role) {
           case 'admin':
-            navigate('/admdashboard');
+            navigate('/admin/dashboard');
             break;
           case 'doctor':
-            navigate('/docdashboard');
+            navigate('/doctor/dashboard');
             break;
           case 'patient':
-            navigate('/patientdashboard');
+            navigate('/patient/dashboard');
             break;
           default:
             navigate('/'); // Or a default dashboard
         }
       }
     } catch (error) {
-      const errorMessage =
-        (error.response &&
-          error.response.data &&
-          error.response.data.message) ||
-        error.message ||
-        error.toString();
+      const errorMessage = error.response?.data?.msg || "An unexpected error occurred. Please try again.";
       setLoginError(errorMessage);
     }
   };
@@ -187,10 +192,33 @@ const LoginSignup = () => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     let newValue = value;
+    
     // Auto-capitalize first, middle, last name fields
     if (["firstName", "middleName", "lastName"].includes(name)) {
       newValue = value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
     }
+    
+    // Phone number validation - only allow numbers and enforce 11 digit limit starting with 09
+    if (name === 'phoneNumber') {
+      // Remove any non-digit characters
+      newValue = value.replace(/\D/g, '');
+      
+      // Limit to 11 digits
+      if (newValue.length > 11) {
+        newValue = newValue.slice(0, 11);
+      }
+      
+      // If user starts typing, ensure it starts with 09
+      if (newValue.length > 0 && !newValue.startsWith('09')) {
+        // If they typed something that doesn't start with 09, prepend 09 or correct it
+        if (newValue.length === 1 && newValue === '9') {
+          newValue = '09';
+        } else if (newValue.length >= 2 && !newValue.startsWith('09')) {
+          // Keep the existing behavior - let them type but validation will catch it
+        }
+      }
+    }
+    
     if (name === 'street') {
       setFormData((prev) => ({
         ...prev,
@@ -238,6 +266,16 @@ const LoginSignup = () => {
       setRegistrationError("Please provide either an email or a phone number.");
       return;
     }
+    
+    // Validate phone number format if provided
+    if (formData.phoneNumber) {
+      const phoneRegex = /^09\d{9}$/;
+      if (!phoneRegex.test(formData.phoneNumber)) {
+        setRegistrationError("Phone number must be exactly 11 digits starting with 09 (e.g., 09171234567).");
+        return;
+      }
+    }
+    
     if (formData.password !== formData.repeatPassword) {
       setRegistrationError("Passwords do not match.");
       return;
@@ -246,15 +284,94 @@ const LoginSignup = () => {
       setRegistrationError("Please fill in all required fields.");
       return;
     }
+    if (!formData.dateOfBirth) {
+      setRegistrationError("Date of birth is required.");
+      return;
+    }
+    if (!formData.gender) {
+      setRegistrationError("Gender is required.");
+      return;
+    }
 
-    // Placeholder for registration logic
-    console.log("Registration form submitted:", formData);
-    const demoQrValue = generateQrToken(); // Generate a demo QR value
-    setUserQrValue(JSON.stringify({ userId: formData.email || formData.phoneNumber, token: demoQrValue }));
-    setRegistrationMessage('Registration successful! Here is your demo QR code.');
-    setRegistrationComplete(true);
-    setShowQrCode(true);
-    // TODO: Replace with actual API call to register user and get QR data
+    try {
+      // Call the registration API
+      const response = await authService.register(formData);
+      
+      if (response && response.user) {
+        // Use auth context to store user data
+        login(response.user, response.token);
+        
+        // Add patient to unsorted members in the data context
+        const patientData = {
+          id: response.user.patientId,
+          firstName: formData.firstName,
+          middleName: formData.middleName,
+          lastName: formData.lastName,
+          suffix: formData.suffix,
+          email: formData.email,
+          phoneNumber: formData.phoneNumber,
+          address: `${formData.houseNo ? formData.houseNo + ', ' : ''}${formData.street ? formData.street + ', ' : ''}${formData.barangay ? formData.barangay + ', ' : ''}${formData.city}, ${formData.region}`,
+          dateOfBirth: formData.dateOfBirth,
+          age: formData.age,
+          gender: formData.gender,
+          civilStatus: formData.civilStatus,
+          philHealthNumber: formData.philHealthNumber,
+          membershipStatus: formData.membershipStatus,
+          qrCode: response.user.qrCode,
+          registeredAt: new Date().toISOString(),
+          familyId: null, // Unsorted member
+        };
+        
+        addUnsortedMember(patientData);
+        
+        // Set the QR code value from the response
+        setUserQrValue(JSON.stringify({ 
+          userId: response.user.id, 
+          patientId: response.user.patientId,
+          token: response.user.qrCode 
+        }));
+        
+        setRegistrationMessage('Registration successful! You have been added to the system. Here is your QR code for quick login.');
+        setRegistrationComplete(true);
+        setShowQrCode(true);
+        
+        // Clear the form
+        setFormData({
+          firstName: '',
+          middleName: '',
+          lastName: '',
+          suffix: '',
+          email: '',
+          password: '',
+          repeatPassword: '',
+          phoneNumber: '',
+          houseNo: '',
+          street: '',
+          barangay: '',
+          city: 'Pasig',
+          region: 'Metro Manila',
+          philHealthNumber: '',
+          membershipStatus: 'Member',
+          dateOfBirth: null,
+          age: '',
+          gender: '',
+          civilStatus: ''
+        });
+      }
+    } catch (error) {
+      const errorMessage =
+        (error.response &&
+          error.response.data &&
+          error.response.data.msg) ||
+        (error.response &&
+          error.response.data &&
+          error.response.data.errors &&
+          error.response.data.errors[0] &&
+          error.response.data.errors[0].msg) ||
+        error.message ||
+        error.toString();
+      setRegistrationError(errorMessage);
+    }
   };
 
   const downloadQRCode = () => {
@@ -422,7 +539,24 @@ const LoginSignup = () => {
             <Card.Body>
               <Row className="mb-3">
                 <Col md={6}><Form.Group><Form.Label>Email</Form.Label><Form.Control type="email" name="email" value={formData.email} onChange={handleChange} /></Form.Group></Col>
-                <Col md={6}><Form.Group><Form.Label>Phone Number</Form.Label><Form.Control type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="09XXXXXXXXX" pattern="^09\\\\d{9}$" title="Must be a valid PH mobile number starting with 09"/></Form.Group></Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Phone Number</Form.Label>
+                    <Form.Control 
+                      type="tel" 
+                      name="phoneNumber" 
+                      value={formData.phoneNumber} 
+                      onChange={handleChange} 
+                      placeholder="09XXXXXXXXX" 
+                      pattern="^09\d{9}$" 
+                      maxLength="11"
+                      title="Must be a valid PH mobile number starting with 09 (11 digits total)"
+                    />
+                    <Form.Text className="text-muted">
+                      Format: 09XXXXXXXXX (11 digits total)
+                    </Form.Text>
+                  </Form.Group>
+                </Col>
               </Row>
               <Form.Text className="text-muted d-block mb-2">
                 Please provide either an email or a phone number.
@@ -486,6 +620,46 @@ const LoginSignup = () => {
     </Form>
   );
 
+  // Handle logout
+  const handleLogout = () => {
+    logout();
+    setActiveTab('login'); // Reset to login tab
+  };
+
+  // Handle redirect to dashboard
+  const goToDashboard = () => {
+    switch (user?.role) {
+      case 'admin':
+        navigate('/admin/dashboard');
+        break;
+      case 'doctor':
+        navigate('/doctor/dashboard');
+        break;
+      case 'patient':
+        navigate('/patient/dashboard');
+        break;
+      default:
+        navigate('/');
+    }
+  };
+
+  // Render already authenticated view
+  const renderAuthenticatedView = () => (
+    <div className="text-center">
+      <h4>Welcome back, {user?.firstName || user?.username}!</h4>
+      <p className="text-muted mb-4">You are already logged in as a {user?.role}.</p>
+      
+      <div className="d-grid gap-2">
+        <Button variant="primary" onClick={goToDashboard} className="mb-2">
+          Go to Dashboard
+        </Button>
+        <Button variant="outline-secondary" onClick={handleLogout}>
+          Logout & Switch Account
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <>
       <div 
@@ -493,19 +667,29 @@ const LoginSignup = () => {
         style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${homeImage})` }}
       >
         <Card className="loginsignup-card">
-          <Card.Header>
-            <Nav variant="tabs" activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="justify-content-center">
-              <Nav.Item>
-                <Nav.Link eventKey="login">Login</Nav.Link>
-              </Nav.Item>
-              <Nav.Item>
-                <Nav.Link eventKey="register">Register</Nav.Link>
-              </Nav.Item>
-            </Nav>
-          </Card.Header>
-          <Card.Body>
-            {activeTab === 'login' ? renderLoginForm() : renderRegistrationForm()}
-          </Card.Body>
+          {isAuthenticated && user ? (
+            // Show authenticated view
+            <Card.Body>
+              {renderAuthenticatedView()}
+            </Card.Body>
+          ) : (
+            // Show login/register tabs
+            <>
+              <Card.Header>
+                <Nav variant="tabs" activeKey={activeTab} onSelect={(k) => setActiveTab(k)} className="justify-content-center">
+                  <Nav.Item>
+                    <Nav.Link eventKey="login">Login</Nav.Link>
+                  </Nav.Item>
+                  <Nav.Item>
+                    <Nav.Link eventKey="register">Register</Nav.Link>
+                  </Nav.Item>
+                </Nav>
+              </Card.Header>
+              <Card.Body>
+                {activeTab === 'login' ? renderLoginForm() : renderRegistrationForm()}
+              </Card.Body>
+            </>
+          )}
         </Card>
       </div>
     </>

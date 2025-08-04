@@ -58,6 +58,97 @@
   --sidebar-text: #e5e7eb;
 }
 
+/* Dark mode form controls */
+.dark-mode-form-control {
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+.dark-mode-form-control:focus {
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--accent-primary) !important;
+  box-shadow: 0 0 0 0.25rem rgba(56, 189, 248, 0.25) !important;
+}
+
+.dark-mode-form-control::placeholder {
+  color: var(--text-secondary) !important;
+  opacity: 0.7;
+}
+
+.dark-mode-select {
+  background-color: var(--bg-input) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+.dark-mode-input-group-text {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+/* Dark mode calendar */
+.dark-mode-calendar {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+.dark-mode-calendar .react-datepicker__header {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+.dark-mode-calendar .react-datepicker__day-name,
+.dark-mode-calendar .react-datepicker__day,
+.dark-mode-calendar .react-datepicker__time-name,
+.dark-mode-calendar .react-datepicker__current-month,
+.dark-mode-calendar .react-datepicker-time__header,
+.dark-mode-calendar .react-datepicker__month-dropdown,
+.dark-mode-calendar .react-datepicker__year-dropdown,
+.dark-mode-calendar .react-datepicker__month-read-view,
+.dark-mode-calendar .react-datepicker__year-read-view {
+  color: var(--text-primary) !important;
+}
+
+.dark-mode-calendar .react-datepicker__day:hover,
+.dark-mode-calendar .react-datepicker__month-text:hover,
+.dark-mode-calendar .react-datepicker__quarter-text:hover,
+.dark-mode-calendar .react-datepicker__year-text:hover {
+  background-color: var(--bg-tertiary) !important;
+}
+
+.dark-mode-calendar .react-datepicker__day--selected,
+.dark-mode-calendar .react-datepicker__day--keyboard-selected {
+  background-color: var(--accent-primary) !important;
+  color: white !important;
+}
+
+/* Dark mode image and avatar styling */
+[data-theme="dark"] .user-avatar,
+[data-theme="dark"] .patient-avatar {
+  background-color: var(--bg-tertiary) !important;
+  border-color: var(--border-primary) !important;
+}
+
+[data-theme="dark"] .user-avatar i,
+[data-theme="dark"] .patient-avatar i {
+  color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] img {
+  filter: brightness(0.85);
+}
+
+[data-theme="dark"] .patient-profile-card {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-primary) !important;
+}
+
 .admin-dashboard-wrapper {
   display: flex;
   width: 100%;

@@ -36,7 +36,13 @@ router.post(
   [auth, [
     body('familyName', 'Family name is required').not().isEmpty(),
     body('surname', 'Surname is required').not().isEmpty(),
-    body('headOfFamily', 'Head of family is required').not().isEmpty(),
+    body('headOfFamily').optional({ checkFalsy: true }).isString(),
+    body('contactNumber')
+      .optional({ checkFalsy: true })
+      .isLength({ min: 11, max: 11 })
+      .withMessage('Contact number must be exactly 11 digits')
+      .isNumeric()
+      .withMessage('Contact number must contain only numbers'),
   ]],
   async (req, res) => {
     const errors = validationResult(req);
@@ -49,6 +55,12 @@ router.post(
       res.status(201).json(family);
     } catch (err) {
       console.error(err.message);
+      // Handle unique constraint violation
+      if (err.name === 'SequelizeUniqueConstraintError') {
+        if (err.fields.contactNumber) {
+          return res.status(400).json({ msg: 'This contact number is already registered' });
+        }
+      }
       res.status(500).send('Server Error');
     }
   }

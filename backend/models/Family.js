@@ -21,6 +21,17 @@ const Family = sequelize.define('Family', {
   },
   contactNumber: {
     type: DataTypes.STRING,
+    unique: true,
+    allowNull: true,
+    validate: {
+      len: [11, 11], // Exactly 11 digits
+      isNumeric: true, // Only numbers allowed
+      notEmpty: function(value) {
+        if (value && value.length === 0) {
+          throw new Error('Contact number cannot be empty if provided');
+        }
+      }
+    }
   },
   address: {
     type: DataTypes.STRING,

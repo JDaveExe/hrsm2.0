@@ -9,9 +9,13 @@ import 'react-datepicker/dist/react-datepicker.css';
 import '../styles/AdminDashboard.css';
 // Import icons from bootstrap-icons
 import 'bootstrap-icons/font/bootstrap-icons.css';
-// Import admin services
-import { patientService, familyService } from '../services/adminService';
+import { useAuth } from '../context/AuthContext';
+import { useData } from '../context/DataContext';
+import adminService from '../services/adminService';
 import userService from '../services/userService';
+import ReferralForm from './ReferralForm';
+import NotificationManager from './NotificationManager';
+import SMSNotificationModal from './SMSNotificationModal';
 
 // Register ChartJS components
 ChartJS.register(
@@ -27,7 +31,12 @@ ChartJS.register(
 );
 
 const AdminDashboard = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
+  const {
+    unsortedMembersData,
+    fetchUnsortedMembers,
+  } = useData();
   
   // User Management states - Move these BEFORE useEffect to avoid initialization errors
   const [showAddUserModal, setShowAddUserModal] = useState(false);
@@ -43,17 +52,40 @@ const AdminDashboard = () => {
     middleName: '',
     lastName: '',
     emailInitials: '',
+    contactNumber: '',
     password: '',
     confirmPassword: '',
     role: 'aide',
     position: 'Aide',
-    userType: '' // admin or doctor access level
+    userType: '', // admin or doctor access level
+    accessLevel: '' // new field for access level selection
   });
   
   // Password visibility states
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
+  // Remove temporary authentication for testing
+  // useEffect(() => {
+  //   // Check if user is authenticated, if not set a temporary auth token
+  //   const authData = JSON.parse(localStorage.getItem('auth'));
+  //   if (!authData || !authData.token) {
+  //     // Set temporary auth data for testing
+  //     const tempAuthData = {
+  //       token: 'temp-admin-token',
+  //       user: {
+  //         id: 1,
+  //         firstName: 'Admin',
+  //         lastName: 'User',
+  //         email: 'admin@maybunga.health',
+  //         role: 'Admin'
+  //       }
+  //     };
+  //     localStorage.setItem('auth', JSON.stringify(tempAuthData));
+  //     console.log('Temporary authentication set for testing');
+  //   }
+  // }, []);
+
   // Add browser navigation control
   useEffect(() => {
     const handleBeforeUnload = (e) => {
@@ -97,8 +129,48 @@ const AdminDashboard = () => {
   const [showVitalSignsModal, setShowVitalSignsModal] = useState(false);
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
+  const [showAddFamilyModal, setShowAddFamilyModal] = useState(false);
+
+
+  const [patientFormData, setPatientFormData] = useState({
+    firstName: '',
+    middleName: '',
+    lastName: '',
+    suffix: '',
+    dateOfBirth: new Date(),
+    age: '',
+    gender: '',
+    civilStatus: '',
+    contactNumber: '',
+    email: '',
+    houseNo: '',
+    street: '',
+    barangay: '',
+    city: 'Pasig City',
+    region: 'Metro Manila',
+    postalCode: '1600',
+    philHealthNumber: '',
+    medicalConditions: '',
+    familyId: ''
+  });
+  const [familyFormData, setFamilyFormData] = useState({
+    familyName: '',
+    surname: '',
+    headOfFamily: '',
+    contactNumber: '',
+    notes: ''
+  });
   const [showPatientDetailsModal, setShowPatientDetailsModal] = useState(false);
+  const [showEmailConfirmModal, setShowEmailConfirmModal] = useState(false);
   const [showFamilyModal, setShowFamilyModal] = useState(false);
+  const [showTreatmentRecordModal, setShowTreatmentRecordModal] = useState(false);
+  const [showVitalSignsHistoryModal, setShowVitalSignsHistoryModal] = useState(false);
+  const [showCheckupHistoryModal, setShowCheckupHistoryModal] = useState(false);
+  const [showImmunizationHistoryModal, setShowImmunizationHistoryModal] = useState(false);
+  const [showReferralFormModal, setShowReferralFormModal] = useState(false);
+  const [showNotificationManagerModal, setShowNotificationManagerModal] = useState(false);
+  const [showSMSNotificationModal, setShowSMSNotificationModal] = useState(false);
+  const [previousModalState, setPreviousModalState] = useState(null); // Track which modal was open before
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [selectedFamily, setSelectedFamily] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -121,8 +193,10 @@ const AdminDashboard = () => {
   // Manage dropdown and confirmation states
   const [showManageDropdown, setShowManageDropdown] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSecondConfirmModal, setShowSecondConfirmModal] = useState(false);
   const [confirmAction, setConfirmAction] = useState('');
   const [countdown, setCountdown] = useState(0);
+  const [secondCountdown, setSecondCountdown] = useState(0);
   
   // Sample data for dashboard statistics
   const [dashboardStats, setDashboardStats] = useState({
@@ -133,13 +207,43 @@ const AdminDashboard = () => {
   });
 
   // Unsorted members states
-  const [unsortedPatients, setUnsortedPatients] = useState([]);
   const [autosortResults, setAutosortResults] = useState(null);
   const [showAutosortModal, setShowAutosortModal] = useState(false);
   const [isLoadingAutosort, setIsLoadingAutosort] = useState(false);
   const [families, setFamilies] = useState([]);
+  const [patients, setPatients] = useState([]);
   const [familySortConfig, setFamilySortConfig] = useState({ key: 'familyName', direction: 'ascending' });
   const [memberSortConfig, setMemberSortConfig] = useState({ key: 'id', direction: 'ascending' });
+
+  // Assign to Family modal states
+  const [showAssignFamilyModal, setShowAssignFamilyModal] = useState(false);
+  const [selectedPatientForAssignment, setSelectedPatientForAssignment] = useState(null);
+  const [selectedFamilyForAssignment, setSelectedFamilyForAssignment] = useState('');
+  const [showCreateFamilyInAssign, setShowCreateFamilyInAssign] = useState(false);
+  const [assignFamilyFormData, setAssignFamilyFormData] = useState({
+    familyName: '',
+    surname: '',
+    headOfFamily: '',
+    contactNumber: '',
+    notes: ''
+  });
+
+  // Helper functions - defined early to avoid hoisting issues
+  const getFamilyMembers = (familyId) => {
+    if (!patients || !Array.isArray(patients)) return [];
+    return patients.filter(patient => patient.familyId === familyId);
+  };
+
+  const getFamilyHead = (family) => {
+    return family.headOfFamily || family.contactPerson || 'N/A';
+  };
+
+  const getFamilyMemberCount = (family) => {
+    if (family.memberCount) return family.memberCount;
+    // Calculate from actual members if not provided
+    const members = getFamilyMembers(family.id);
+    return members ? members.length : 0;
+  };
 
   const requestSort = (key, config, setConfig) => {
     let direction = 'ascending';
@@ -153,10 +257,22 @@ const AdminDashboard = () => {
     let sortableItems = [...families];
     if (familySortConfig !== null) {
       sortableItems.sort((a, b) => {
-        if (a[familySortConfig.key] < b[familySortConfig.key]) {
+        let aValue = a[familySortConfig.key];
+        let bValue = b[familySortConfig.key];
+        
+        // Handle special sorting cases
+        if (familySortConfig.key === 'memberCount') {
+          aValue = getFamilyMemberCount(a);
+          bValue = getFamilyMemberCount(b);
+        } else if (familySortConfig.key === 'createdAt') {
+          aValue = a.createdAt || a.registrationDate || '';
+          bValue = b.createdAt || b.registrationDate || '';
+        }
+        
+        if (aValue < bValue) {
           return familySortConfig.direction === 'ascending' ? -1 : 1;
         }
-        if (a[familySortConfig.key] > b[familySortConfig.key]) {
+        if (aValue > bValue) {
           return familySortConfig.direction === 'ascending' ? 1 : -1;
         }
         return 0;
@@ -164,91 +280,102 @@ const AdminDashboard = () => {
     }
     return sortableItems;
   }, [families, familySortConfig]);
-  
-  // Sample patients data
-  const [patients, setPatients] = useState([
-    { 
-      id: 1, 
-      familyId: 'SANTOS-001',
-      name: 'Maria Santos', 
-      age: 35, 
-      gender: 'Female',
-      address: '123 Maybunga St, Pasig City',
-      contact: '09123456789',
-      lastCheckup: '2023-05-15',
-      status: 'Active',
-      vitalSignsComplete: false
-    },
-    { 
-      id: 2, 
-      familyId: 'SANTOS-001',
-      name: 'Juan Santos', 
-      age: 38, 
-      gender: 'Male',
-      address: '123 Maybunga St, Pasig City',
-      contact: '09123456790',
-      lastCheckup: '2023-04-22',
-      status: 'Active',
-      vitalSignsComplete: true
-    },
-    { 
-      id: 3, 
-      familyId: 'REYES-002',
-      name: 'Ana Reyes', 
-      age: 42, 
-      gender: 'Female',
-      address: '45 E. Rodriguez Ave, Pasig City',
-      contact: '09187654321',
-      lastCheckup: '2023-05-20',
-      status: 'Active',
-      vitalSignsComplete: false
-    },
-    { 
-      id: 4, 
-      familyId: 'MENDOZA-003',
-      name: 'Carlos Mendoza', 
-      age: 55, 
-      gender: 'Male',
-      address: '78 C. Raymundo Ave, Pasig City',
-      contact: '09198765432',
-      lastCheckup: '2023-05-10',
-      status: 'Inactive',
-      vitalSignsComplete: true
+
+  const filteredPatients = () => {
+    if (!searchTerm) return patients;
+    const term = searchTerm.toLowerCase();
+    return patients.filter(patient => {
+      const fullName = getPatientFullName(patient).toLowerCase();
+      const familyId = patient.familyId ? patient.familyId.toString().toLowerCase() : '';
+      const contact = getPatientContact(patient);
+      
+      return fullName.includes(term) || 
+             familyId.includes(term) ||
+             contact.includes(term);
+    });
+  };
+
+  const sortedPatients = useMemo(() => {
+    let sortableItems = [...filteredPatients()];
+    if (memberSortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        let aValue = a[memberSortConfig.key];
+        let bValue = b[memberSortConfig.key];
+        
+        // Handle special sorting cases
+        if (memberSortConfig.key === 'lastCheckup') {
+          aValue = a.lastCheckup || a.createdAt || '';
+          bValue = b.lastCheckup || b.createdAt || '';
+        } else if (memberSortConfig.key === 'familyId') {
+          aValue = a.familyId || 'zzz'; // Sort unassigned to the end
+          bValue = b.familyId || 'zzz';
+        }
+        
+        if (aValue < bValue) {
+          return memberSortConfig.direction === 'ascending' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return memberSortConfig.direction === 'ascending' ? 1 : -1;
+        }
+        return 0;
+      });
     }
-  ]);
+    return sortableItems;
+  }, [patients, memberSortConfig, searchTerm]);
   
-  // Sample families data (using the existing families state)
+  // Fetch patients and families data
+  const fetchPatientsAndFamilies = async () => {
+    try {
+      const [patientsData, familiesData] = await Promise.all([
+        adminService.getAllPatients(),
+        adminService.getAllFamilies()
+      ]);
+      setPatients(patientsData || []);
+      setFamilies(familiesData || []);
+    } catch (error) {
+      console.error('Error fetching patients and families:', error);
+      // Keep empty arrays on error
+      setPatients([]);
+      setFamilies([]);
+    }
+  };
+
   useEffect(() => {
-    setFamilies([
-      {
-        id: 'SANTOS-001',
-        familyName: 'Santos Family',
-        address: '123 Maybunga St, Pasig City',
-        contactPerson: 'Juan Santos',
-        contact: '09123456790',
-        memberCount: 4,
-      registrationDate: '2023-01-15'
-    },
-    {
-      id: 'REYES-002',
-      familyName: 'Reyes Family',
-      address: '45 E. Rodriguez Ave, Pasig City',
-      contactPerson: 'Ana Reyes',
-      contact: '09187654321',
-      memberCount: 3,
-      registrationDate: '2023-02-10'
-    },
-    {
-      id: 'MENDOZA-003',
-      familyName: 'Mendoza Family',
-      address: '78 C. Raymundo Ave, Pasig City',
-      contactPerson: 'Carlos Mendoza',
-      contact: '09198765432',
-      memberCount: 2,
-      registrationDate: '2023-03-22'
+    fetchPatientsAndFamilies();
+  }, []);
+
+  // Helper functions for patient data
+  const getPatientFullName = (patient) => {
+    if (!patient) return 'N/A'; // Handle null/undefined patient
+    if (patient.name) return patient.name; // Fallback for old data structure
+    return `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+  };
+
+  const getPatientContact = (patient) => {
+    if (!patient) return 'N/A'; // Handle null/undefined patient
+    return patient.contactNumber || patient.contact || 'N/A';
+  };
+
+  const getPatientAge = (patient) => {
+    if (!patient) return 'N/A'; // Handle null/undefined patient
+    if (patient.age) return patient.age; // Fallback for old data structure
+    if (patient.dateOfBirth) {
+      const today = new Date();
+      const birthDate = new Date(patient.dateOfBirth);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
     }
-    ]);
-  }, []); // Close useEffect
+    return 'N/A';
+  };
+
+  // Helper functions for family data
+  const getFamilyContact = (family) => {
+    return family.contactNumber || family.contact || 'N/A';
+  };
 
   // Fetch users on component mount
   useEffect(() => {
@@ -257,7 +384,19 @@ const AdminDashboard = () => {
       setUserError(null);
       try {
         const response = await userService.getUsers();
-        setUsers(response.users || []);
+        const usersWithAccessRights = (response.users || []).map(user => ({
+          ...user,
+          accessRights: user.accessRights || {
+            dashboard: true,
+            patients: true,
+            families: true,
+            appointments: true,
+            reports: true,
+            users: user.role === 'admin',
+            settings: user.role === 'admin'
+          }
+        }));
+        setUsers(usersWithAccessRights);
         setBackendConnected(true);
       } catch (error) {
         setUserError(error.message);
@@ -404,9 +543,9 @@ const AdminDashboard = () => {
 
   // Fetch initial data
   useEffect(() => {
-    fetchUnsortedPatients();
+    fetchUnsortedMembers();
     fetchFamilies();
-  }, []);
+  }, [fetchUnsortedMembers]);
   
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -451,7 +590,8 @@ const AdminDashboard = () => {
         confirmPassword: '',
         role: 'aide',
         position: 'Aide',
-        userType: ''
+        userType: '',
+        accessLevel: ''
       });
       // Clear localStorage when navigating to Add User
       localStorage.removeItem('adminUserFormData');
@@ -626,30 +766,246 @@ const AdminDashboard = () => {
   const handlePatientSearch = (e) => {
     setSearchTerm(e.target.value);
   };
-  
-  const filteredPatients = () => {
-    if (!searchTerm) return patients;
-    const term = searchTerm.toLowerCase();
-    return patients.filter(patient => 
-      patient.name.toLowerCase().includes(term) || 
-      patient.familyId.toLowerCase().includes(term) ||
-      patient.contact.includes(term)
-    );
-  };
 
   const filteredFamilies = () => {
     if (!searchTerm) return families;
     const term = searchTerm.toLowerCase();
-    return families.filter(family => 
-      family.familyName.toLowerCase().includes(term) || 
-      family.id.toLowerCase().includes(term) ||
-      family.contactPerson.toLowerCase().includes(term) ||
-      family.contact.includes(term)
-    );
+    return families.filter(family => {
+      const familyName = family.familyName ? family.familyName.toLowerCase() : '';
+      const familyId = family.id ? family.id.toString().toLowerCase() : '';
+      const headOfFamily = getFamilyHead(family).toLowerCase();
+      const contact = getFamilyContact(family);
+      
+      return familyName.includes(term) || 
+             familyId.includes(term) ||
+             headOfFamily.includes(term) ||
+             contact.includes(term);
+    });
   };
   
   const handleAddPatient = () => {
     setShowAddPatientModal(true);
+  };
+  
+  const handlePatientFormChange = (field, value) => {
+    if (field === 'dateOfBirth' && value) {
+      // Calculate age based on date of birth
+      const today = new Date();
+      const birthDate = new Date(value);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      setPatientFormData(prev => ({
+        ...prev,
+        dateOfBirth: value,
+        age: age.toString()
+      }));
+    } else {
+      setPatientFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
+  };
+  
+  const handleSavePatient = async () => {
+    try {
+      // Validate required fields with specific messages
+      const requiredFields = [
+        { field: 'firstName', message: 'First Name is required' },
+        { field: 'lastName', message: 'Last Name is required' },
+        { field: 'dateOfBirth', message: 'Date of Birth is required' },
+        { field: 'gender', message: 'Gender is required' },
+        { field: 'civilStatus', message: 'Civil Status is required' },
+        { field: 'contactNumber', message: 'Contact Number is required' },
+        { field: 'street', message: 'Street is required' },
+        { field: 'barangay', message: 'Barangay is required' }
+      ];
+
+      // Check for missing required fields
+      for (const { field, message } of requiredFields) {
+        if (!patientFormData[field] || patientFormData[field].toString().trim() === '') {
+          alert(message);
+          return;
+        }
+      }
+
+      // Validate phone number format
+      if (patientFormData.contactNumber) {
+        const phoneRegex = /^09\d{9}$/;
+        if (!phoneRegex.test(patientFormData.contactNumber)) {
+          alert('Phone number must be exactly 11 digits starting with 09 (e.g., 09171234567)');
+          return;
+        }
+      }
+
+      // Validate email field - must be either valid email or "N/A"
+      if (!patientFormData.email || patientFormData.email.trim() === '') {
+        setShowEmailConfirmModal(true);
+        return; // Stop validation and show modal
+      } else if (patientFormData.email.trim() !== '' && 
+                 patientFormData.email.toLowerCase() !== 'n/a' && 
+                 patientFormData.email !== 'N/A') {
+        // Validate email format only if it's not N/A
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(patientFormData.email)) {
+          alert('Please enter a valid email address or type "N/A" if the patient has no email');
+          return;
+        }
+      }
+
+      // Create patient data object
+      const patientData = {
+        ...patientFormData,
+        dateOfBirth: patientFormData.dateOfBirth.toISOString().split('T')[0] // Format date for API
+      };
+
+      // Make API call to create patient
+      await adminService.createPatient(patientData);
+      
+      // Clear form and close modal
+      setPatientFormData({
+        firstName: '',
+        middleName: '',
+        lastName: '',
+        suffix: '',
+        dateOfBirth: new Date(),
+        age: '',
+        gender: '',
+        civilStatus: '',
+        contactNumber: '',
+        email: '',
+        houseNo: '',
+        street: '',
+        barangay: '',
+        city: 'Pasig City',
+        region: 'Metro Manila',
+        postalCode: '1600',
+        philHealthNumber: '',
+        medicalConditions: '',
+        familyId: ''
+      });
+      setShowAddPatientModal(false);
+      
+      // Refresh patients list
+      fetchPatients();
+      
+      // Show success message
+      alert('Patient added successfully');
+    } catch (error) {
+      console.error('Error saving patient:', error);
+      alert('Error saving patient. Please try again.');
+    }
+  };
+  
+  const handleAddFamily = () => {
+    // Reset form data when opening modal
+    setFamilyFormData({
+      familyName: '',
+      surname: '',
+      headOfFamily: '',
+      contactNumber: '',
+      notes: ''
+    });
+    setShowAddFamilyModal(true);
+  };
+
+  // Helper function to capitalize first letter of each word
+  const capitalizeWords = (str) => {
+    return str.replace(/\b\w/g, (char) => char.toUpperCase());
+  };
+
+  // Handle family form input changes with auto-capitalization
+  const handleFamilyFormChange = (field, value) => {
+    let processedValue = value;
+    
+    // Auto-capitalize for name fields
+    if (field === 'familyName' || field === 'surname' || field === 'headOfFamily') {
+      processedValue = capitalizeWords(value);
+    }
+    
+    // Phone number validation - only allow numbers and limit to 11 digits
+    if (field === 'contactNumber') {
+      // Remove all non-numeric characters
+      processedValue = value.replace(/\D/g, '');
+      // Limit to 11 digits
+      if (processedValue.length > 11) {
+        processedValue = processedValue.slice(0, 11);
+      }
+    }
+    
+    // Automatically append "Family" to familyName
+    if (field === 'familyName') {
+      // The input field only shows the base name, so we append "Family" for storage
+      if (processedValue.trim()) {
+        processedValue = `${processedValue.trim()} Family`;
+      }
+    }
+    
+    setFamilyFormData(prev => ({
+      ...prev,
+      [field]: processedValue
+    }));
+  };
+
+  // Handle family form submission
+  const handleSaveFamily = async () => {
+    try {
+      // Validate required fields
+      if (!familyFormData.familyName.trim() || !familyFormData.surname.trim()) {
+        alert('Family Name and Surname are required fields.');
+        return;
+      }
+
+      // Validate contact number if provided
+      if (familyFormData.contactNumber.trim()) {
+        if (familyFormData.contactNumber.length !== 11) {
+          alert('Contact number must be exactly 11 digits.');
+          return;
+        }
+        if (!/^\d{11}$/.test(familyFormData.contactNumber)) {
+          alert('Contact number must contain only numbers.');
+          return;
+        }
+      }
+
+      // Create family data object
+      const familyData = {
+        familyName: familyFormData.familyName.trim(),
+        surname: familyFormData.surname.trim(),
+        headOfFamily: familyFormData.headOfFamily.trim() || '',
+        contactNumber: familyFormData.contactNumber.trim(),
+        notes: familyFormData.notes.trim()
+      };
+
+      // Call API to create family
+      const newFamily = await adminService.createFamily(familyData);
+      
+      // Refresh families data
+      await fetchFamilies();
+      
+      // Close modal and show success message
+      setShowAddFamilyModal(false);
+      
+      // If we came from Add Patient modal, go back to it and select the new family
+      if (patientFormData.firstName || patientFormData.lastName) {
+        setPatientFormData(prev => ({
+          ...prev,
+          familyId: newFamily.id
+        }));
+        setShowAddPatientModal(true);
+      }
+      
+      // Show success message
+      alert('Family created successfully!');
+    } catch (error) {
+      console.error('Error creating family:', error);
+      alert('An error occurred while creating the family. Please try again.');
+    }
   };
   
   const handleViewPatient = (patient) => {
@@ -667,15 +1023,172 @@ const AdminDashboard = () => {
     setShowQRCodeModal(true);
   };
 
-  const handleViewInfo = (patient) => {
-    setSelectedPatient(patient);
-    setShowPatientDetailsModal(true);
+  const handleViewInfo = async (patient) => {
+    if (!patient) {
+      console.error('No patient provided to handleViewInfo');
+      return;
+    }
+    
+    try {
+      // Fetch detailed patient information from the backend
+      const detailedPatient = await adminService.getPatientById(patient.id);
+      setSelectedPatient(detailedPatient);
+      setShowPatientDetailsModal(true);
+    } catch (error) {
+      console.error('Error fetching patient details:', error);
+      // Fallback to using the existing patient data if API call fails
+      setSelectedPatient(patient);
+      setShowPatientDetailsModal(true);
+    }
   };
 
   const handleNotifyDoctor = (patient) => {
     // In a real application, this would send a notification to the doctor
-    alert(`Notifying doctor for ${patient.name}. Doctor will be available shortly.`);
+    alert(`Notifying doctor for ${getPatientFullName(patient)}. Doctor will be available shortly.`);
     // Here you would typically update the patient's status and send notification
+  };
+
+  const handleTreatmentRecord = (patient) => {
+    setSelectedPatient(patient);
+    // Store the current modal state before opening treatment record
+    if (showPatientDetailsModal) {
+      setPreviousModalState('patientDetails');
+      setShowPatientDetailsModal(false);
+    }
+    setShowTreatmentRecordModal(true);
+  };
+
+  const handleVitalSignsHistory = (patient) => {
+    setSelectedPatient(patient);
+    // Store the current modal state before opening vital signs history
+    if (showPatientDetailsModal) {
+      setPreviousModalState('patientDetails');
+      setShowPatientDetailsModal(false);
+    }
+    setShowVitalSignsHistoryModal(true);
+  };
+
+  const handleCheckupHistory = (patient) => {
+    setSelectedPatient(patient);
+    // Store the current modal state before opening checkup history
+    if (showPatientDetailsModal) {
+      setPreviousModalState('patientDetails');
+      setShowPatientDetailsModal(false);
+    }
+    setShowCheckupHistoryModal(true);
+  };
+
+  const handleImmunizationHistory = (patient) => {
+    setSelectedPatient(patient);
+    // Store the current modal state before opening immunization history
+    if (showPatientDetailsModal) {
+      setPreviousModalState('patientDetails');
+      setShowPatientDetailsModal(false);
+    }
+    setShowImmunizationHistoryModal(true);
+  };
+
+  // Function to close treatment record modal and restore previous modal
+  const closeTreatmentRecordModal = () => {
+    setShowTreatmentRecordModal(false);
+    // Restore the previous modal if it was patient details
+    if (previousModalState === 'patientDetails') {
+      setTimeout(() => {
+        setShowPatientDetailsModal(true);
+      }, 100); // Small delay to prevent overlap
+    }
+    setPreviousModalState(null);
+  };
+
+  // Function to close vital signs history modal and restore previous modal
+  const closeVitalSignsHistoryModal = () => {
+    setShowVitalSignsHistoryModal(false);
+    // Restore the previous modal if it was patient details
+    if (previousModalState === 'patientDetails') {
+      setTimeout(() => {
+        setShowPatientDetailsModal(true);
+      }, 100); // Small delay to prevent overlap
+    }
+    setPreviousModalState(null);
+  };
+
+  // Function to close checkup history modal and restore previous modal
+  const closeCheckupHistoryModal = () => {
+    setShowCheckupHistoryModal(false);
+    // Restore the previous modal if it was patient details
+    if (previousModalState === 'patientDetails') {
+      setTimeout(() => {
+        setShowPatientDetailsModal(true);
+      }, 100); // Small delay to prevent overlap
+    }
+    setPreviousModalState(null);
+  };
+
+  // Function to close immunization history modal and restore previous modal
+  const closeImmunizationHistoryModal = () => {
+    setShowImmunizationHistoryModal(false);
+    // Restore the previous modal if it was patient details
+    if (previousModalState === 'patientDetails') {
+      setTimeout(() => {
+        setShowPatientDetailsModal(true);
+      }, 100); // Small delay to prevent overlap
+    }
+    setPreviousModalState(null);
+  };
+
+  const handleReferralForm = (patient) => {
+    setSelectedPatient(patient);
+    // Store the current modal state before opening referral form
+    if (showPatientDetailsModal) {
+      setShowPatientDetailsModal(false);
+      setPreviousModalState('patientDetails');
+    }
+    setShowReferralFormModal(true);
+  };
+
+  // Function to close referral form modal and restore previous modal
+  const closeReferralFormModal = () => {
+    setShowReferralFormModal(false);
+    // Restore the previous modal if it was patient details
+    if (previousModalState === 'patientDetails') {
+      setTimeout(() => {
+        setShowPatientDetailsModal(true);
+      }, 100); // Small delay to prevent overlap
+    }
+    setPreviousModalState(null);
+  };
+
+  // Function to open notification manager
+  const handleNotificationManager = () => {
+    setShowNotificationManagerModal(true);
+  };
+
+  // Function to close notification manager modal
+  const closeNotificationManagerModal = () => {
+    setShowNotificationManagerModal(false);
+  };
+
+  // Function to open SMS notification modal
+  const handleSMSNotification = (patient) => {
+    setSelectedPatient(patient);
+    // Store the current modal state before opening SMS modal
+    if (showPatientDetailsModal) {
+      setShowPatientDetailsModal(false);
+      setPreviousModalState('patientDetails');
+    }
+    setShowSMSNotificationModal(true);
+  };
+
+  // Function to close SMS notification modal
+  const closeSMSNotificationModal = () => {
+    setShowSMSNotificationModal(false);
+    // Restore the previous modal if it was patient details
+    if (previousModalState === 'patientDetails') {
+      setTimeout(() => {
+        setShowPatientDetailsModal(true);
+      }, 100); // Small delay to prevent overlap
+    }
+    setPreviousModalState(null);
   };
   
   const handleViewFamily = (family) => {
@@ -693,30 +1206,44 @@ const AdminDashboard = () => {
     setActiveDropdown('checkup');
   };
   
-  const handleRefreshData = () => {
-    // Placeholder for data refresh
-    alert('Refreshing dashboard data...');
-    // In a real application, this would call an API to fetch fresh data
-  };
-
-  // Fetch unsorted patients
-  const fetchUnsortedPatients = async () => {
+  const handleRefreshData = async () => {
     try {
-      const data = await patientService.getUnsortedPatients();
-      setUnsortedPatients(data);
+      // Refresh patients, families, and unsorted members data
+      const [patientsData, familiesData] = await Promise.all([
+        adminService.getAllPatients(),
+        adminService.getAllFamilies()
+      ]);
+      setPatients(patientsData);
+      setFamilies(familiesData);
+      
+      // Also refresh unsorted members
+      await fetchUnsortedMembers();
+      
+      alert('Data refreshed successfully!');
     } catch (error) {
-      console.error('Error fetching unsorted patients:', error);
-      alert('Error fetching unsorted patients. Please try again.');
+      console.error('Error refreshing data:', error);
+      alert('Error refreshing data. Please try again.');
     }
   };
 
   // Fetch all families
   const fetchFamilies = async () => {
     try {
-      const data = await familyService.getAllFamilies();
-      setFamilies(data);
+      const data = await adminService.getAllFamilies();
+      setFamilies(data || []);
     } catch (error) {
       console.error('Error fetching families:', error);
+      setFamilies([]);
+    }
+  };
+  
+  const fetchPatients = async () => {
+    try {
+      const data = await adminService.getAllPatients();
+      setPatients(data || []);
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+      setPatients([]);
     }
   };
 
@@ -724,15 +1251,16 @@ const AdminDashboard = () => {
   const handleAutosort = async () => {
     setIsLoadingAutosort(true);
     try {
-      const results = await patientService.autosortPatients();
+      const results = await adminService.autosortPatients();
       setAutosortResults(results);
       
-      if (results.needsNewFamily.length > 0) {
+      if (results.needsManualAssignment && results.needsManualAssignment.length > 0) {
         setShowAutosortModal(true);
       } else {
-        alert(`Successfully sorted ${results.sorted.length} patients into existing families!`);
-        fetchUnsortedPatients(); // Refresh unsorted list
-        fetchFamilies(); // Refresh families list
+        const sortedCount = results.sorted ? results.sorted.length : 0;
+        alert(`Successfully sorted ${sortedCount} patients into existing families!`);
+        fetchUnsortedMembers(); // Refresh unsorted list
+        fetchPatientsAndFamilies(); // Refresh both patients and families data
       }
     } catch (error) {
       console.error('Error autosorting patients:', error);
@@ -745,15 +1273,15 @@ const AdminDashboard = () => {
   // Create families for unmatched patients
   const handleCreateFamilies = async () => {
     try {
-      const patientIds = autosortResults.needsNewFamily.map(p => p.id);
-      const results = await patientService.createFamiliesForPatients(patientIds);
+      const patientIds = autosortResults.needsManualAssignment.map(p => p.id);
+      const results = await adminService.createFamiliesForPatients(patientIds);
       
       alert(`Successfully created ${results.length} new families and sorted patients!`);
       
       setShowAutosortModal(false);
       setAutosortResults(null);
-      fetchUnsortedPatients();
-      fetchFamilies();
+      fetchUnsortedMembers();
+      fetchPatientsAndFamilies(); // Refresh both patients and families data
     } catch (error) {
       console.error('Error creating families:', error);
       alert('Error creating families. Please try again.');
@@ -761,20 +1289,152 @@ const AdminDashboard = () => {
   };
 
   // Manually assign patient to family
+  // Open assign to family modal
+  const handleOpenAssignFamilyModal = (patient) => {
+    setSelectedPatientForAssignment(patient);
+    setSelectedFamilyForAssignment('');
+    setShowCreateFamilyInAssign(false);
+    setAssignFamilyFormData({
+      familyName: '',
+      surname: '',
+      headOfFamily: '',
+      contactNumber: '',
+      notes: ''
+    });
+    setShowAssignFamilyModal(true);
+  };
+
+  // Handle family form changes in assign modal
+  const handleAssignFamilyFormChange = (field, value) => {
+    let processedValue = value;
+    
+    // Auto-capitalize for name fields
+    if (field === 'familyName' || field === 'surname' || field === 'headOfFamily') {
+      processedValue = capitalizeWords(value);
+    }
+    
+    // Phone number validation - only allow numbers and limit to 11 digits
+    if (field === 'contactNumber') {
+      processedValue = value.replace(/\D/g, '');
+      if (processedValue.length > 11) {
+        processedValue = processedValue.slice(0, 11);
+      }
+    }
+    
+    // Automatically append "Family" to familyName
+    if (field === 'familyName') {
+      if (processedValue.trim()) {
+        processedValue = `${processedValue.trim()} Family`;
+      }
+    }
+    
+    setAssignFamilyFormData(prev => ({
+      ...prev,
+      [field]: processedValue
+    }));
+  };
+
+  // Create new family and assign patient
+  const handleCreateFamilyAndAssign = async () => {
+    try {
+      // Validate required fields
+      if (!assignFamilyFormData.familyName.trim() || !assignFamilyFormData.surname.trim()) {
+        alert('Family Name and Surname are required fields.');
+        return;
+      }
+
+      // Validate contact number if provided
+      if (assignFamilyFormData.contactNumber.trim()) {
+        if (assignFamilyFormData.contactNumber.length !== 11) {
+          alert('Contact number must be exactly 11 digits.');
+          return;
+        }
+        if (!/^\d{11}$/.test(assignFamilyFormData.contactNumber)) {
+          alert('Contact number must contain only numbers.');
+          return;
+        }
+      }
+
+      // Create family data object
+      const familyData = {
+        familyName: assignFamilyFormData.familyName.trim(),
+        surname: assignFamilyFormData.surname.trim(),
+        headOfFamily: assignFamilyFormData.headOfFamily.trim() || '',
+        contactNumber: assignFamilyFormData.contactNumber.trim(),
+        notes: assignFamilyFormData.notes.trim()
+      };
+
+      // Create the family first
+      const createdFamily = await adminService.createFamily(familyData);
+      
+      // Then assign the patient to the new family
+      await adminService.assignPatientToFamily(selectedPatientForAssignment.id, createdFamily.id);
+      
+      // Close modal and refresh data
+      setShowAssignFamilyModal(false);
+      alert('New family created and patient assigned successfully!');
+      await handleRefreshData();
+      
+    } catch (error) {
+      console.error('Error creating family and assigning patient:', error);
+      alert('Error creating family and assigning patient. Please try again.');
+    }
+  };
+
+  // Assign patient to existing family
+  const handleAssignToExistingFamily = async () => {
+    try {
+      if (!selectedFamilyForAssignment) {
+        alert('Please select a family to assign the patient to.');
+        return;
+      }
+
+      if (!selectedPatientForAssignment) {
+        alert('No patient selected for assignment.');
+        return;
+      }
+
+      const familyId = parseInt(selectedFamilyForAssignment);
+      if (isNaN(familyId)) {
+        alert('Invalid family selection. Please try again.');
+        return;
+      }
+
+      await adminService.assignPatientToFamily(selectedPatientForAssignment.id, familyId);
+      
+      setShowAssignFamilyModal(false);
+      alert('Patient assigned to family successfully!');
+      await handleRefreshData();
+      
+    } catch (error) {
+      console.error('Error assigning patient to family:', error);
+      if (error.response && error.response.data && error.response.data.msg) {
+        alert(`Error: ${error.response.data.msg}`);
+      } else {
+        alert('Error assigning patient to family. Please try again.');
+      }
+    }
+  };
+
   const handleAssignToFamily = async (patientId, familyId) => {
     try {
-      await patientService.assignPatientToFamily(patientId, familyId);
+      if (!patientId || !familyId) {
+        alert('Invalid patient or family selection.');
+        return;
+      }
+      
+      await adminService.assignPatientToFamily(patientId, familyId);
       alert('Patient assigned to family successfully!');
-      fetchUnsortedPatients();
+      fetchUnsortedMembers();
       fetchFamilies();
     } catch (error) {
       console.error('Error assigning patient to family:', error);
-      alert('Error assigning patient to family. Please try again.');
+      if (error.response && error.response.data && error.response.data.msg) {
+        alert(`Error: ${error.response.data.msg}`);
+      } else {
+        alert('Error assigning patient to family. Please try again.');
+      }
     }
-  };
-  
-  const getFamilyMembers = (familyId) => {
-    return patients.filter(patient => patient.familyId === familyId);
   };
 
   // Manage dropdown handlers
@@ -796,16 +1456,54 @@ const AdminDashboard = () => {
     setCountdown(5);
   };
 
-  const confirmActionHandler = () => {
+  const confirmActionHandler = async () => {
     if (countdown === 0) {
-      if (confirmAction === 'reassign') {
-        // Handle reassign logic here
-        alert(`Patient ${selectedPatient?.name} has been prepared for family reassignment.`);
-      } else if (confirmAction === 'delete') {
-        // Handle delete logic here
-        alert(`Patient ${selectedPatient?.name} has been marked for deletion.`);
+      if (!selectedPatient) {
+        alert('No patient selected for action.');
+        return;
       }
-      setShowConfirmModal(false);
+      
+      if (confirmAction === 'reassign') {
+        // Open the assign family modal for reassignment
+        setShowConfirmModal(false);
+        setShowPatientDetailsModal(false);
+        handleOpenAssignFamilyModal(selectedPatient);
+      } else if (confirmAction === 'delete') {
+        // For delete, show second confirmation
+        setShowConfirmModal(false);
+        setShowSecondConfirmModal(true);
+        setSecondCountdown(5);
+      }
+    }
+  };
+
+  const confirmSecondActionHandler = async () => {
+    if (secondCountdown === 0) {
+      try {
+        if (!selectedPatient) {
+          alert('No patient selected for deletion.');
+          return;
+        }
+        
+        // Call API to delete patient
+        await fetch(`http://localhost:5000/api/patients/${selectedPatient.id}`, {
+          method: 'DELETE',
+          headers: {
+            'x-auth-token': JSON.parse(localStorage.getItem('auth'))?.token || 'temp-admin-token'
+          }
+        });
+        
+        // Refresh patient data
+        await fetchPatientsAndFamilies();
+        
+        // Close modals and show success
+        setShowSecondConfirmModal(false);
+        setShowPatientDetailsModal(false);
+        alert(`Patient ${selectedPatient.fullName || getPatientFullName(selectedPatient)} has been deleted successfully.`);
+      } catch (error) {
+        console.error('Error deleting patient:', error);
+        alert('Error deleting patient. Please try again.');
+      }
     }
   };
 
@@ -817,6 +1515,15 @@ const AdminDashboard = () => {
     }
     return () => clearTimeout(timer);
   }, [showConfirmModal, countdown]);
+
+  // Countdown effect for second confirmation
+  useEffect(() => {
+    let timer;
+    if (showSecondConfirmModal && secondCountdown > 0) {
+      timer = setTimeout(() => setSecondCountdown(secondCountdown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [showSecondConfirmModal, secondCountdown]);
   // Render different content based on currentPath
   const renderContent = () => {
     switch(currentPath) {
@@ -844,6 +1551,10 @@ const AdminDashboard = () => {
         return renderAddUser();
       case 'View/Edit Users':
         return renderViewEditUsers();
+      case 'Notification Manager':
+        return renderNotificationManager();
+      case 'Notification History':
+        return renderNotificationHistory();
       default:
         return renderDashboard();
     }
@@ -1272,6 +1983,10 @@ const AdminDashboard = () => {
               <i className="bi bi-plus-circle"></i>
               Add Patient
             </button>
+            <button className="add-patient-btn" style={{marginLeft: '8px', backgroundColor: '#28a745'}} onClick={handleAddFamily}>
+              <i className="bi bi-people-fill"></i>
+              Add Family
+            </button>
             <button className="refresh-btn" style={{marginLeft: '8px'}} onClick={handleRefreshData}>
               <i className="bi bi-arrow-clockwise"></i>
               Refresh Data
@@ -1288,22 +2003,65 @@ const AdminDashboard = () => {
               <Table hover responsive className="data-table">
                 <thead>
                   <tr>
-                    <th style={{textAlign: 'left'}}>Family ID</th>
-                    <th style={{textAlign: 'left'}}>Family Name</th>
+                    <th 
+                      style={{textAlign: 'left', cursor: 'pointer', userSelect: 'none'}}
+                      onClick={() => requestSort('id', familySortConfig, setFamilySortConfig)}
+                    >
+                      Family ID
+                      {familySortConfig.key === 'id' && (
+                        <i className={`bi bi-arrow-${familySortConfig.direction === 'ascending' ? 'up' : 'down'}`} style={{marginLeft: '5px'}}></i>
+                      )}
+                    </th>
+                    <th 
+                      style={{textAlign: 'left', cursor: 'pointer', userSelect: 'none'}}
+                      onClick={() => requestSort('familyName', familySortConfig, setFamilySortConfig)}
+                    >
+                      Family Name
+                      {familySortConfig.key === 'familyName' && (
+                        <i className={`bi bi-arrow-${familySortConfig.direction === 'ascending' ? 'up' : 'down'}`} style={{marginLeft: '5px'}}></i>
+                      )}
+                    </th>
                     <th style={{textAlign: 'left'}}>Family Head (Optional)</th>
-                    <th style={{textAlign: 'right'}}>Number of Members</th>
-                    <th style={{textAlign: 'left'}}>Date Registered</th>
+                    <th 
+                      style={{textAlign: 'right', cursor: 'pointer', userSelect: 'none'}}
+                      onClick={() => requestSort('memberCount', familySortConfig, setFamilySortConfig)}
+                    >
+                      Number of Members
+                      {familySortConfig.key === 'memberCount' && (
+                        <i className={`bi bi-arrow-${familySortConfig.direction === 'ascending' ? 'up' : 'down'}`} style={{marginLeft: '5px'}}></i>
+                      )}
+                    </th>
+                    <th 
+                      style={{textAlign: 'left', cursor: 'pointer', userSelect: 'none'}}
+                      onClick={() => requestSort('createdAt', familySortConfig, setFamilySortConfig)}
+                    >
+                      Date Registered
+                      {familySortConfig.key === 'createdAt' && (
+                        <i className={`bi bi-arrow-${familySortConfig.direction === 'ascending' ? 'up' : 'down'}`} style={{marginLeft: '5px'}}></i>
+                      )}
+                    </th>
                     <th style={{textAlign: 'center'}}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredFamilies().map((family) => (
+                  {sortedFamilies.filter(family => {
+                    if (!searchTerm) return true;
+                    const term = searchTerm.toLowerCase();
+                    const familyName = family.familyName ? family.familyName.toLowerCase() : '';
+                    const familyId = family.id ? family.id.toString().toLowerCase() : '';
+                    const headOfFamily = getFamilyHead(family).toLowerCase();
+                    const contact = getFamilyContact(family);
+                    return familyName.includes(term) || 
+                           familyId.includes(term) ||
+                           headOfFamily.includes(term) ||
+                           contact.includes(term);
+                  }).map((family) => (
                     <tr key={family.id}>
                       <td style={{textAlign: 'left'}}>{family.id}</td>
                       <td style={{textAlign: 'left'}}>{family.familyName}</td>
-                      <td style={{textAlign: 'left'}}>{family.familyHead || 'N/A'}</td>
-                      <td style={{textAlign: 'right'}}>{family.memberCount}</td>
-                      <td style={{textAlign: 'left'}}>{formatShortDate(family.registrationDate)}</td>
+                      <td style={{textAlign: 'left'}}>{getFamilyHead(family)}</td>
+                      <td style={{textAlign: 'right'}}>{getFamilyMemberCount(family)}</td>
+                      <td style={{textAlign: 'left'}}>{formatShortDate(family.createdAt || family.registrationDate)}</td>
                       <td style={{textAlign: 'center'}} className="action-cell">
                         <Button variant="outline-primary" size="sm" onClick={() => handleViewFamily(family)}>View Members</Button>
                       </td>
@@ -1318,31 +2076,50 @@ const AdminDashboard = () => {
               <Table hover responsive className="data-table">
                 <thead>
                   <tr>
-                    <th style={{textAlign: 'left'}}>Patient ID</th>
-                    <th style={{textAlign: 'left'}}>Family ID</th>
-                    <th style={{textAlign: 'left'}}>Name</th>
-                    <th style={{textAlign: 'left'}}>Family Members</th>
+                    <th 
+                      style={{textAlign: 'left', cursor: 'pointer', userSelect: 'none'}}
+                      onClick={() => requestSort('id', memberSortConfig, setMemberSortConfig)}
+                    >
+                      Patient ID
+                      {memberSortConfig.key === 'id' && (
+                        <i className={`bi bi-arrow-${memberSortConfig.direction === 'ascending' ? 'up' : 'down'}`} style={{marginLeft: '5px'}}></i>
+                      )}
+                    </th>
+                    <th 
+                      style={{textAlign: 'left', cursor: 'pointer', userSelect: 'none'}}
+                      onClick={() => requestSort('familyId', memberSortConfig, setMemberSortConfig)}
+                    >
+                      Family ID
+                      {memberSortConfig.key === 'familyId' && (
+                        <i className={`bi bi-arrow-${memberSortConfig.direction === 'ascending' ? 'up' : 'down'}`} style={{marginLeft: '5px'}}></i>
+                      )}
+                    </th>
+                    <th style={{textAlign: 'left', minWidth: '200px', width: '250px'}}>Name</th>
                     <th style={{textAlign: 'right'}}>Age</th>
                     <th style={{textAlign: 'left'}}>Gender</th>
                     <th style={{textAlign: 'left'}}>Contact Number</th>
-                    <th style={{textAlign: 'left'}}>Last Checkup</th>
+                    <th 
+                      style={{textAlign: 'left', cursor: 'pointer', userSelect: 'none'}}
+                      onClick={() => requestSort('lastCheckup', memberSortConfig, setMemberSortConfig)}
+                    >
+                      Last Checkup
+                      {memberSortConfig.key === 'lastCheckup' && (
+                        <i className={`bi bi-arrow-${memberSortConfig.direction === 'ascending' ? 'up' : 'down'}`} style={{marginLeft: '5px'}}></i>
+                      )}
+                    </th>
                     <th style={{textAlign: 'center'}}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPatients().map((patient) => (
+                  {sortedPatients.map((patient) => (
                     <tr key={patient.id}>
                       <td style={{textAlign: 'left'}}>PT-{String(patient.id).padStart(4, '0')}</td>
-                      <td style={{textAlign: 'left'}}>{patient.familyId}</td>
-                      <td style={{textAlign: 'left'}}>{patient.name}</td>
-                      <td style={{textAlign: 'left'}}>
-                        {/* Family Members (no age) */}
-                        {getFamilyMembers(patient.familyId).map(m => m.name).join(', ')}
-                      </td>
-                      <td style={{textAlign: 'right'}}>{patient.age}</td>
+                      <td style={{textAlign: 'left'}}>{patient.familyId || 'Unassigned'}</td>
+                      <td style={{textAlign: 'left', minWidth: '200px', padding: '12px 8px'}}>{getPatientFullName(patient)}</td>
+                      <td style={{textAlign: 'right'}}>{getPatientAge(patient)}</td>
                       <td style={{textAlign: 'left'}}>{patient.gender}</td>
-                      <td style={{textAlign: 'left'}}>{patient.contact}</td>
-                      <td style={{textAlign: 'left'}}>{formatShortDate(patient.lastCheckup)}</td>
+                      <td style={{textAlign: 'left'}}>{getPatientContact(patient)}</td>
+                      <td style={{textAlign: 'left'}}>{formatShortDate(patient.lastCheckup || patient.createdAt)}</td>
                       <td style={{textAlign: 'center'}} className="action-cell">
                         <Button variant="outline-primary" size="sm" onClick={() => handleViewPatient(patient)}>View Information</Button>
                       </td>
@@ -1352,7 +2129,7 @@ const AdminDashboard = () => {
               </Table>
             </div>
           </Tab>
-          <Tab eventKey="unsorted" title={`Unsorted Members (${unsortedPatients.length})`}>
+          <Tab eventKey="unsorted" title={`Unsorted Members (${unsortedMembersData.length})`}>
             <div className="unsorted-section">
               <div className="section-header" style={{marginBottom: '20px'}}>
                 <div className="section-info">
@@ -1365,7 +2142,7 @@ const AdminDashboard = () => {
                   <button 
                     className="add-patient-btn"
                     onClick={handleAutosort}
-                    disabled={unsortedPatients.length === 0 || isLoadingAutosort}
+                    disabled={unsortedMembersData.length === 0 || isLoadingAutosort}
                     style={{backgroundColor: '#28a745'}}
                   >
                     <i className="bi bi-magic"></i>
@@ -1374,7 +2151,7 @@ const AdminDashboard = () => {
                 </div>
               </div>
               
-              {unsortedPatients.length === 0 ? (
+              {unsortedMembersData.length === 0 ? (
                 <div className="empty-state" style={{textAlign: 'center', padding: '40px', color: '#666'}}>
                   <i className="bi bi-check-circle" style={{fontSize: '48px', marginBottom: '16px', color: '#28a745'}}></i>
                   <h4>All patients are sorted into families!</h4>
@@ -1394,7 +2171,7 @@ const AdminDashboard = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {unsortedPatients.map(patient => (
+                      {unsortedMembersData.map(patient => (
                         <tr key={patient.id}>
                           <td style={{textAlign: 'left'}}>
                             <strong>{patient.firstName} {patient.lastName}</strong>
@@ -1409,13 +2186,7 @@ const AdminDashboard = () => {
                             <Button 
                               variant="outline-success" 
                               size="sm" 
-                              onClick={() => {
-                                // For now, just show families to choose from
-                                const familyId = prompt(`Choose family ID to assign ${patient.firstName} ${patient.lastName} to:`);
-                                if (familyId) {
-                                  handleAssignToFamily(patient.id, parseInt(familyId));
-                                }
-                              }}
+                              onClick={() => handleOpenAssignFamilyModal(patient)}
                             >
                               Assign to Family
                             </Button>
@@ -2028,11 +2799,13 @@ const AdminDashboard = () => {
               <label>Patient</label>
               <select className="form-select">
                 <option value="">Select Patient</option>
-                {patients.map(patient => (
+                {patients && patients.length > 0 ? patients.map(patient => (
                   <option key={patient.id} value={patient.id}>
-                    {patient.name} (PT-{String(patient.id).padStart(4, '0')})
+                    {getPatientFullName(patient)} (PT-{String(patient.id).padStart(4, '0')})
                   </option>
-                ))}
+                )) : (
+                  <option disabled>No patients available</option>
+                )}
               </select>
             </div>
             <div className="form-group">
@@ -3685,8 +4458,8 @@ const AdminDashboard = () => {
                   <td>{user.firstName} {user.lastName}</td>
                   <td>{user.role}</td>
                   <td>
-                    <span className={`user-type-badge ${user.userType}`}>
-                      {user.userType === 'admin' ? 'Administrator' : 'Doctor/Staff'}
+                    <span className={`user-type-badge ${user.role}`}>
+                      {user.accessLevel || (user.role === 'admin' ? 'Administrator' : 'Doctor/Staff')}
                     </span>
                   </td>
                   <td>
@@ -3731,6 +4504,68 @@ const AdminDashboard = () => {
               ))}
             </tbody>
           </Table>
+        </div>
+      </div>
+    </>
+  );
+
+  // Notification Management
+  const renderNotificationManager = () => (
+    <>
+      <div className="notification-management-container">
+        <div className="content-header">
+          <h1>
+            <i className="bi bi-bell me-2"></i>
+            Notification Manager
+            <span className={`badge ms-3 ${backendConnected ? 'bg-success' : 'bg-danger'}`}>
+              <i className={`bi ${backendConnected ? 'bi-check-circle' : 'bi-x-circle'} me-1`}></i>
+              {backendConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </h1>
+          <p className="text-muted">Send SMS and email notifications to patients</p>
+        </div>
+        
+        <NotificationManager patients={unsortedMembersData || []} />
+      </div>
+    </>
+  );
+
+  // Notification History
+  const renderNotificationHistory = () => (
+    <>
+      <div className="notification-history-container">
+        <div className="content-header">
+          <h1>
+            <i className="bi bi-clock-history me-2"></i>
+            Notification History
+          </h1>
+          <p className="text-muted">View sent notification history and delivery status</p>
+        </div>
+        
+        <div className="coming-soon-container" style={{
+          padding: '60px 20px',
+          textAlign: 'center',
+          background: 'var(--bg-primary)',
+          borderRadius: '12px',
+          border: '1px solid var(--border-secondary)'
+        }}>
+          <i className="bi bi-tools" style={{fontSize: '4rem', color: 'var(--text-secondary)', marginBottom: '20px'}}></i>
+          <h3 style={{color: 'var(--text-primary)', marginBottom: '15px'}}>
+            Notification History
+          </h3>
+          <p style={{color: 'var(--text-secondary)', fontSize: '1.1rem', marginBottom: '20px'}}>
+            This feature is currently under development.
+          </p>
+          <div style={{color: 'var(--text-secondary)'}}>
+            <p><strong>Coming Soon:</strong></p>
+            <ul style={{listStyle: 'none', padding: 0}}>
+              <li>📱 SMS delivery status tracking</li>
+              <li>📧 Email delivery confirmation</li>
+              <li>📊 Notification analytics</li>
+              <li>🔍 Search and filter history</li>
+              <li>📋 Export notification reports</li>
+            </ul>
+          </div>
         </div>
       </div>
     </>
@@ -4088,21 +4923,32 @@ const AdminDashboard = () => {
       
       // Use the selected user type (admin/doctor) as the role
       const userData = {
-        username: userFormData.emailInitials,
         firstName: userFormData.firstName,
+        middleName: userFormData.middleName,
         lastName: userFormData.lastName,
-        email: email,
+        emailInitials: userFormData.emailInitials,
         password: userFormData.password,
-        role: selectedUserType, // Use selected user type (admin or doctor)
-        contactNumber: '', // You might want to add this to the form
-        address: '' // You might want to add this to the form
+        accessLevel: selectedUserType === 'admin' ? 'Administrator' : 'Doctor', // Convert to proper access level
+        position: userFormData.position || (selectedUserType === 'admin' ? 'System Administrator' : 'General Physician')
       };
 
       await userService.createUser(userData);
       
       // Refresh users list
       const response = await userService.getUsers();
-      setUsers(response.users || []);
+      const usersWithAccessRights = (response.users || []).map(user => ({
+        ...user,
+        accessRights: user.accessRights || {
+          dashboard: true,
+          patients: true,
+          families: true,
+          appointments: true,
+          reports: true,
+          users: user.role === 'admin',
+          settings: user.role === 'admin'
+        }
+      }));
+      setUsers(usersWithAccessRights);
       
       alert(`Successfully created user account for ${userFormData.firstName} ${userFormData.lastName}`);
       
@@ -4226,6 +5072,28 @@ const AdminDashboard = () => {
                   <Link to="#">
                     <i className="bi bi-calendar-week"></i>
                     <span>Appointment History</span>
+                  </Link>
+                </li>
+              </ul>
+            </li>
+            
+            <li className={activeDropdown === 'notifications' ? 'dropdown active' : 'dropdown'}>
+              <Link to="#" onClick={() => handleDropdownToggle('notifications')}>
+                <i className="bi bi-bell"></i>
+                <span>Notifications</span>
+                <i className={`bi ${activeDropdown === 'notifications' ? 'bi-chevron-down' : 'bi-chevron-right'} dropdown-icon`}></i>
+              </Link>
+              <ul className={activeDropdown === 'notifications' ? 'dropdown-menu show' : 'dropdown-menu'}>
+                <li onClick={() => handleNavigation('Notification Manager')}>
+                  <Link to="#">
+                    <i className="bi bi-chat-dots"></i>
+                    <span>Send Notifications</span>
+                  </Link>
+                </li>
+                <li onClick={() => handleNavigation('Notification History')}>
+                  <Link to="#">
+                    <i className="bi bi-clock-history"></i>
+                    <span>Notification History</span>
                   </Link>
                 </li>
               </ul>
@@ -4417,6 +5285,44 @@ const AdminDashboard = () => {
         </Modal.Footer>
       </Modal>
       
+      {/* Email Confirmation Modal */}
+      <Modal show={showEmailConfirmModal} onHide={() => setShowEmailConfirmModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Email Required</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>Email field is empty.</p>
+          <p>Please either:</p>
+          <ul>
+            <li>Enter a valid email address, OR</li>
+            <li>Type "N/A" if the patient has no email</li>
+          </ul>
+          <p>Would you like to go back and fill the email field?</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="secondary" 
+            onClick={() => {
+              setShowEmailConfirmModal(false);
+              // Set email to "N/A" and continue with save
+              setPatientFormData(prev => ({ ...prev, email: 'N/A' }));
+              // Call save function again but this time with N/A email
+              setTimeout(() => {
+                handleSavePatient();
+              }, 100);
+            }}
+          >
+            Set as "N/A" and Continue
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={() => setShowEmailConfirmModal(false)}
+          >
+            Go Back to Fill Email
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      
       {/* Vital Signs Modal - Modernized with Medical Validation */}
       <Modal 
         show={showVitalSignsModal} 
@@ -4437,10 +5343,10 @@ const AdminDashboard = () => {
                 <i className="bi bi-person-circle"></i>
               </div>
               <div className="patient-info">
-                <h4>{selectedPatient.name}</h4>
+                <h4>{getPatientFullName(selectedPatient)}</h4>
                 <div className="patient-meta">
                   <span className="patient-id">PT-{String(selectedPatient.id).padStart(4, '0')}</span>
-                  <span className="patient-age">{selectedPatient.age} years old</span>
+                  <span className="patient-age">{getPatientAge(selectedPatient)} years old</span>
                   <span className="patient-gender">{selectedPatient.gender}</span>
                 </div>
               </div>
@@ -4785,12 +5691,12 @@ const AdminDashboard = () => {
           {selectedPatient && (
             <>
               <div className="mb-3">
-                <strong>Patient:</strong> {selectedPatient.name}<br />
+                <strong>Patient:</strong> {getPatientFullName(selectedPatient)}<br />
                 <strong>ID:</strong> PT-{String(selectedPatient.id).padStart(4, '0')}
               </div>
               <div className="qr-container" style={{marginBottom: '20px'}}>
                 <QRCode 
-                  value={`PT-${selectedPatient.id}|${selectedPatient.name}|${selectedPatient.familyId}`}
+                  value={`PT-${selectedPatient.id}|${getPatientFullName(selectedPatient)}|${selectedPatient.familyId}`}
                   size={200}
                   bgColor={"#ffffff"}
                   fgColor={"#000000"}
@@ -4851,7 +5757,7 @@ const AdminDashboard = () => {
               }}>
                 <div>
                   <h3 style={{color: 'var(--text-primary)', margin: 0, fontWeight: 600}}>
-                    {selectedPatient.name || 'Maria Santos'}
+                    {selectedPatient.fullName || getPatientFullName(selectedPatient)}
                   </h3>
                   <span style={{
                     color: 'var(--accent-primary)', 
@@ -4965,19 +5871,31 @@ const AdminDashboard = () => {
                         <div className="col-4">
                           <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Age</small>
                           <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
-                            {selectedPatient.age || '35'}
+                            {selectedPatient.age || 'N/A'}
                           </div>
                         </div>
                         <div className="col-4">
                           <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Gender</small>
                           <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
-                            {selectedPatient.gender || 'Female'}
+                            {selectedPatient.gender || 'N/A'}
                           </div>
                         </div>
                         <div className="col-4">
-                          <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Last Checkup</small>
+                          <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Civil Status</small>
                           <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
-                            {formatShortDate(selectedPatient.lastCheckup) || 'May 15, 2023'}
+                            {selectedPatient.civilStatus || 'N/A'}
+                          </div>
+                        </div>
+                        <div className="col-6">
+                          <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Date of Birth</small>
+                          <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
+                            {selectedPatient.dateOfBirth ? new Date(selectedPatient.dateOfBirth).toLocaleDateString() : 'N/A'}
+                          </div>
+                        </div>
+                        <div className="col-6">
+                          <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Blood Type</small>
+                          <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
+                            {selectedPatient.bloodType || 'N/A'}
                           </div>
                         </div>
                       </div>
@@ -5009,19 +5927,25 @@ const AdminDashboard = () => {
                       <div className="mb-2">
                         <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Phone</small>
                         <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
-                          {selectedPatient.contact || '09123456789'}
+                          {selectedPatient.contactNumber || 'N/A'}
                         </div>
                       </div>
                       <div className="mb-2">
                         <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Email</small>
                         <div style={{color: 'var(--warning)', fontWeight: 500}}>
-                          tre@gmail.com
+                          {selectedPatient.email || 'N/A'}
+                        </div>
+                      </div>
+                      <div className="mb-2">
+                        <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>PhilHealth Number</small>
+                        <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
+                          {selectedPatient.philHealthNumber || 'N/A'}
                         </div>
                       </div>
                       <div>
                         <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Address</small>
                         <div style={{color: 'var(--text-primary)', fontWeight: 500, fontSize: '0.9rem'}}>
-                          {selectedPatient.address || '15 San Guillermo Street, Palatiw, Pasig, Metro Manila'}
+                          {selectedPatient.formattedAddress || selectedPatient.address || 'N/A'}
                         </div>
                       </div>
                     </div>
@@ -5060,6 +5984,7 @@ const AdminDashboard = () => {
                           cursor: 'pointer',
                           transition: 'all 0.2s ease'
                         }}
+                        onClick={() => handleCheckupHistory(selectedPatient)}
                         onMouseEnter={(e) => {
                           e.target.style.borderColor = 'var(--accent-primary)';
                           e.target.style.transform = 'translateY(-2px)';
@@ -5093,6 +6018,7 @@ const AdminDashboard = () => {
                           cursor: 'pointer',
                           transition: 'all 0.2s ease'
                         }}
+                        onClick={() => handleTreatmentRecord(selectedPatient)}
                         onMouseEnter={(e) => {
                           e.target.style.borderColor = 'var(--success)';
                           e.target.style.transform = 'translateY(-2px)';
@@ -5126,6 +6052,7 @@ const AdminDashboard = () => {
                           cursor: 'pointer',
                           transition: 'all 0.2s ease'
                         }}
+                        onClick={() => handleImmunizationHistory(selectedPatient)}
                         onMouseEnter={(e) => {
                           e.target.style.borderColor = 'var(--error)';
                           e.target.style.transform = 'translateY(-2px)';
@@ -5136,14 +6063,14 @@ const AdminDashboard = () => {
                         }}
                       >
                         <div className="me-3">
-                          <i className="bi bi-heart-pulse" style={{fontSize: '1.5rem', color: 'var(--error)'}}></i>
+                          <i className="bi bi-shield-check" style={{fontSize: '1.5rem', color: 'var(--error)'}}></i>
                         </div>
                         <div>
                           <div style={{color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.9rem'}}>
-                            Vital Signs Check
+                            Immunization History
                           </div>
                           <small style={{color: 'var(--text-secondary)'}}>
-                            Record patient vitals
+                            Vaccination records
                           </small>
                         </div>
                       </div>
@@ -5159,6 +6086,7 @@ const AdminDashboard = () => {
                           cursor: 'pointer',
                           transition: 'all 0.2s ease'
                         }}
+                        onClick={() => handleReferralForm(selectedPatient)}
                         onMouseEnter={(e) => {
                           e.target.style.borderColor = 'var(--warning)';
                           e.target.style.transform = 'translateY(-2px)';
@@ -5169,14 +6097,14 @@ const AdminDashboard = () => {
                         }}
                       >
                         <div className="me-3">
-                          <i className="bi bi-arrow-left-right" style={{fontSize: '1.5rem', color: 'var(--warning)'}}></i>
+                          <i className="bi bi-file-medical-fill" style={{fontSize: '1.5rem', color: 'var(--warning)'}}></i>
                         </div>
                         <div>
                           <div style={{color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.9rem'}}>
-                            Referral
+                            Laboratory Referral
                           </div>
                           <small style={{color: 'var(--text-secondary)'}}>
-                            Specialist referrals
+                            Generate referral slip
                           </small>
                         </div>
                       </div>
@@ -5200,6 +6128,7 @@ const AdminDashboard = () => {
                           e.target.style.borderColor = 'var(--border-secondary)';
                           e.target.style.transform = 'translateY(0)';
                         }}
+                        onClick={() => handleSMSNotification(selectedPatient)}
                       >
                         <div className="me-3">
                           <i className="bi bi-chat-dots" style={{fontSize: '1.5rem', color: 'var(--accent-secondary)'}}></i>
@@ -5303,12 +6232,94 @@ const AdminDashboard = () => {
             disabled={countdown > 0}
             size="sm"
           >
-            {countdown > 0 ? `Wait ${countdown}s` : (confirmAction === 'reassign' ? 'Reassign Patient' : 'Delete Patient')}
+            {countdown > 0 ? `Wait ${countdown}s` : (confirmAction === 'reassign' ? 'Reassign Patient' : 'Continue to Delete')}
           </Button>
         </Modal.Footer>
       </Modal>
 
-      {/* Add Patient Modal - Placeholder */}
+      {/* Second Confirmation Modal for Delete Action */}
+      <Modal
+        show={showSecondConfirmModal}
+        onHide={() => setShowSecondConfirmModal(false)}
+        centered
+        size="sm"
+      >
+        <Modal.Header 
+          closeButton
+          style={{
+            background: 'var(--error)',
+            color: 'white',
+            border: 'none'
+          }}
+        >
+          <Modal.Title>
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            Final Confirmation - Delete Patient
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{background: 'var(--bg-secondary)'}}>
+          <div className="text-center">
+            <div className="mb-3">
+              <i 
+                className="bi bi-exclamation-triangle"
+                style={{
+                  fontSize: '3rem',
+                  color: 'var(--error)'
+                }}
+              ></i>
+            </div>
+            <div>
+              <h6 style={{color: 'var(--text-primary)'}}>
+                FINAL WARNING: This action is irreversible!
+              </h6>
+              <p style={{color: 'var(--error)', fontSize: '0.9rem', fontWeight: 600}}>
+                You are about to permanently delete:
+              </p>
+              <div style={{
+                background: 'var(--bg-primary)',
+                padding: '10px',
+                borderRadius: '8px',
+                border: '2px solid var(--error)',
+                margin: '10px 0'
+              }}>
+                <strong style={{color: 'var(--text-primary)'}}>
+                  {selectedPatient?.fullName || getPatientFullName(selectedPatient)}
+                </strong>
+                <br />
+                <small style={{color: 'var(--text-secondary)'}}>
+                  Patient ID: PT-{String(selectedPatient?.id).padStart(4, '0')}
+                </small>
+              </div>
+              <p style={{color: 'var(--error)', fontSize: '0.8rem'}}>
+                All medical records, appointments, and patient data will be lost forever.
+              </p>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer style={{background: 'var(--bg-primary)', border: 'none'}}>
+          <Button 
+            variant="outline-secondary" 
+            onClick={() => setShowSecondConfirmModal(false)}
+            size="sm"
+          >
+            Cancel - Keep Patient
+          </Button>
+          <Button 
+            variant="danger"
+            onClick={confirmSecondActionHandler}
+            disabled={secondCountdown > 0}
+            size="sm"
+            style={{
+              background: secondCountdown > 0 ? 'var(--text-secondary)' : 'var(--error)',
+              borderColor: secondCountdown > 0 ? 'var(--text-secondary)' : 'var(--error)'
+            }}
+          >
+            {secondCountdown > 0 ? `Wait ${secondCountdown}s` : 'DELETE PERMANENTLY'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Add Patient Modal */}
       <Modal
         show={showAddPatientModal}
         onHide={() => setShowAddPatientModal(false)}
@@ -5319,138 +6330,641 @@ const AdminDashboard = () => {
         </Modal.Header>
         <Modal.Body>
           <Form>
-            <h5>Personal Information</h5>
-            <Row className="mb-3">
-              <Col md={4}>
-                <Form.Group controlId="firstName">
-                  <Form.Label>First Name</Form.Label>
-                  <Form.Control type="text" placeholder="Enter first name" />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group controlId="middleName">
-                  <Form.Label>Middle Name</Form.Label>
-                  <Form.Control type="text" placeholder="Enter middle name" />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group controlId="lastName">
-                  <Form.Label>Last Name</Form.Label>
-                  <Form.Control type="text" placeholder="Enter last name" />
-                </Form.Group>
-              </Col>
-            </Row>
+            <Card className="mb-3" bg={isDarkMode ? 'dark' : 'light'}>
+              <Card.Header as="h5" className="my-2" style={isDarkMode ? {background: 'var(--bg-tertiary)', color: 'var(--text-primary)'} : {}}>Personal Information</Card.Header>
+              <Card.Body style={isDarkMode ? {background: 'var(--bg-secondary)', color: 'var(--text-primary)'} : {}}>
+                <Row className="mb-3">
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>First Name <span style={{color: 'red'}}>*</span></Form.Label>
+                      <Form.Control 
+                        type="text" 
+                        value={patientFormData.firstName} 
+                        onChange={(e) => handlePatientFormChange('firstName', e.target.value)} 
+                        required 
+                        className={isDarkMode ? 'dark-mode-form-control' : ''}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Middle Name</Form.Label>
+                      <Form.Control 
+                        type="text" 
+                        value={patientFormData.middleName} 
+                        onChange={(e) => handlePatientFormChange('middleName', e.target.value)}
+                        className={isDarkMode ? 'dark-mode-form-control' : ''}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Last Name <span style={{color: 'red'}}>*</span></Form.Label>
+                      <Form.Control 
+                        type="text" 
+                        value={patientFormData.lastName} 
+                        onChange={(e) => handlePatientFormChange('lastName', e.target.value)} 
+                        required 
+                        className={isDarkMode ? 'dark-mode-form-control' : ''}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Suffix</Form.Label>
+                      <Form.Select 
+                        value={patientFormData.suffix} 
+                        onChange={(e) => handlePatientFormChange('suffix', e.target.value)}
+                        className={isDarkMode ? 'dark-mode-select' : ''}
+                      >
+                        <option value="">Select</option>
+                        <option value="Jr.">Jr.</option>
+                        <option value="Sr.">Sr.</option>
+                        <option value="II">II</option>
+                        <option value="III">III</option>
+                        <option value="IV">IV</option>
+                        <option value="V">V</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+                
+                <Row className="mb-3">
+                  <Col md={4}>
+                    <Form.Group>
+                      <Form.Label>Date of Birth <span style={{color: 'red'}}>*</span></Form.Label>
+                      <DatePicker 
+                        selected={patientFormData.dateOfBirth} 
+                        onChange={(date) => handlePatientFormChange('dateOfBirth', date)} 
+                        className={`form-control ${isDarkMode ? 'dark-mode-form-control' : ''}`}
+                        dateFormat="MM/dd/yyyy"
+                        maxDate={new Date()}
+                        showYearDropdown
+                        showMonthDropdown
+                        dropdownMode="select"
+                        scrollableYearDropdown
+                        yearDropdownItemNumber={100}
+                        placeholderText="MM/DD/YYYY"
+                        required
+                        calendarClassName={isDarkMode ? 'dark-mode-calendar' : ''}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Group>
+                      <Form.Label>Age</Form.Label>
+                      <Form.Control 
+                        type="text" 
+                        value={patientFormData.age} 
+                        readOnly 
+                        className={isDarkMode ? 'dark-mode-form-control' : ''}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Gender <span style={{color: 'red'}}>*</span></Form.Label>
+                      <Form.Select
+                        value={patientFormData.gender}
+                        onChange={(e) => handlePatientFormChange('gender', e.target.value)}
+                        required
+                        className={isDarkMode ? 'dark-mode-select' : ''}
+                      >
+                        <option value="">Select Gender</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Civil Status <span style={{color: 'red'}}>*</span></Form.Label>
+                      <Form.Select
+                        value={patientFormData.civilStatus}
+                        onChange={(e) => handlePatientFormChange('civilStatus', e.target.value)}
+                        required
+                        className={isDarkMode ? 'dark-mode-select' : ''}
+                      >
+                        <option value="">Select Status</option>
+                        <option value="Single">Single</option>
+                        <option value="Married">Married</option>
+                        <option value="Divorced">Divorced</option>
+                        <option value="Widowed">Widowed</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
             
-            <Row className="mb-3">
-              <Col md={4}>
-                <Form.Group controlId="dateOfBirth">
-                  <Form.Label>Date of Birth</Form.Label>
-                  <DatePicker 
-                    selected={new Date()} 
-                    onChange={(date) => {}} 
-                    className="form-control"
-                    dateFormat="MM/dd/yyyy"
+            <Card className="mb-3" bg={isDarkMode ? 'dark' : 'light'}>
+              <Card.Header as="h5" className="my-2" style={isDarkMode ? {background: 'var(--bg-tertiary)', color: 'var(--text-primary)'} : {}}>Contact Information</Card.Header>
+              <Card.Body style={isDarkMode ? {background: 'var(--bg-secondary)', color: 'var(--text-primary)'} : {}}>
+                <Row className="mb-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>Email (Optional)</Form.Label>
+                      <Form.Control 
+                        type="email" 
+                        value={patientFormData.email} 
+                        onChange={(e) => handlePatientFormChange('email', e.target.value)}
+                        placeholder="Enter email or 'N/A' if none"
+                        className={isDarkMode ? 'dark-mode-form-control' : ''}
+                      />
+                      <Form.Text className="text-muted">
+                        Optional: Enter a valid email address or type "N/A" if the patient has no email
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>Phone Number <span style={{color: 'red'}}>*</span></Form.Label>
+                      <Form.Control 
+                        type="tel" 
+                        value={patientFormData.contactNumber} 
+                        onChange={(e) => handlePatientFormChange('contactNumber', e.target.value)} 
+                        placeholder="09XXXXXXXXX" 
+                        pattern="^09\\d{9}$" 
+                        maxLength="11"
+                        title="Must be a valid PH mobile number starting with 09 (11 digits total)"
+                        required
+                        className={isDarkMode ? 'dark-mode-form-control' : ''}
+                      />
+                      <Form.Text className={isDarkMode ? 'text-light' : 'text-muted'}>
+                        Format: 09XXXXXXXXX (11 digits total)
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+            
+            <Card className="mb-3" bg={isDarkMode ? 'dark' : 'light'}>
+              <Card.Header as="h5" className="my-2" style={isDarkMode ? {background: 'var(--bg-tertiary)', color: 'var(--text-primary)'} : {}}>Address</Card.Header>
+              <Card.Body style={isDarkMode ? {background: 'var(--bg-secondary)', color: 'var(--text-primary)'} : {}}>
+                <Row className="mb-3">
+                  <Col md={2}>
+                    <Form.Group>
+                      <Form.Label>House No.</Form.Label>
+                      <Form.Control 
+                        type="text" 
+                        value={patientFormData.houseNo} 
+                        onChange={(e) => handlePatientFormChange('houseNo', e.target.value)}
+                        className={isDarkMode ? 'dark-mode-form-control' : ''}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Street <span style={{color: 'red'}}>*</span></Form.Label>
+                      <Form.Select
+                        value={patientFormData.street}
+                        onChange={(e) => handlePatientFormChange('street', e.target.value)}
+                        required
+                        className={isDarkMode ? 'dark-mode-select' : ''}
+                      >
+                        <option value="">Select Street</option>
+                        <option value="Amang Rodriguez Avenue">Amang Rodriguez Avenue</option>
+                        <option value="C. Raymundo Avenue">C. Raymundo Avenue</option>
+                        <option value="Ortigas Avenue">Ortigas Avenue</option>
+                        <option value="Shaw Boulevard">Shaw Boulevard</option>
+                        <option value="E. Rodriguez Jr. Avenue (C-5)">E. Rodriguez Jr. Avenue (C-5)</option>
+                        <option value="Marcos Highway">Marcos Highway</option>
+                        <option value="Julia Vargas Avenue">Julia Vargas Avenue</option>
+                        <option value="F. Legaspi Bridge">F. Legaspi Bridge</option>
+                        <option value="San Guillermo Street">San Guillermo Street</option>
+                        <option value="Dr. Sixto Antonio Avenue">Dr. Sixto Antonio Avenue</option>
+                        <option value="Other">Other</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Barangay <span style={{color: 'red'}}>*</span></Form.Label>
+                      <Form.Select
+                        value={patientFormData.barangay}
+                        onChange={(e) => handlePatientFormChange('barangay', e.target.value)}
+                        required
+                        className={isDarkMode ? 'dark-mode-select' : ''}
+                      >
+                        <option value="">Select Barangay</option>
+                        <option value="Bagong Ilog">Bagong Ilog</option>
+                        <option value="Bagong Katipunan">Bagong Katipunan</option>
+                        <option value="Bambang">Bambang</option>
+                        <option value="Buting">Buting</option>
+                        <option value="Caniogan">Caniogan</option>
+                        <option value="Kalawaan">Kalawaan</option>
+                        <option value="Kapasigan">Kapasigan</option>
+                        <option value="Kapitolyo">Kapitolyo</option>
+                        <option value="Malinao">Malinao</option>
+                        <option value="Manggahan">Manggahan</option>
+                        <option value="Maybunga">Maybunga</option>
+                        <option value="Oranbo">Oranbo</option>
+                        <option value="Palatiw">Palatiw</option>
+                        <option value="Pinagbuhatan">Pinagbuhatan</option>
+                        <option value="Pineda">Pineda</option>
+                        <option value="Rosario">Rosario</option>
+                        <option value="Sagad">Sagad</option>
+                        <option value="San Antonio">San Antonio</option>
+                        <option value="San Joaquin">San Joaquin</option>
+                        <option value="San Jose">San Jose</option>
+                        <option value="San Miguel">San Miguel</option>
+                        <option value="San Nicolas">San Nicolas</option>
+                        <option value="Santa Cruz">Santa Cruz</option>
+                        <option value="Santa Lucia">Santa Lucia</option>
+                        <option value="Santa Rosa">Santa Rosa</option>
+                        <option value="Santo Tomas">Santo Tomas</option>
+                        <option value="Santolan">Santolan</option>
+                        <option value="Sumilang">Sumilang</option>
+                        <option value="Ugong">Ugong</option>
+                        <option value="Other">Other</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Group>
+                      <Form.Label>City</Form.Label>
+                      <Form.Control 
+                        type="text" 
+                        value={patientFormData.city} 
+                        onChange={(e) => handlePatientFormChange('city', e.target.value)} 
+                        readOnly 
+                        className={isDarkMode ? 'dark-mode-form-control' : ''}
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={2}>
+                    <Form.Group>
+                      <Form.Label>Postal Code</Form.Label>
+                      <Form.Control 
+                        type="text" 
+                        value={patientFormData.postalCode} 
+                        onChange={(e) => handlePatientFormChange('postalCode', e.target.value)} 
+                        readOnly 
+                        className={isDarkMode ? 'dark-mode-form-control' : ''}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+            
+            <Card className="mb-3" bg={isDarkMode ? 'dark' : 'light'}>
+              <Card.Header as="h5" className="my-2" style={isDarkMode ? {background: 'var(--bg-tertiary)', color: 'var(--text-primary)'} : {}}>Medical Information</Card.Header>
+              <Card.Body style={isDarkMode ? {background: 'var(--bg-secondary)', color: 'var(--text-primary)'} : {}}>
+                <Row className="mb-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>PhilHealth Number (Optional)</Form.Label>
+                      <Form.Control 
+                        type="text" 
+                        value={patientFormData.philHealthNumber} 
+                        onChange={(e) => handlePatientFormChange('philHealthNumber', e.target.value)} 
+                        placeholder="Enter PhilHealth ID number"
+                        className={isDarkMode ? 'dark-mode-form-control' : ''}
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+                
+                <Form.Group className="mb-3">
+                  <Form.Label>Medical Conditions/Allergies (Optional)</Form.Label>
+                  <Form.Control 
+                    as="textarea" 
+                    rows={3} 
+                    value={patientFormData.medicalConditions} 
+                    onChange={(e) => handlePatientFormChange('medicalConditions', e.target.value)} 
+                    placeholder="Enter any existing medical conditions or allergies"
+                    className={isDarkMode ? 'dark-mode-form-control' : ''}
                   />
                 </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group controlId="gender">
-                  <Form.Label>Gender</Form.Label>
-                  <Form.Select>
-                    <option value="">Select gender</option>
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                    <option value="Other">Other</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group controlId="contactNumber">
-                  <Form.Label>Contact Number</Form.Label>
-                  <Form.Control type="text" placeholder="e.g. 09123456789" />
-                </Form.Group>
-              </Col>
-            </Row>
+              </Card.Body>
+            </Card>
             
-            <h5 className="mt-4">Address Information</h5>
-            <Row className="mb-3">
-              <Col md={6}>
-                <Form.Group controlId="familyId">
-                  <Form.Label>Family ID (Optional)</Form.Label>
-                  <Form.Control type="text" placeholder="Assign to existing family" />
-                  <Form.Text className="text-muted">
-                    Leave blank for new family registration
-                  </Form.Text>
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group controlId="familyName">
-                  <Form.Label>Family Name</Form.Label>
-                  <Form.Control type="text" placeholder="Family name for new registration" />
-                </Form.Group>
-              </Col>
-            </Row>
-            
-            <Row className="mb-3">
-              <Col md={4}>
-                <Form.Group controlId="street">
-                  <Form.Label>Street</Form.Label>
-                  <Form.Control type="text" placeholder="Enter street" />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group controlId="barangay">
-                  <Form.Label>Barangay</Form.Label>
-                  <Form.Control type="text" placeholder="Enter barangay" />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group controlId="city">
-                  <Form.Label>City</Form.Label>
-                  <Form.Control type="text" placeholder="Enter city" defaultValue="Pasig City" />
-                </Form.Group>
-              </Col>
-            </Row>
-            
-            <h5 className="mt-4">Medical Information</h5>
-            <Row className="mb-3">
-              <Col md={6}>
-                <Form.Group controlId="philHealthNumber">
-                  <Form.Label>PhilHealth Number (Optional)</Form.Label>
-                  <Form.Control type="text" placeholder="Enter PhilHealth number" />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group controlId="bloodType">
-                  <Form.Label>Blood Type (Optional)</Form.Label>
-                  <Form.Select>
-                    <option value="">Select blood type</option>
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-            </Row>
-            
-            <Form.Group className="mb-3">
-              <Form.Label>Medical Conditions/Allergies (Optional)</Form.Label>
-              <Form.Control as="textarea" rows={3} placeholder="Enter any existing medical conditions or allergies" />
-            </Form.Group>
+            <Card className="mb-3" bg={isDarkMode ? 'dark' : 'light'}>
+              <Card.Header as="h5" className="my-2" style={isDarkMode ? {background: 'var(--bg-tertiary)', color: 'var(--text-primary)'} : {}}>Family Assignment</Card.Header>
+              <Card.Body style={isDarkMode ? {background: 'var(--bg-secondary)', color: 'var(--text-primary)'} : {}}>
+                <Row className="mb-3">
+                  <Col md={8}>
+                    <Form.Group>
+                      <Form.Label>Assign to Family</Form.Label>
+                      <Form.Select
+                        value={patientFormData.familyId}
+                        onChange={(e) => handlePatientFormChange('familyId', e.target.value)}
+                        className={isDarkMode ? 'dark-mode-select' : ''}
+                      >
+                        <option value="">Select existing family or leave unassigned</option>
+                        {families.map(family => (
+                          <option key={family.id} value={family.id}>
+                            {family.surname} Family ({family.familyName})
+                          </option>
+                        ))}
+                      </Form.Select>
+                      <Form.Text className={isDarkMode ? 'text-light' : 'text-muted'}>
+                        Choose an existing family or leave blank to assign later
+                      </Form.Text>
+                    </Form.Group>
+                  </Col>
+                  <Col md={4} className="d-flex align-items-end">
+                    <Button 
+                      variant={isDarkMode ? 'outline-light' : 'outline-primary'} 
+                      className="mb-3" 
+                      onClick={() => {
+                        setShowAddPatientModal(false);
+                        setShowAddFamilyModal(true);
+                      }}
+                    >
+                      + Add New Family Surname
+                    </Button>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
           </Form>
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowAddPatientModal(false)}>
             Cancel
           </Button>
-          <Button variant="primary">
+          <Button variant="primary" onClick={handleSavePatient}>
             Save Patient
           </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Add Family Modal */}
+      <Modal
+        show={showAddFamilyModal}
+        onHide={() => {
+          setShowAddFamilyModal(false);
+          // If coming from Add Patient modal, go back to it
+          if (showAddPatientModal) {
+            setShowAddPatientModal(true);
+          }
+        }}
+        size="lg"
+        contentClassName={isDarkMode ? 'bg-dark text-light' : ''}
+      >
+        <Modal.Header closeButton className={isDarkMode ? 'bg-dark text-light border-secondary' : ''}>
+          <Modal.Title>Add New Family</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className={isDarkMode ? 'bg-dark text-light' : ''}>
+          <Form>
+            <h5>Family Information</h5>
+            <Row className="mb-3">
+              <Col md={6}>
+                <Form.Group controlId="familyName">
+                  <Form.Label>Family Name <span style={{color: 'red'}}>*</span></Form.Label>
+                  <InputGroup>
+                    <Form.Control 
+                      type="text" 
+                      placeholder="Enter family name (e.g., Santos)"
+                      value={familyFormData.familyName.replace(/\s+Family\s*$/i, '').trim()}
+                      onChange={(e) => handleFamilyFormChange('familyName', e.target.value)}
+                      className={isDarkMode ? 'dark-mode-form-control' : ''}
+                    />
+                    <InputGroup.Text className={isDarkMode ? 'dark-mode-input-group-text' : ''}>Family</InputGroup.Text>
+                  </InputGroup>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group controlId="surname">
+                  <Form.Label>Surname <span style={{color: 'red'}}>*</span></Form.Label>
+                  <Form.Control 
+                    type="text" 
+                    placeholder="Enter surname (e.g., Santos)"
+                    value={familyFormData.surname}
+                    onChange={(e) => handleFamilyFormChange('surname', e.target.value)}
+                    className={isDarkMode ? 'dark-mode-form-control' : ''}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            
+            <Row className="mb-3">
+              <Col md={6}>
+                <Form.Group controlId="headOfFamily">
+                  <Form.Label>Head of Family (Optional)</Form.Label>
+                  <Form.Control 
+                    type="text" 
+                    placeholder="Enter head of family name"
+                    value={familyFormData.headOfFamily}
+                    onChange={(e) => handleFamilyFormChange('headOfFamily', e.target.value)}
+                    className={isDarkMode ? 'dark-mode-form-control' : ''}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group controlId="contactNumber">
+                  <Form.Label>Contact Number</Form.Label>
+                  <Form.Control 
+                    type="text" 
+                    placeholder="Enter 11-digit contact number"
+                    value={familyFormData.contactNumber}
+                    onChange={(e) => handleFamilyFormChange('contactNumber', e.target.value)}
+                    maxLength={11}
+                    pattern="[0-9]{11}"
+                    className={isDarkMode ? 'dark-mode-form-control' : ''}
+                  />
+                  <Form.Text className={isDarkMode ? 'text-light' : 'text-muted'}>
+                    Must be exactly 11 digits (numbers only)
+                  </Form.Text>
+                </Form.Group>
+              </Col>
+            </Row>
+            
+            <Row className="mb-3">
+              <Col md={12}>
+                <Form.Group controlId="address">
+                  <Form.Label>Address</Form.Label>
+                  <Form.Control 
+                    as="textarea" 
+                    rows={3} 
+                    placeholder="Enter family address"
+                    value={familyFormData.address}
+                    onChange={(e) => handleFamilyFormChange('address', e.target.value)}
+                    className={isDarkMode ? 'dark-mode-form-control' : ''}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            
+            <Row className="mb-3">
+              <Col md={12}>
+                <Form.Group controlId="notes">
+                  <Form.Label>Notes (Optional)</Form.Label>
+                  <Form.Control 
+                    as="textarea" 
+                    rows={2} 
+                    placeholder="Enter any additional notes about the family"
+                    value={familyFormData.notes}
+                    onChange={(e) => handleFamilyFormChange('notes', e.target.value)}
+                    className={isDarkMode ? 'dark-mode-form-control' : ''}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            
+            <div style={{fontSize: '0.9rem', color: isDarkMode ? 'var(--text-secondary)' : '#666', marginTop: '16px'}}>
+              <p><strong>Family ID:</strong> Will be automatically generated</p>
+              <p><strong>Date Registered:</strong> {new Date().toLocaleDateString()}</p>
+            </div>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer className={isDarkMode ? 'bg-dark text-light border-secondary' : ''}>
+          <Button variant={isDarkMode ? 'outline-light' : 'secondary'} onClick={() => setShowAddFamilyModal(false)}>
+            Cancel
+          </Button>
+          <Button variant={isDarkMode ? 'outline-primary' : 'primary'} onClick={handleSaveFamily}>
+            Save Family
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Assign to Family Modal */}
+      <Modal show={showAssignFamilyModal} onHide={() => setShowAssignFamilyModal(false)} size="lg" contentClassName={isDarkMode ? 'bg-dark text-light' : ''}>
+        <Modal.Header closeButton className={isDarkMode ? 'bg-dark text-light border-secondary' : ''}>
+          <Modal.Title>
+            Assign {selectedPatientForAssignment?.firstName} {selectedPatientForAssignment?.lastName} to Family
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className={isDarkMode ? 'bg-dark text-light' : ''}>
+          {!showCreateFamilyInAssign ? (
+            <div>
+              <h5>Select an Existing Family</h5>
+              <Form.Group className="mb-3">
+                <Form.Label>Choose Family</Form.Label>
+                <Form.Select 
+                  value={selectedFamilyForAssignment} 
+                  onChange={(e) => setSelectedFamilyForAssignment(e.target.value)}
+                  className={isDarkMode ? 'dark-mode-select' : ''}
+                >
+                  <option value="">-- Select a Family --</option>
+                  {families && families.length > 0 ? families.map(family => (
+                    <option key={family.id} value={family.id}>
+                      {family.familyName} ({family.surname}) - {getFamilyHead(family)}
+                    </option>
+                  )) : (
+                    <option disabled>No families available</option>
+                  )}
+                </Form.Select>
+              </Form.Group>
+              
+              <div className="text-center my-3">
+                <Button 
+                  variant="outline-primary" 
+                  onClick={() => setShowCreateFamilyInAssign(true)}
+                >
+                  + Create New Family
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <h5>Create New Family</h5>
+              <Row>
+                <Col md={6}>
+                  <Form.Group controlId="assignFamilyName">
+                    <Form.Label>Family Name <span className="text-danger">*</span></Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      placeholder="Enter family name (without 'Family')"
+                      value={assignFamilyFormData.familyName.replace(' Family', '')}
+                      onChange={(e) => handleAssignFamilyFormChange('familyName', e.target.value)}
+                      className={isDarkMode ? 'dark-mode-form-control' : ''}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group controlId="assignSurname">
+                    <Form.Label>Surname <span className="text-danger">*</span></Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      placeholder="Enter surname"
+                      value={assignFamilyFormData.surname}
+                      onChange={(e) => handleAssignFamilyFormChange('surname', e.target.value)}
+                      className={isDarkMode ? 'dark-mode-form-control' : ''}
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+              
+              <Row>
+                <Col md={6}>
+                  <Form.Group controlId="assignHeadOfFamily">
+                    <Form.Label>Head of Family (Optional)</Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      placeholder="Enter head of family name"
+                      value={assignFamilyFormData.headOfFamily}
+                      onChange={(e) => handleAssignFamilyFormChange('headOfFamily', e.target.value)}
+                      className={isDarkMode ? 'dark-mode-form-control' : ''}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group controlId="assignContactNumber">
+                    <Form.Label>Contact Number</Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      placeholder="Enter 11-digit contact number"
+                      value={assignFamilyFormData.contactNumber}
+                      onChange={(e) => handleAssignFamilyFormChange('contactNumber', e.target.value)}
+                      maxLength={11}
+                      pattern="[0-9]{11}"
+                      className={isDarkMode ? 'dark-mode-form-control' : ''}
+                    />
+                    <Form.Text className={isDarkMode ? 'text-light' : 'text-muted'}>
+                      Must be exactly 11 digits (numbers only)
+                    </Form.Text>
+                  </Form.Group>
+                </Col>
+              </Row>
+              
+              <Form.Group controlId="assignNotes">
+                <Form.Label>Notes (Optional)</Form.Label>
+                <Form.Control 
+                  as="textarea" 
+                  rows={2}
+                  placeholder="Enter notes"
+                  value={assignFamilyFormData.notes}
+                  onChange={(e) => handleAssignFamilyFormChange('notes', e.target.value)}
+                />
+              </Form.Group>
+              
+              <div className="text-center mt-3">
+                <Button 
+                  variant="outline-secondary" 
+                  onClick={() => setShowCreateFamilyInAssign(false)}
+                >
+                  ← Back to Family Selection
+                </Button>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer className={isDarkMode ? 'bg-dark text-light border-secondary' : ''}>
+          <Button variant={isDarkMode ? 'outline-light' : 'secondary'} onClick={() => setShowAssignFamilyModal(false)}>
+            Cancel
+          </Button>
+          {!showCreateFamilyInAssign ? (
+            <Button 
+              variant={isDarkMode ? 'outline-primary' : 'primary'} 
+              onClick={handleAssignToExistingFamily}
+              disabled={!selectedFamilyForAssignment}
+            >
+              Assign to Selected Family
+            </Button>
+          ) : (
+            <Button 
+              variant={isDarkMode ? 'outline-success' : 'success'} 
+              onClick={handleCreateFamilyAndAssign}
+              disabled={!assignFamilyFormData.familyName.trim() || !assignFamilyFormData.surname.trim()}
+            >
+              Create Family & Assign Patient
+            </Button>
+          )}
         </Modal.Footer>
       </Modal>
 
@@ -5482,11 +6996,11 @@ const AdminDashboard = () => {
                   {getFamilyMembers(selectedFamily.id).map(member => (
                     <tr key={member.id}>
                       <td style={{textAlign: 'left'}}>PT-{String(member.id).padStart(4, '0')}</td>
-                      <td style={{textAlign: 'left'}}>{member.name}</td>
-                      <td style={{textAlign: 'right'}}>{member.age}</td>
+                      <td style={{textAlign: 'left'}}>{getPatientFullName(member)}</td>
+                      <td style={{textAlign: 'right'}}>{getPatientAge(member)}</td>
                       <td style={{textAlign: 'left'}}>{member.gender}</td>
-                      <td style={{textAlign: 'left'}}>{member.contact}</td>
-                      <td style={{textAlign: 'left'}}>{formatShortDate(member.lastCheckup)}</td>
+                      <td style={{textAlign: 'left'}}>{getPatientContact(member)}</td>
+                      <td style={{textAlign: 'left'}}>{formatShortDate(member.lastCheckup || member.createdAt)}</td>
                       <td style={{textAlign: 'center'}} className="action-cell">
                         <Button variant="outline-primary" size="sm" onClick={() => { setShowFamilyModal(false); setTimeout(() => handleViewPatient(member), 300); }}>View Information</Button>
                       </td>
@@ -5515,7 +7029,7 @@ const AdminDashboard = () => {
         <Modal.Body>
           {autosortResults && (
             <div className="autosort-results">
-              {autosortResults.sorted.length > 0 && (
+              {autosortResults.sorted && autosortResults.sorted.length > 0 && (
                 <div className="sorted-section" style={{marginBottom: '20px'}}>
                   <h5 style={{color: '#28a745'}}>
                     <i className="bi bi-check-circle me-2"></i>
@@ -5524,24 +7038,24 @@ const AdminDashboard = () => {
                   <div className="sorted-list" style={{maxHeight: '150px', overflowY: 'auto', border: '1px solid #ddd', padding: '10px', borderRadius: '4px'}}>
                     {autosortResults.sorted.map((item, index) => (
                       <div key={index} style={{padding: '5px 0', borderBottom: '1px solid #eee'}}>
-                        <strong>{item.patient.firstName} {item.patient.lastName}</strong> → {item.assignedToFamily}
+                        <strong>{item.patient.firstName} {item.patient.lastName}</strong> → {item.family.familyName}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
               
-              {autosortResults.needsNewFamily.length > 0 && (
+              {autosortResults.needsManualAssignment && autosortResults.needsManualAssignment.length > 0 && (
                 <div className="needs-family-section">
                   <h5 style={{color: '#ffc107'}}>
                     <i className="bi bi-exclamation-triangle me-2"></i>
-                    Need New Families ({autosortResults.needsNewFamily.length})
+                    Need New Families ({autosortResults.needsManualAssignment.length})
                   </h5>
                   <p style={{marginBottom: '15px', color: '#666'}}>
                     The following patients don't have matching family surnames. We can automatically create new families for them:
                   </p>
                   <div className="needs-family-list" style={{maxHeight: '150px', overflowY: 'auto', border: '1px solid #ddd', padding: '10px', borderRadius: '4px', marginBottom: '20px'}}>
-                    {autosortResults.needsNewFamily.map((patient, index) => (
+                    {autosortResults.needsManualAssignment.map((patient, index) => (
                       <div key={index} style={{padding: '5px 0', borderBottom: '1px solid #eee'}}>
                         <strong>{patient.firstName} {patient.lastName}</strong> (Will create: <em>{patient.lastName} Family</em>)
                       </div>
@@ -5553,7 +7067,7 @@ const AdminDashboard = () => {
           )}
         </Modal.Body>
         <Modal.Footer>
-          {autosortResults && autosortResults.needsNewFamily.length > 0 && (
+          {autosortResults && autosortResults.needsManualAssignment && autosortResults.needsManualAssignment.length > 0 && (
             <Button variant="success" onClick={handleCreateFamilies}>
               <i className="bi bi-plus-circle me-2"></i>
               Auto-Create Families
@@ -5574,39 +7088,62 @@ const AdminDashboard = () => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form onSubmit={(e) => {
+          <Form onSubmit={async (e) => {
             e.preventDefault();
-            // Add logic to create user
-            const newUser = {
-              id: users.length + 1,
-              username: userFormData.emailInitials,
-              firstName: userFormData.firstName,
-              lastName: userFormData.lastName,
-              role: userFormData.position,
-              userType: userFormData.role === 'admin' ? 'admin' : 'doctor',
-              email: `${userFormData.emailInitials}@maybunga.health`,
-              accessRights: {
-                dashboard: true,
-                patients: true,
-                families: userFormData.role === 'admin',
-                appointments: true,
-                reports: userFormData.role === 'admin',
-                users: userFormData.role === 'admin',
-                settings: userFormData.role === 'admin'
-              }
-            };
-            setUsers([...users, newUser]);
-            setShowAddUserModal(false);
-            setUserFormData({
-              firstName: '',
-              middleName: '',
-              lastName: '',
-              emailInitials: '',
-              password: '',
-              confirmPassword: '',
-              role: 'aide',
-              position: 'Aide'
-            });
+            try {
+              // Create user via API
+              const userData = {
+                firstName: userFormData.firstName,
+                middleName: userFormData.middleName,
+                lastName: userFormData.lastName,
+                emailInitials: userFormData.emailInitials,
+                password: userFormData.password,
+                accessLevel: userFormData.accessLevel,
+                position: userFormData.position
+              };
+
+              const response = await adminService.createStaffUser(userData);
+              
+              // Add to local users list for immediate UI update
+              const newUser = {
+                id: response.user.id,
+                username: response.user.username,
+                firstName: response.user.firstName,
+                lastName: response.user.lastName,
+                role: response.user.position,
+                userType: response.user.accessLevel === 'Administrator' ? 'admin' : 'doctor',
+                accessLevel: response.user.accessLevel,
+                email: response.user.email,
+                accessRights: {
+                  dashboard: true,
+                  patients: true,
+                  families: userFormData.accessLevel === 'Administrator',
+                  appointments: true,
+                  reports: userFormData.accessLevel === 'Administrator',
+                  users: userFormData.accessLevel === 'Administrator',
+                  settings: userFormData.accessLevel === 'Administrator'
+                }
+              };
+              
+              setUsers([...users, newUser]);
+              setShowAddUserModal(false);
+              setUserFormData({
+                firstName: '',
+                middleName: '',
+                lastName: '',
+                emailInitials: '',
+                password: '',
+                confirmPassword: '',
+                role: 'aide',
+                position: 'Aide',
+                accessLevel: ''
+              });
+              
+              alert('User created successfully! They can now login with their credentials.');
+            } catch (error) {
+              console.error('Error creating user:', error);
+              alert('Error creating user: ' + (error.response?.data?.msg || error.message));
+            }
           }}>
             <Row>
               <Col md={4}>
@@ -5621,6 +7158,7 @@ const AdminDashboard = () => {
                       firstName: e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1).toLowerCase()
                     })}
                     required
+                    className={isDarkMode ? 'dark-mode-form-control' : ''}
                   />
                 </Form.Group>
               </Col>
@@ -5635,6 +7173,7 @@ const AdminDashboard = () => {
                       ...userFormData,
                       middleName: e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1).toLowerCase()
                     })}
+                    className={isDarkMode ? 'dark-mode-form-control' : ''}
                   />
                 </Form.Group>
               </Col>
@@ -5650,13 +7189,36 @@ const AdminDashboard = () => {
                       lastName: e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1).toLowerCase()
                     })}
                     required
+                    className={isDarkMode ? 'dark-mode-form-control' : ''}
                   />
                 </Form.Group>
               </Col>
             </Row>
             
             <Row>
-              <Col md={6}>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label><strong>Access Level *</strong></Form.Label>
+                  <Form.Select
+                    value={userFormData.accessLevel}
+                    onChange={(e) => {
+                      const accessLevel = e.target.value;
+                      setUserFormData({
+                        ...userFormData,
+                        accessLevel: accessLevel,
+                        role: accessLevel === 'Administrator' ? 'admin' : 'doctor'
+                      });
+                    }}
+                    required
+                    className={isDarkMode ? 'dark-mode-form-control' : ''}
+                  >
+                    <option value="">Select Access Level</option>
+                    <option value="Administrator">Administrator</option>
+                    <option value="Doctor">Doctor</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={4}>
                 <Form.Group className="mb-3">
                   <Form.Label><strong>Email Initials for Login *</strong></Form.Label>
                   <InputGroup>
@@ -5666,33 +7228,32 @@ const AdminDashboard = () => {
                       value={userFormData.emailInitials}
                       onChange={(e) => setUserFormData({...userFormData, emailInitials: e.target.value.toLowerCase()})}
                       required
+                      className={isDarkMode ? 'dark-mode-form-control' : ''}
                     />
-                    <InputGroup.Text>@maybunga.health</InputGroup.Text>
+                    <InputGroup.Text className={isDarkMode ? 'dark-mode-input-group-text' : ''}>@maybunga.health</InputGroup.Text>
                   </InputGroup>
                 </Form.Group>
               </Col>
-              <Col md={6}>
+              <Col md={4}>
                 <Form.Group className="mb-3">
                   <Form.Label><strong>Position/Role *</strong></Form.Label>
                   <Form.Select
                     value={userFormData.position}
                     onChange={(e) => {
-                      const selectedPosition = e.target.value;
-                      const isAdmin = ['Admin', 'Administrator'].includes(selectedPosition);
                       setUserFormData({
                         ...userFormData,
-                        position: selectedPosition,
-                        role: isAdmin ? 'admin' : 'doctor'
+                        position: e.target.value
                       });
                     }}
                     required
+                    className={isDarkMode ? 'dark-mode-form-control' : ''}
                   >
+                    <option value="">Select Position</option>
                     <option value="Aide">Aide</option>
                     <option value="Nurse">Nurse</option>
                     <option value="Nutritionist">Nutritionist</option>
                     <option value="Medical Personnel">Medical Personnel</option>
                     <option value="Doctor">Doctor</option>
-                    <option value="Admin">Administrator</option>
                   </Form.Select>
                 </Form.Group>
               </Col>
@@ -5702,27 +7263,47 @@ const AdminDashboard = () => {
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label><strong>Password *</strong></Form.Label>
-                  <Form.Control
-                    type="password"
-                    placeholder="Enter password"
-                    value={userFormData.password}
-                    onChange={(e) => setUserFormData({...userFormData, password: e.target.value})}
-                    required
-                    minLength={8}
-                  />
+                  <InputGroup>
+                    <Form.Control
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter password"
+                      value={userFormData.password}
+                      onChange={(e) => setUserFormData({...userFormData, password: e.target.value})}
+                      required
+                      minLength={8}
+                      className={isDarkMode ? 'dark-mode-form-control' : ''}
+                    />
+                    <InputGroup.Text 
+                      onClick={() => setShowPassword(!showPassword)} 
+                      style={{ cursor: 'pointer' }}
+                      className={isDarkMode ? 'dark-mode-input-group-text' : ''}
+                    >
+                      <i className={`bi bi-eye${showPassword ? '-slash' : ''}`}></i>
+                    </InputGroup.Text>
+                  </InputGroup>
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label><strong>Confirm Password *</strong></Form.Label>
-                  <Form.Control
-                    type="password"
-                    placeholder="Re-enter password"
-                    value={userFormData.confirmPassword}
-                    onChange={(e) => setUserFormData({...userFormData, confirmPassword: e.target.value})}
-                    required
-                    isInvalid={userFormData.password !== userFormData.confirmPassword && userFormData.confirmPassword !== ''}
-                  />
+                  <InputGroup>
+                    <Form.Control
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Re-enter password"
+                      value={userFormData.confirmPassword}
+                      onChange={(e) => setUserFormData({...userFormData, confirmPassword: e.target.value})}
+                      required
+                      isInvalid={userFormData.password !== userFormData.confirmPassword && userFormData.confirmPassword !== ''}
+                      className={isDarkMode ? 'dark-mode-form-control' : ''}
+                    />
+                    <InputGroup.Text 
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)} 
+                      style={{ cursor: 'pointer' }}
+                      className={isDarkMode ? 'dark-mode-input-group-text' : ''}
+                    >
+                      <i className={`bi bi-eye${showConfirmPassword ? '-slash' : ''}`}></i>
+                    </InputGroup.Text>
+                  </InputGroup>
                 </Form.Group>
               </Col>
             </Row>
@@ -5739,7 +7320,7 @@ const AdminDashboard = () => {
               const form = document.querySelector('form');
               if (form) form.requestSubmit();
             }}
-            disabled={!userFormData.firstName || !userFormData.lastName || !userFormData.emailInitials || !userFormData.password || !userFormData.confirmPassword || userFormData.password !== userFormData.confirmPassword}
+            disabled={!userFormData.firstName || !userFormData.lastName || !userFormData.emailInitials || !userFormData.password || !userFormData.confirmPassword || !userFormData.accessLevel || !userFormData.position || userFormData.password !== userFormData.confirmPassword}
           >
             <i className="bi bi-person-plus me-2"></i>
             Create User
@@ -5874,6 +7455,1699 @@ const AdminDashboard = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      {/* Treatment Record Modal */}
+      <Modal 
+        show={showTreatmentRecordModal} 
+        onHide={closeTreatmentRecordModal}
+        size="xl"
+        centered
+        className="treatment-record-modal"
+        style={{
+          '--bs-modal-bg': isDarkMode ? '#1e293b' : '#ffffff'
+        }}
+      >
+        <Modal.Header 
+          closeButton 
+          style={{
+            background: '#0ea5e9', 
+            color: '#ffffff', 
+            border: 'none',
+            borderRadius: '12px 12px 0 0'
+          }}
+        >
+          <Modal.Title className="w-100 text-center fw-bold fs-4">
+            Individual Treatment Record
+          </Modal.Title>
+        </Modal.Header>
+        
+        <Modal.Body style={{
+          background: isDarkMode ? '#1e293b' : '#ffffff', 
+          color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+          padding: '32px',
+          minHeight: '50vh',
+          maxHeight: '60vh',
+          overflowY: 'auto'
+        }}>
+          {selectedPatient && (
+            <div>
+              {/* Patient Name Fields Row */}
+              <div className="row mb-4">
+                <div className="col-md-3">
+                  <label style={{color: '#0ea5e9', fontWeight: '600', marginBottom: '8px', display: 'block'}}>
+                    First Name:
+                  </label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={selectedPatient.firstName || ''}
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#ced4da'}`,
+                      borderRadius: '6px',
+                      padding: '12px'
+                    }}
+                    readOnly
+                  />
+                </div>
+                <div className="col-md-3">
+                  <label style={{color: '#0ea5e9', fontWeight: '600', marginBottom: '8px', display: 'block'}}>
+                    Middle Name:
+                  </label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={selectedPatient.middleName || ''}
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#ced4da'}`,
+                      borderRadius: '6px',
+                      padding: '12px'
+                    }}
+                    readOnly
+                  />
+                </div>
+                <div className="col-md-3">
+                  <label style={{color: '#0ea5e9', fontWeight: '600', marginBottom: '8px', display: 'block'}}>
+                    Last Name:
+                  </label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={selectedPatient.lastName || ''}
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#ced4da'}`,
+                      borderRadius: '6px',
+                      padding: '12px'
+                    }}
+                    readOnly
+                  />
+                </div>
+                <div className="col-md-3">
+                  <label style={{color: '#0ea5e9', fontWeight: '600', marginBottom: '8px', display: 'block'}}>
+                    Suffix:
+                  </label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={selectedPatient.suffix || ''}
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#ced4da'}`,
+                      borderRadius: '6px',
+                      padding: '12px'
+                    }}
+                    readOnly
+                  />
+                </div>
+              </div>
+
+              {/* Address Field */}
+              <div className="mb-4">
+                <label style={{color: '#0ea5e9', fontWeight: '600', marginBottom: '8px', display: 'block'}}>
+                  Address:
+                </label>
+                <input 
+                  type="text" 
+                  className="form-control" 
+                  value={`${selectedPatient.houseNo || ''} ${selectedPatient.street || ''}, ${selectedPatient.barangay || ''}, ${selectedPatient.city || 'Pasig'}, ${selectedPatient.region || 'Metro Manila'}`}
+                  style={{
+                    background: isDarkMode ? '#334155' : '#f8f9fa',
+                    color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                    border: `1px solid ${isDarkMode ? '#475569' : '#ced4da'}`,
+                    borderRadius: '6px',
+                    padding: '12px'
+                  }}
+                  readOnly
+                />
+                <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.875rem', marginTop: '4px'}}>
+                  Barangay: {selectedPatient.barangay || 'N/A'}
+                </div>
+              </div>
+
+              {/* Patient Info Row */}
+              <div className="row mb-4">
+                <div className="col-md-3">
+                  <label style={{color: '#0ea5e9', fontWeight: '600', marginBottom: '8px', display: 'block'}}>
+                    Date of Birth:
+                  </label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={selectedPatient.dateOfBirth ? new Date(selectedPatient.dateOfBirth).toLocaleDateString() : ''}
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#ced4da'}`,
+                      borderRadius: '6px',
+                      padding: '12px'
+                    }}
+                    readOnly
+                  />
+                  <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.875rem', marginTop: '4px'}}>
+                    ---
+                  </div>
+                </div>
+                <div className="col-md-2">
+                  <label style={{color: '#0ea5e9', fontWeight: '600', marginBottom: '8px', display: 'block'}}>
+                    Age:
+                  </label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={getPatientAge(selectedPatient)}
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#ced4da'}`,
+                      borderRadius: '6px',
+                      padding: '12px'
+                    }}
+                    readOnly
+                  />
+                </div>
+                <div className="col-md-3">
+                  <label style={{color: '#0ea5e9', fontWeight: '600', marginBottom: '8px', display: 'block'}}>
+                    Gender:
+                  </label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={selectedPatient.gender || ''}
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#ced4da'}`,
+                      borderRadius: '6px',
+                      padding: '12px'
+                    }}
+                    readOnly
+                  />
+                </div>
+                <div className="col-md-4">
+                  <label style={{color: '#0ea5e9', fontWeight: '600', marginBottom: '8px', display: 'block'}}>
+                    Civil Status:
+                  </label>
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    value={selectedPatient.civilStatus || '---'}
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#ced4da'}`,
+                      borderRadius: '6px',
+                      padding: '12px'
+                    }}
+                    readOnly
+                  />
+                </div>
+              </div>
+
+              {/* PhilHealth Section */}
+              <div className="mb-4">
+                <label style={{color: '#0ea5e9', fontWeight: '600', marginBottom: '8px', display: 'block'}}>
+                  PhilHealth Number:
+                </label>
+                <div className="row align-items-center">
+                  <div className="col-md-8">
+                    <input 
+                      type="text" 
+                      className="form-control" 
+                      value={selectedPatient.philHealthNumber || ''}
+                      style={{
+                        background: isDarkMode ? '#334155' : '#f8f9fa',
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        border: `1px solid ${isDarkMode ? '#475569' : '#ced4da'}`,
+                        borderRadius: '6px',
+                        padding: '12px'
+                      }}
+                      readOnly
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <div className="d-flex gap-3">
+                      <div className="form-check">
+                        <input 
+                          className="form-check-input" 
+                          type="radio" 
+                          name="philhealthStatus" 
+                          id="member"
+                          checked={selectedPatient.philHealthNumber && selectedPatient.philHealthNumber.trim() !== ''}
+                          style={{
+                            backgroundColor: '#0ea5e9',
+                            borderColor: '#0ea5e9'
+                          }}
+                          readOnly
+                        />
+                        <label className="form-check-label" htmlFor="member" style={{color: isDarkMode ? '#e2e8f0' : '#2c3e50', marginLeft: '8px'}}>
+                          Member
+                        </label>
+                      </div>
+                      <div className="form-check">
+                        <input 
+                          className="form-check-input" 
+                          type="radio" 
+                          name="philhealthStatus" 
+                          id="nonMember"
+                          checked={!selectedPatient.philHealthNumber || selectedPatient.philHealthNumber.trim() === ''}
+                          style={{
+                            backgroundColor: !selectedPatient.philHealthNumber ? '#e2e8f0' : (isDarkMode ? '#334155' : '#f8f9fa'),
+                            borderColor: isDarkMode ? '#475569' : '#ced4da'
+                          }}
+                          readOnly
+                        />
+                        <label className="form-check-label" htmlFor="nonMember" style={{color: isDarkMode ? '#e2e8f0' : '#2c3e50', marginLeft: '8px'}}>
+                          Non-Member
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.875rem', marginTop: '4px'}}>
+                  Member ID: {selectedPatient.philHealthNumber ? 'Available' : 'Not Available'}
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        
+        <Modal.Footer style={{
+          background: isDarkMode ? '#334155' : '#f8f9fa',
+          border: 'none',
+          borderRadius: '0 0 12px 12px'
+        }}>
+          <Button 
+            variant="secondary" 
+            onClick={closeTreatmentRecordModal}
+            style={{
+              background: isDarkMode ? '#64748b' : '#6c757d',
+              border: 'none',
+              color: '#ffffff'
+            }}
+          >
+            <i className="bi bi-x-circle me-2"></i>
+            Close
+          </Button>
+          <Button 
+            onClick={() => {
+              closeTreatmentRecordModal();
+              setTimeout(() => {
+                handleVitalSignsHistory(selectedPatient);
+              }, 150);
+            }}
+            style={{
+              background: '#fbbf24',
+              border: 'none',
+              color: '#1f2937',
+              fontWeight: '600'
+            }}
+          >
+            <i className="bi bi-graph-up me-2"></i>
+            📊 View Vital Signs History
+          </Button>
+          <Button 
+            variant="primary" 
+            style={{
+              background: '#0ea5e9',
+              border: 'none',
+              color: '#ffffff'
+            }}
+            onClick={() => {
+              alert('Treatment record saved successfully!');
+            }}
+          >
+            <i className="bi bi-save me-2"></i>
+            Save Record
+          </Button>
+          <Button 
+            variant="success" 
+            style={{
+              background: '#10b981',
+              border: 'none',
+              color: '#ffffff'
+            }}
+            onClick={() => {
+              alert('Treatment record printed successfully!');
+            }}
+          >
+            <i className="bi bi-printer me-2"></i>
+            Print
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Vital Signs History Modal */}
+      <Modal 
+        show={showVitalSignsHistoryModal} 
+        onHide={closeVitalSignsHistoryModal}
+        size="xl"
+        centered
+        className="vital-signs-history-modal"
+      >
+        <Modal.Header 
+          closeButton 
+          style={{
+            background: '#0ea5e9', 
+            color: '#ffffff', 
+            border: 'none',
+            borderRadius: '12px 12px 0 0'
+          }}
+        >
+          <Modal.Title className="w-100 text-center fw-bold fs-4">
+            Vital Signs History
+          </Modal.Title>
+        </Modal.Header>
+        
+        <Modal.Body style={{
+          background: isDarkMode ? '#1e293b' : '#ffffff', 
+          color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+          padding: '32px',
+          minHeight: '50vh'
+        }}>
+          <div className="text-center">
+            <i className="bi bi-graph-up" style={{fontSize: '4rem', color: '#0ea5e9'}}></i>
+            <h4 className="mt-3" style={{color: isDarkMode ? '#e2e8f0' : '#2c3e50'}}>Vital Signs History</h4>
+            <p style={{color: isDarkMode ? '#94a3b8' : '#6c757d'}}>
+              This feature will display the patient's vital signs history.
+              <br />
+              Please provide the format you'd like to use for this section.
+            </p>
+          </div>
+        </Modal.Body>
+        
+        <Modal.Footer style={{
+          background: isDarkMode ? '#334155' : '#f8f9fa',
+          border: 'none',
+          borderRadius: '0 0 12px 12px'
+        }}>
+          <Button 
+            variant="secondary" 
+            onClick={closeVitalSignsHistoryModal}
+            style={{
+              background: isDarkMode ? '#64748b' : '#6c757d',
+              border: 'none',
+              color: '#ffffff'
+            }}
+          >
+            <i className="bi bi-x-circle me-2"></i>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Checkup History Modal */}
+      <Modal 
+        show={showCheckupHistoryModal} 
+        onHide={closeCheckupHistoryModal}
+        size="xl"
+        centered
+        className="checkup-history-modal"
+      >
+        <Modal.Header 
+          closeButton 
+          style={{
+            background: '#0ea5e9', 
+            color: '#ffffff', 
+            border: 'none',
+            borderRadius: '12px 12px 0 0'
+          }}
+        >
+          <Modal.Title className="w-100 text-center fw-bold fs-4">
+            <i className="bi bi-clipboard-pulse me-2"></i>
+            Checkup History
+          </Modal.Title>
+        </Modal.Header>
+        
+        <Modal.Body style={{
+          background: isDarkMode ? '#1e293b' : '#ffffff', 
+          color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+          padding: '24px',
+          minHeight: '60vh',
+          maxHeight: '70vh',
+          overflowY: 'auto'
+        }}>
+          {selectedPatient && (
+            <div>
+              {/* Patient Header */}
+              <div 
+                className="mb-4 p-3"
+                style={{
+                  background: isDarkMode ? '#334155' : '#f8f9fa',
+                  borderRadius: '8px',
+                  border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`
+                }}
+              >
+                <div className="row align-items-center">
+                  <div className="col-md-8">
+                    <h5 style={{color: isDarkMode ? '#e2e8f0' : '#2c3e50', marginBottom: '8px', fontWeight: '600'}}>
+                      {getPatientFullName(selectedPatient)}
+                    </h5>
+                    <div className="row">
+                      <div className="col-md-6">
+                        <span style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.9rem'}}>
+                          <strong>Patient ID:</strong> PT-{String(selectedPatient.id).padStart(4, '0')}
+                        </span>
+                      </div>
+                      <div className="col-md-6">
+                        <span style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.9rem'}}>
+                          <strong>Age:</strong> {getPatientAge(selectedPatient)} years old
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-4 text-end">
+                    <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.9rem'}}>
+                      <div><strong>Total Visits:</strong> 5</div>
+                      <div><strong>Last Visit:</strong> Jul 28, 2025</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Checkup History Table */}
+              <div 
+                style={{
+                  background: isDarkMode ? '#334155' : '#ffffff',
+                  borderRadius: '8px',
+                  border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                  overflow: 'hidden'
+                }}
+              >
+                <Table 
+                  hover 
+                  responsive 
+                  className="mb-0"
+                  style={{
+                    backgroundColor: 'transparent'
+                  }}
+                >
+                  <thead>
+                    <tr style={{
+                      background: isDarkMode ? '#475569' : '#f8f9fa',
+                      borderBottom: `2px solid ${isDarkMode ? '#64748b' : '#dee2e6'}`
+                    }}>
+                      <th style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        fontWeight: '600',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>Date</th>
+                      <th style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        fontWeight: '600',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>Time</th>
+                      <th style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        fontWeight: '600',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>Purpose of Visit</th>
+                      <th style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        fontWeight: '600',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>Doctor Assisted</th>
+                      <th style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        fontWeight: '600',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none',
+                        textAlign: 'center'
+                      }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* Sample checkup records */}
+                    <tr style={{
+                      borderBottom: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                      backgroundColor: isDarkMode ? '#334155' : '#ffffff'
+                    }}>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Jul 28, 2025
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        10:30 AM
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        General Checkup
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Dr. Maria Santos
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        border: 'none',
+                        textAlign: 'center'
+                      }}>
+                        <Button 
+                          size="sm"
+                          style={{
+                            background: '#0ea5e9',
+                            border: 'none',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            padding: '4px 12px',
+                            fontSize: '0.8rem'
+                          }}
+                          onClick={() => {
+                            alert('Doctor Notes:\n\n• Patient shows good vital signs\n• Blood pressure: 120/80 mmHg\n• Temperature: 36.5°C\n• Recommended: Continue current medications\n• Follow-up: 1 month');
+                          }}
+                        >
+                          <i className="bi bi-sticky me-1"></i>
+                          Notes
+                        </Button>
+                      </td>
+                    </tr>
+                    
+                    <tr style={{
+                      borderBottom: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                      backgroundColor: isDarkMode ? '#334155' : '#ffffff'
+                    }}>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Jun 15, 2025
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        02:15 PM
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Vaccination - COVID-19 Booster
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Dr. Juan Cruz
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        border: 'none',
+                        textAlign: 'center'
+                      }}>
+                        <Button 
+                          size="sm"
+                          style={{
+                            background: '#0ea5e9',
+                            border: 'none',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            padding: '4px 12px',
+                            fontSize: '0.8rem'
+                          }}
+                          onClick={() => {
+                            alert('Doctor Notes:\n\n• COVID-19 Booster vaccine administered\n• Vaccine: Pfizer-BioNTech\n• Lot No: FK8891\n• No adverse reactions observed\n• Next dose: Not required');
+                          }}
+                        >
+                          <i className="bi bi-sticky me-1"></i>
+                          Notes
+                        </Button>
+                      </td>
+                    </tr>
+                    
+                    <tr style={{
+                      borderBottom: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                      backgroundColor: isDarkMode ? '#334155' : '#ffffff'
+                    }}>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        May 20, 2025
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        09:45 AM
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Medical Certificate
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Dr. Ana Reyes
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        border: 'none',
+                        textAlign: 'center'
+                      }}>
+                        <Button 
+                          size="sm"
+                          style={{
+                            background: '#0ea5e9',
+                            border: 'none',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            padding: '4px 12px',
+                            fontSize: '0.8rem'
+                          }}
+                          onClick={() => {
+                            alert('Doctor Notes:\n\n• Medical certificate issued for employment\n• Patient is physically fit to work\n• No medical restrictions\n• Valid for 6 months\n• Certificate No: MC-2025-0520-001');
+                          }}
+                        >
+                          <i className="bi bi-sticky me-1"></i>
+                          Notes
+                        </Button>
+                      </td>
+                    </tr>
+                    
+                    <tr style={{
+                      borderBottom: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                      backgroundColor: isDarkMode ? '#334155' : '#ffffff'
+                    }}>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Apr 10, 2025
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        11:20 AM
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Follow-up Consultation
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Dr. Maria Santos
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        border: 'none',
+                        textAlign: 'center'
+                      }}>
+                        <Button 
+                          size="sm"
+                          style={{
+                            background: '#0ea5e9',
+                            border: 'none',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            padding: '4px 12px',
+                            fontSize: '0.8rem'
+                          }}
+                          onClick={() => {
+                            alert('Doctor Notes:\n\n• Follow-up for hypertension management\n• Blood pressure improved: 130/85 mmHg\n• Patient responsive to medication\n• Continue Amlodipine 5mg daily\n• Next follow-up: 3 months');
+                          }}
+                        >
+                          <i className="bi bi-sticky me-1"></i>
+                          Notes
+                        </Button>
+                      </td>
+                    </tr>
+                    
+                    <tr style={{
+                      backgroundColor: isDarkMode ? '#334155' : '#ffffff'
+                    }}>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Mar 05, 2025
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        03:30 PM
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Annual Physical Examination
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Dr. Carlos Mendoza
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        border: 'none',
+                        textAlign: 'center'
+                      }}>
+                        <Button 
+                          size="sm"
+                          style={{
+                            background: '#0ea5e9',
+                            border: 'none',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            padding: '4px 12px',
+                            fontSize: '0.8rem'
+                          }}
+                          onClick={() => {
+                            alert('Doctor Notes:\n\n• Complete physical examination performed\n• BP: 140/90 mmHg (elevated)\n• BMI: 24.5 (normal)\n• Recommended: Start antihypertensive medication\n• Lab tests: CBC, Lipid profile, FBS ordered\n• Lifestyle modifications advised');
+                          }}
+                        >
+                          <i className="bi bi-sticky me-1"></i>
+                          Notes
+                        </Button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </Table>
+              </div>
+
+              {/* Summary Stats */}
+              <div className="row mt-4">
+                <div className="col-md-3">
+                  <div 
+                    className="text-center p-3"
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      borderRadius: '8px',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`
+                    }}
+                  >
+                    <div style={{color: '#0ea5e9', fontSize: '1.5rem', fontWeight: 'bold'}}>5</div>
+                    <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.8rem'}}>Total Visits</div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div 
+                    className="text-center p-3"
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      borderRadius: '8px',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`
+                    }}
+                  >
+                    <div style={{color: '#10b981', fontSize: '1.5rem', fontWeight: 'bold'}}>3</div>
+                    <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.8rem'}}>This Year</div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div 
+                    className="text-center p-3"
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      borderRadius: '8px',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`
+                    }}
+                  >
+                    <div style={{color: '#f59e0b', fontSize: '1.5rem', fontWeight: 'bold'}}>2</div>
+                    <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.8rem'}}>Last 90 Days</div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div 
+                    className="text-center p-3"
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      borderRadius: '8px',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`
+                    }}
+                  >
+                    <div style={{color: '#ef4444', fontSize: '1.5rem', fontWeight: 'bold'}}>1</div>
+                    <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.8rem'}}>Last 30 Days</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        
+        <Modal.Footer style={{
+          background: isDarkMode ? '#334155' : '#f8f9fa',
+          border: 'none',
+          borderRadius: '0 0 12px 12px'
+        }}>
+          <Button 
+            variant="secondary" 
+            onClick={closeCheckupHistoryModal}
+            style={{
+              background: isDarkMode ? '#64748b' : '#6c757d',
+              border: 'none',
+              color: '#ffffff'
+            }}
+          >
+            <i className="bi bi-x-circle me-2"></i>
+            Close
+          </Button>
+          <Button 
+            style={{
+              background: '#10b981',
+              border: 'none',
+              color: '#ffffff'
+            }}
+            onClick={() => {
+              alert('Checkup history exported successfully!');
+            }}
+          >
+            <i className="bi bi-download me-2"></i>
+            Export History
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Immunization History Modal */}
+      <Modal 
+        show={showImmunizationHistoryModal} 
+        onHide={closeImmunizationHistoryModal}
+        size="xl"
+        centered
+        className="immunization-history-modal"
+      >
+        <Modal.Header 
+          closeButton 
+          style={{
+            background: '#0ea5e9', 
+            color: '#ffffff', 
+            border: 'none',
+            borderRadius: '12px 12px 0 0'
+          }}
+        >
+          <Modal.Title className="w-100 text-center fw-bold fs-4">
+            <i className="bi bi-shield-check me-2"></i>
+            Immunization History
+          </Modal.Title>
+        </Modal.Header>
+        
+        <Modal.Body style={{
+          background: isDarkMode ? '#1e293b' : '#ffffff', 
+          color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+          padding: '24px',
+          minHeight: '60vh',
+          maxHeight: '70vh',
+          overflowY: 'auto'
+        }}>
+          {selectedPatient && (
+            <div>
+              {/* Patient Header */}
+              <div 
+                className="mb-4 p-3"
+                style={{
+                  background: isDarkMode ? '#334155' : '#f8f9fa',
+                  borderRadius: '8px',
+                  border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`
+                }}
+              >
+                <div className="row align-items-center">
+                  <div className="col-md-8">
+                    <h5 style={{color: isDarkMode ? '#e2e8f0' : '#2c3e50', marginBottom: '8px', fontWeight: '600'}}>
+                      {getPatientFullName(selectedPatient)}
+                    </h5>
+                    <div className="row">
+                      <div className="col-md-6">
+                        <span style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.9rem'}}>
+                          <strong>Patient ID:</strong> PT-{String(selectedPatient.id).padStart(4, '0')}
+                        </span>
+                      </div>
+                      <div className="col-md-6">
+                        <span style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.9rem'}}>
+                          <strong>Age:</strong> {getPatientAge(selectedPatient)} years old
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-4 text-end">
+                    <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.9rem'}}>
+                      <div><strong>Total Vaccines:</strong> 12</div>
+                      <div><strong>Last Vaccination:</strong> Jun 15, 2025</div>
+                      <div><strong>Status:</strong> <span style={{color: '#10b981', fontWeight: '600'}}>Up to Date</span></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vaccination Categories Tabs */}
+              <div className="mb-4">
+                <div className="row g-2">
+                  <div className="col-md-3">
+                    <div 
+                      className="text-center p-2"
+                      style={{
+                        background: '#10b981',
+                        color: '#ffffff',
+                        borderRadius: '6px',
+                        fontSize: '0.85rem',
+                        fontWeight: '600'
+                      }}
+                    >
+                      Routine Childhood (8)
+                    </div>
+                  </div>
+                  <div className="col-md-3">
+                    <div 
+                      className="text-center p-2"
+                      style={{
+                        background: '#0ea5e9',
+                        color: '#ffffff',
+                        borderRadius: '6px',
+                        fontSize: '0.85rem',
+                        fontWeight: '600'
+                      }}
+                    >
+                      COVID-19 Series (2)
+                    </div>
+                  </div>
+                  <div className="col-md-3">
+                    <div 
+                      className="text-center p-2"
+                      style={{
+                        background: '#f59e0b',
+                        color: '#ffffff',
+                        borderRadius: '6px',
+                        fontSize: '0.85rem',
+                        fontWeight: '600'
+                      }}
+                    >
+                      Travel Vaccines (1)
+                    </div>
+                  </div>
+                  <div className="col-md-3">
+                    <div 
+                      className="text-center p-2"
+                      style={{
+                        background: '#6b7280',
+                        color: '#ffffff',
+                        borderRadius: '6px',
+                        fontSize: '0.85rem',
+                        fontWeight: '600'
+                      }}
+                    >
+                      Special (1)
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Immunization Records Table */}
+              <div 
+                style={{
+                  background: isDarkMode ? '#334155' : '#ffffff',
+                  borderRadius: '8px',
+                  border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                  overflow: 'hidden'
+                }}
+              >
+                <Table 
+                  hover 
+                  responsive 
+                  className="mb-0"
+                  style={{
+                    backgroundColor: 'transparent'
+                  }}
+                >
+                  <thead>
+                    <tr style={{
+                      background: isDarkMode ? '#475569' : '#f8f9fa',
+                      borderBottom: `2px solid ${isDarkMode ? '#64748b' : '#dee2e6'}`
+                    }}>
+                      <th style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        fontWeight: '600',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>Vaccine</th>
+                      <th style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        fontWeight: '600',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>Date Given</th>
+                      <th style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        fontWeight: '600',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>Dose</th>
+                      <th style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        fontWeight: '600',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>Provider</th>
+                      <th style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        fontWeight: '600',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>Status</th>
+                      <th style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        fontWeight: '600',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none',
+                        textAlign: 'center'
+                      }}>Details</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {/* COVID-19 Vaccines */}
+                    <tr style={{
+                      borderBottom: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                      backgroundColor: isDarkMode ? '#334155' : '#ffffff'
+                    }}>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        <div style={{fontWeight: '600'}}>COVID-19 mRNA Vaccine (Pfizer)</div>
+                        <small style={{color: isDarkMode ? '#94a3b8' : '#6c757d'}}>mRNA vaccine against SARS-CoV-2</small>
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Jun 15, 2025
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Booster
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Dr. Juan Cruz
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        border: 'none'
+                      }}>
+                        <span style={{
+                          background: '#10b981',
+                          color: '#ffffff',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600'
+                        }}>Complete</span>
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        border: 'none',
+                        textAlign: 'center'
+                      }}>
+                        <Button 
+                          size="sm"
+                          style={{
+                            background: '#0ea5e9',
+                            border: 'none',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            padding: '4px 12px',
+                            fontSize: '0.8rem'
+                          }}
+                          onClick={() => {
+                            alert('Vaccine Details:\n\n• Vaccine: COVID-19 mRNA (Pfizer)\n• Lot Number: FK8891\n• Manufacturer: Pfizer-BioNTech\n• Expiry Date: Dec 2025\n• Site: Left arm\n• No adverse reactions reported');
+                          }}
+                        >
+                          <i className="bi bi-info-circle me-1"></i>
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+
+                    {/* Hepatitis B */}
+                    <tr style={{
+                      borderBottom: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                      backgroundColor: isDarkMode ? '#334155' : '#ffffff'
+                    }}>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        <div style={{fontWeight: '600'}}>Hepatitis B Vaccine</div>
+                        <small style={{color: isDarkMode ? '#94a3b8' : '#6c757d'}}>Protects against hepatitis B virus</small>
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Mar 20, 2024
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Series Complete
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Dr. Maria Santos
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        border: 'none'
+                      }}>
+                        <span style={{
+                          background: '#10b981',
+                          color: '#ffffff',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600'
+                        }}>Complete</span>
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        border: 'none',
+                        textAlign: 'center'
+                      }}>
+                        <Button 
+                          size="sm"
+                          style={{
+                            background: '#0ea5e9',
+                            border: 'none',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            padding: '4px 12px',
+                            fontSize: '0.8rem'
+                          }}
+                          onClick={() => {
+                            alert('Vaccine Details:\n\n• Vaccine: Hepatitis B\n• Series: 3 doses completed\n• Dates: Birth, 1 month, 6 months\n• All doses administered properly\n• Immunity: Lifetime protection');
+                          }}
+                        >
+                          <i className="bi bi-info-circle me-1"></i>
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+
+                    {/* MMR */}
+                    <tr style={{
+                      borderBottom: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                      backgroundColor: isDarkMode ? '#334155' : '#ffffff'
+                    }}>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        <div style={{fontWeight: '600'}}>Measles, Mumps, and Rubella (MMR)</div>
+                        <small style={{color: isDarkMode ? '#94a3b8' : '#6c757d'}}>Combined vaccine for MMR protection</small>
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Jan 15, 2024
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Dose 2
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Dr. Ana Reyes
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        border: 'none'
+                      }}>
+                        <span style={{
+                          background: '#10b981',
+                          color: '#ffffff',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600'
+                        }}>Complete</span>
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        border: 'none',
+                        textAlign: 'center'
+                      }}>
+                        <Button 
+                          size="sm"
+                          style={{
+                            background: '#0ea5e9',
+                            border: 'none',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            padding: '4px 12px',
+                            fontSize: '0.8rem'
+                          }}
+                          onClick={() => {
+                            alert('Vaccine Details:\n\n• Vaccine: MMR (Measles, Mumps, Rubella)\n• Dose: 2 of 2\n• First dose: 9 months\n• Second dose: 15 months\n• Protection: Lifetime immunity expected');
+                          }}
+                        >
+                          <i className="bi bi-info-circle me-1"></i>
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+
+                    {/* Pneumococcal */}
+                    <tr style={{
+                      borderBottom: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                      backgroundColor: isDarkMode ? '#334155' : '#ffffff'
+                    }}>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        <div style={{fontWeight: '600'}}>Pneumococcal Conjugate (PCV)</div>
+                        <small style={{color: isDarkMode ? '#94a3b8' : '#6c757d'}}>Protects against pneumococcal disease</small>
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Dec 10, 2023
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Booster
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Dr. Carlos Mendoza
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        border: 'none'
+                      }}>
+                        <span style={{
+                          background: '#10b981',
+                          color: '#ffffff',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600'
+                        }}>Complete</span>
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        border: 'none',
+                        textAlign: 'center'
+                      }}>
+                        <Button 
+                          size="sm"
+                          style={{
+                            background: '#0ea5e9',
+                            border: 'none',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            padding: '4px 12px',
+                            fontSize: '0.8rem'
+                          }}
+                          onClick={() => {
+                            alert('Vaccine Details:\n\n• Vaccine: Pneumococcal Conjugate (PCV)\n• Schedule: 6, 10, 14 weeks + booster\n• Current: Booster dose completed\n• Protection: Against 13 pneumococcal strains\n• Next due: Adult booster at age 65');
+                          }}
+                        >
+                          <i className="bi bi-info-circle me-1"></i>
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+
+                    {/* Influenza */}
+                    <tr style={{
+                      borderBottom: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                      backgroundColor: isDarkMode ? '#334155' : '#ffffff'
+                    }}>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        <div style={{fontWeight: '600'}}>Influenza Vaccine</div>
+                        <small style={{color: isDarkMode ? '#94a3b8' : '#6c757d'}}>Annual flu protection</small>
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Oct 20, 2024
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Annual 2024
+                      </td>
+                      <td style={{
+                        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                        padding: '12px 16px',
+                        fontSize: '0.9rem',
+                        border: 'none'
+                      }}>
+                        Dr. Maria Santos
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        border: 'none'
+                      }}>
+                        <span style={{
+                          background: '#f59e0b',
+                          color: '#ffffff',
+                          padding: '4px 8px',
+                          borderRadius: '4px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600'
+                        }}>Due Soon</span>
+                      </td>
+                      <td style={{
+                        padding: '12px 16px',
+                        border: 'none',
+                        textAlign: 'center'
+                      }}>
+                        <Button 
+                          size="sm"
+                          style={{
+                            background: '#0ea5e9',
+                            border: 'none',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            padding: '4px 12px',
+                            fontSize: '0.8rem'
+                          }}
+                          onClick={() => {
+                            alert('Vaccine Details:\n\n• Vaccine: Influenza (Flu Shot)\n• Season: 2024-2025\n• Type: Quadrivalent inactivated\n• Next dose: October 2025\n• Note: Annual vaccination recommended');
+                          }}
+                        >
+                          <i className="bi bi-info-circle me-1"></i>
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </Table>
+              </div>
+
+              {/* Upcoming Vaccinations */}
+              <div className="mt-4">
+                <h6 style={{color: isDarkMode ? '#e2e8f0' : '#2c3e50', marginBottom: '16px', fontWeight: '600'}}>
+                  <i className="bi bi-calendar-plus me-2" style={{color: '#f59e0b'}}></i>
+                  Upcoming Vaccinations
+                </h6>
+                <div 
+                  className="p-3"
+                  style={{
+                    background: isDarkMode ? '#334155' : '#fff3cd',
+                    borderRadius: '8px',
+                    border: `1px solid ${isDarkMode ? '#475569' : '#ffeaa7'}`
+                  }}
+                >
+                  <div className="row">
+                    <div className="col-md-6">
+                      <div style={{color: isDarkMode ? '#e2e8f0' : '#856404', fontWeight: '600', fontSize: '0.9rem'}}>
+                        <i className="bi bi-exclamation-triangle me-2"></i>
+                        Influenza Vaccine (2025)
+                      </div>
+                      <small style={{color: isDarkMode ? '#94a3b8' : '#6c757d'}}>
+                        Due: October 2025 | Annual flu shot
+                      </small>
+                    </div>
+                    <div className="col-md-6">
+                      <div style={{color: isDarkMode ? '#e2e8f0' : '#856404', fontWeight: '600', fontSize: '0.9rem'}}>
+                        <i className="bi bi-info-circle me-2"></i>
+                        Tetanus-Diphtheria (Td)
+                      </div>
+                      <small style={{color: isDarkMode ? '#94a3b8' : '#6c757d'}}>
+                        Due: March 2026 | 10-year booster
+                      </small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Immunization Summary */}
+              <div className="row mt-4">
+                <div className="col-md-3">
+                  <div 
+                    className="text-center p-3"
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      borderRadius: '8px',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`
+                    }}
+                  >
+                    <div style={{color: '#10b981', fontSize: '1.5rem', fontWeight: 'bold'}}>12</div>
+                    <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.8rem'}}>Total Vaccines</div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div 
+                    className="text-center p-3"
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      borderRadius: '8px',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`
+                    }}
+                  >
+                    <div style={{color: '#0ea5e9', fontSize: '1.5rem', fontWeight: 'bold'}}>95%</div>
+                    <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.8rem'}}>Compliance</div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div 
+                    className="text-center p-3"
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      borderRadius: '8px',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`
+                    }}
+                  >
+                    <div style={{color: '#f59e0b', fontSize: '1.5rem', fontWeight: 'bold'}}>2</div>
+                    <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.8rem'}}>Due Soon</div>
+                  </div>
+                </div>
+                <div className="col-md-3">
+                  <div 
+                    className="text-center p-3"
+                    style={{
+                      background: isDarkMode ? '#334155' : '#f8f9fa',
+                      borderRadius: '8px',
+                      border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`
+                    }}
+                  >
+                    <div style={{color: '#ef4444', fontSize: '1.5rem', fontWeight: 'bold'}}>0</div>
+                    <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.8rem'}}>Overdue</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        
+        <Modal.Footer style={{
+          background: isDarkMode ? '#334155' : '#f8f9fa',
+          border: 'none',
+          borderRadius: '0 0 12px 12px'
+        }}>
+          <Button 
+            variant="secondary" 
+            onClick={closeImmunizationHistoryModal}
+            style={{
+              background: isDarkMode ? '#64748b' : '#6c757d',
+              border: 'none',
+              color: '#ffffff'
+            }}
+          >
+            <i className="bi bi-x-circle me-2"></i>
+            Close
+          </Button>
+          <Button 
+            style={{
+              background: '#10b981',
+              border: 'none',
+              color: '#ffffff'
+            }}
+            onClick={() => {
+              alert('Immunization card generated successfully!');
+            }}
+          >
+            <i className="bi bi-card-text me-2"></i>
+            Generate Card
+          </Button>
+          <Button 
+            style={{
+              background: '#0ea5e9',
+              border: 'none',
+              color: '#ffffff'
+            }}
+            onClick={() => {
+              alert('Immunization history exported successfully!');
+            }}
+          >
+            <i className="bi bi-download me-2"></i>
+            Export History
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Referral Form Modal */}
+      <ReferralForm
+        show={showReferralFormModal}
+        onHide={closeReferralFormModal}
+        selectedPatient={selectedPatient}
+      />
+
+      {/* Notification Manager Modal */}
+      <Modal
+        show={showNotificationManagerModal}
+        onHide={closeNotificationManagerModal}
+        size="xl"
+        centered
+        backdrop="static"
+      >
+        <Modal.Header closeButton style={{ background: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
+          <Modal.Title>
+            <i className="bi bi-bell me-2" style={{ color: '#f39c12' }}></i>
+            Notification Manager
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '0' }}>
+          <NotificationManager patients={unsortedMembersData || []} />
+        </Modal.Body>
+      </Modal>
+
+      {/* SMS Notification Modal */}
+      <SMSNotificationModal
+        show={showSMSNotificationModal}
+        onHide={closeSMSNotificationModal}
+        selectedPatient={selectedPatient}
+      />
     </div>
   );
 };

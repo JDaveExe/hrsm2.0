@@ -1,71 +1,68 @@
-const API_URL = '/api/users';
+import axios from './axiosConfig';
 
-// Helper function to get the auth token from localStorage
+// Function to get the authorization token from localStorage
 const getAuthToken = () => {
-  const user = JSON.parse(localStorage.getItem('user'));
-  return user ? user.token : null;
+  const token = localStorage.getItem('token');
+  return token;
 };
 
-// Helper function to create authorization headers
-const getAuthHeaders = () => {
+// Function to create the authorization header
+const getAuthHeader = () => {
   const token = getAuthToken();
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  };
+  if (token) {
+    return { 'x-auth-token': token };
+  }
+  return {};
 };
 
 const getUsers = async () => {
-  const response = await fetch(API_URL, {
-    headers: getAuthHeaders()
-  });
-  if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error('Unauthorized: Please log in again.');
-    }
-    const errorData = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error(errorData.message || 'Failed to fetch users');
+  try {
+    const response = await axios.get('/api/users', {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching users:', error.response ? error.response.data : error.message);
+    throw error;
   }
-  return response.json();
 };
 
 const createUser = async (userData) => {
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: getAuthHeaders(),
-    body: JSON.stringify(userData)
-  });
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ message: response.statusText }));
-    throw new Error(errorData.message || 'Failed to create user');
+  try {
+    // Use the create-staff endpoint for admin/doctor users
+    const response = await axios.post('/api/auth/create-staff', userData, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creating user:', error.response ? error.response.data : error.message);
+    throw error;
   }
-  return response.json();
 };
 
 const updateUser = async (userId, userData) => {
-    const response = await fetch(`${API_URL}/${userId}`, {
-      method: 'PUT',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(userData)
+  try {
+    const response = await axios.put(`/api/users/${userId}`, userData, {
+      headers: getAuthHeader(),
     });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(errorData.message || 'Failed to update user');
-    }
-    return response.json();
-  };
+    return response.data;
+  } catch (error) {
+    console.error('Error updating user:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
   
   const deleteUser = async (userId) => {
-    const response = await fetch(`${API_URL}/${userId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders()
+  try {
+    const response = await axios.delete(`/api/users/${userId}`, {
+      headers: getAuthHeader(),
     });
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: response.statusText }));
-      throw new Error(errorData.message || 'Failed to delete user');
-    }
-    return response.json();
-  };
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting user:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
 
 const userService = {
   getUsers,

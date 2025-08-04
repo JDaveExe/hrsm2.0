@@ -75,8 +75,8 @@ A comprehensive healthcare management system built with React.js frontend and No
 ## 📱 Usage
 
 ### Default Login Credentials (Development)
-- **Admin**: admin@maybunga.health / password123
-- **Doctor**: doctor@maybunga.health / password123
+- **Admin**: admin / admin123
+- **Doctor**: doctor / doctor123
 
 ### Navigation
 1. **Homepage**: Overview of the health station

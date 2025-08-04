@@ -15,7 +15,7 @@ const User = sequelize.define('User', {
   },
   email: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: true,
     unique: true,
     validate: {
       isEmail: true,
@@ -40,15 +40,36 @@ const User = sequelize.define('User', {
   },
   contactNumber: {
     type: DataTypes.STRING,
+    allowNull: true,
+    unique: true,
   },
   address: {
     type: DataTypes.STRING,
+  },
+  position: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  middleName: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  accessLevel: {
+    type: DataTypes.ENUM('Administrator', 'Doctor'),
+    allowNull: true,
   },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
   },
 }, {
+  validate: {
+    eitherEmailOrContactNumber() {
+      if (!this.email && !this.contactNumber) {
+        throw new Error('Either email or contact number must be provided.');
+      }
+    }
+  },
   hooks: {
     beforeCreate: async (user) => {
       if (user.password) {
@@ -74,7 +95,12 @@ User.prototype.comparePassword = async function(candidatePassword) {
 User.createDefaultUsers = async function() {
   try {
     // Check if admin exists
-    const adminExists = await User.findOne({ where: { role: 'admin' } });
+    const adminExists = await User.findOne({ 
+      where: { 
+        role: 'admin',
+        isActive: true 
+      } 
+    });
     
     if (!adminExists) {
       await User.create({
@@ -85,13 +111,20 @@ User.createDefaultUsers = async function() {
         firstName: 'System',
         lastName: 'Administrator',
         contactNumber: '09123456789',
-        address: 'Maybunga Health Center'
+        address: 'Maybunga Health Center',
+        position: 'System Administrator',
+        accessLevel: 'Administrator'
       });
       console.log('✅ Default admin user created');
     }
 
     // Check if doctor exists
-    const doctorExists = await User.findOne({ where: { role: 'doctor' } });
+    const doctorExists = await User.findOne({ 
+      where: { 
+        role: 'doctor',
+        isActive: true 
+      } 
+    });
     
     if (!doctorExists) {
       await User.create({
@@ -102,7 +135,9 @@ User.createDefaultUsers = async function() {
         firstName: 'Dr. John',
         lastName: 'Smith',
         contactNumber: '09123456790',
-        address: 'Maybunga Health Center'
+        address: 'Maybunga Health Center',
+        position: 'General Physician',
+        accessLevel: 'Doctor'
       });
       console.log('✅ Default doctor user created');
     }

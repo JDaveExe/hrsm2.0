@@ -1,0 +1,156 @@
+.referral-modal .modal-dialog {
+  max-width: 800px; /* A4 paper width equivalent */
+  margin: 1rem auto;
+}
+
+.referral-modal .modal-content {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+/* Document paper width container */
+.referral-modal .modal-body {
+  max-width: 100%;
+}
+
+.referral-modal .modal-body > div {
+  max-width: 210mm; /* A4 paper width */
+  margin: 0 auto;
+}
+
+.test-category {
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  height: 100%;
+}
+
+.test-items .form-check {
+  margin-bottom: 8px;
+}
+
+.test-items .form-check-input:checked {
+  background-color: #0ea5e9;
+  border-color: #0ea5e9;
+}
+
+.test-items .form-check-label {
+  font-size: 14px;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.print-section {
+  background: white;
+  color: black;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-section {
+    display: block !important;
+  }
+  
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .modal-dialog,
+  .modal-content {
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}
+
+/* Form enhancements */
+.form-control:focus,
+.form-select:focus {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 0.2rem rgba(14, 165, 233, 0.25);
+}
+
+/* Read-only field styling */
+.form-control[readonly] {
+  background-color: #f8f9fa !important;
+  border-color: #dee2e6 !important;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+.form-check-input:focus {
+  border-color: #0ea5e9;
+  box-shadow: 0 0 0 0.2rem rgba(14, 165, 233, 0.25);
+}
+
+/* Button hover effects */
+.btn:hover {
+  transform: translateY(-1px);
+  transition: all 0.2s ease;
+}
+
+/* Card styling */
+.card {
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Typography improvements */
+.form-label {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .referral-modal .modal-dialog {
+    max-width: 100%;
+    margin: 0.5rem;
+  }
+  
+  .referral-modal .modal-body > div {
+    max-width: 100%;
+    padding: 1rem;
+  }
+  
+  .test-category {
+    margin-bottom: 16px;
+  }
+}
+
+/* Print-specific styles */
+@media print {
+  @page {
+    size: A4;
+    margin: 0.5in;
+  }
+  
+  .print-section table {
+    page-break-inside: auto;
+  }
+  
+  .print-section tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+  
+  .print-section h2,
+  .print-section h3,
+  .print-section h4 {
+    page-break-after: avoid;
+  }
+}

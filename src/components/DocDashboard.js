@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Modal, Button, Form, InputGroup, Row, Col, Table, Card, Tabs, Tab } from 'react-bootstrap';
 import { QRCodeCanvas as QRCode } from 'qrcode.react';
-import { patientService, familyService } from '../services/adminService';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
+import adminService from '../services/adminService';
 import '../styles/DocDashboard.css'; // Use DocDashboard.css
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
@@ -53,18 +55,10 @@ const DocDashboard = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const patientData = await patientService.getUnsortedPatients();
-        const familyData = await familyService.getAllFamilies();
+        const patientData = await adminService.getAllPatients();
+        const familyData = await adminService.getAllFamilies();
         
-        // Combine with some mock data for demo
-        const allPatients = [
-          ...patientData,
-          { id: 1, familyId: 'SANTOS-001', name: 'Maria Santos', age: 35, gender: 'Female', address: '123 Maybunga St, Pasig City', contact: '09123456789', lastCheckup: '2023-05-15', status: 'Active' },
-          { id: 2, familyId: 'SANTOS-001', name: 'Juan Santos', age: 38, gender: 'Male', address: '123 Maybunga St, Pasig City', contact: '09123456790', lastCheckup: '2023-04-22', status: 'Active' },
-          { id: 3, familyId: 'REYES-002', name: 'Ana Reyes', age: 42, gender: 'Female', address: '45 E. Rodriguez Ave, Pasig City', contact: '09187654321', lastCheckup: '2023-05-20', status: 'Active' },
-        ];
-
-        setPatients(allPatients);
+        setPatients(patientData);
         setFamilies(familyData);
       } catch (error) {
         console.error("Error fetching initial data:", error);
@@ -1321,7 +1315,23 @@ const DocDashboard = () => {
           <Form>
             <Row>
               <Col md={6}><Form.Group className="mb-3"><Form.Label>Full Name</Form.Label><Form.Control type="text" placeholder="Enter full name" /></Form.Group></Col>
-              <Col md={6}><Form.Group className="mb-3"><Form.Label>Date of Birth</Form.Label><Form.Control type="date" /></Form.Group></Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Date of Birth</Form.Label>
+                  <DatePicker 
+                    selected={null} 
+                    onChange={(date) => {}} 
+                    className="form-control"
+                    dateFormat="MM/dd/yyyy"
+                    maxDate={new Date()}
+                    showYearDropdown
+                    showMonthDropdown
+                    scrollableYearDropdown
+                    yearDropdownItemNumber={100}
+                    placeholderText="Select date of birth"
+                  />
+                </Form.Group>
+              </Col>
             </Row>
             {/* Add more fields as in AdminDashboard AddPatientModal */}
             <p><em>Placeholder: More fields for patient registration to be added. Backend integration needed.</em></p>

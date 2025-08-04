@@ -1,239 +1,217 @@
-// Mock data for development - replace with real API calls later
-const mockUnsortedPatients = [
-  {
-    id: 101,
-    firstName: 'Pedro',
-    lastName: 'Cruz',
-    age: 28,
-    gender: 'Male',
-    contactNumber: '09171234567',
-    address: '789 Bambang St, Pasig City',
-    createdAt: '2025-01-15T08:30:00Z',
-    familyId: null
-  },
-  {
-    id: 102,
-    firstName: 'Rosa',
-    lastName: 'Garcia',
-    age: 34,
-    gender: 'Female',
-    contactNumber: '09181234568',
-    address: '456 Rosario St, Pasig City',
-    createdAt: '2025-01-18T10:15:00Z',
-    familyId: null
-  },
-  {
-    id: 103,
-    firstName: 'Miguel',
-    lastName: 'Santos',
-    age: 42,
-    gender: 'Male',
-    contactNumber: '09191234569',
-    address: '321 Maybunga Ave, Pasig City',
-    createdAt: '2025-01-20T14:22:00Z',
-    familyId: null
-  },
-  {
-    id: 104,
-    firstName: 'Carmen',
-    lastName: 'Reyes',
-    age: 29,
-    gender: 'Female',
-    contactNumber: '09201234570',
-    address: '654 Kapitolyo St, Pasig City',
-    createdAt: '2025-01-22T11:45:00Z',
-    familyId: null
+import axios from '../services/axiosConfig';
+
+// Function to get the authorization token from localStorage
+const getAuthToken = () => {
+  const authData = JSON.parse(localStorage.getItem('auth'));
+  return authData ? authData.token : null;
+};
+
+// Function to create the authorization header
+const getAuthHeader = () => {
+  const token = getAuthToken();
+  if (token) {
+    return { 'x-auth-token': token };
   }
-];
+  return {};
+};
 
-const mockFamilies = [
-  {
-    id: 1,
-    familyName: 'Santos Family',
-    surname: 'Santos',
-    headOfFamily: 'Juan Santos',
-    contactNumber: '09123456790',
-    address: '123 Maybunga St, Pasig City'
-  },
-  {
-    id: 2,
-    familyName: 'Reyes Family',
-    surname: 'Reyes',
-    headOfFamily: 'Ana Reyes',
-    contactNumber: '09187654321',
-    address: '45 E. Rodriguez Ave, Pasig City'
-  },
-  {
-    id: 3,
-    familyName: 'Mendoza Family',
-    surname: 'Mendoza',
-    headOfFamily: 'Carlos Mendoza',
-    contactNumber: '09198765432',
-    address: '67 Ortigas Ave, Pasig City'
-  }
-];
-
-// Patient Services with mock data
-export const patientService = {
-  // Get all patients
-  getAllPatients: async () => {
-    // TODO: Replace with real API call
-    return new Promise((resolve) => {
-      setTimeout(() => resolve([]), 500);
+/**
+ * Fetches all unsorted patients (those not assigned to a family).
+ * @returns {Promise<Array>} A promise that resolves to an array of unsorted patients.
+ */
+const getUnsortedMembers = async () => {
+  try {
+    const response = await axios.get(`/api/admin/unsorted-members`, {
+      headers: getAuthHeader(),
     });
-  },
-
-  // Get unsorted patients (patients without family)
-  getUnsortedPatients: async () => {
-    // TODO: Replace with real API call
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(mockUnsortedPatients), 500);
-    });
-  },
-
-  // Auto-sort patients by surname
-  autosortPatients: async () => {
-    // TODO: Replace with real API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        // Mock autosort results
-        const results = {
-          sorted: [
-            {
-              patient: { id: 103, firstName: 'Miguel', lastName: 'Santos' },
-              assignedToFamily: 'Santos Family'
-            }
-          ],
-          needsNewFamily: [
-            { id: 101, firstName: 'Pedro', lastName: 'Cruz' },
-            { id: 102, firstName: 'Rosa', lastName: 'Garcia' }
-          ]
-        };
-        resolve(results);
-      }, 1000);
-    });
-  },
-
-  // Create families for unmatched patients
-  createFamiliesForPatients: async (patientIds) => {
-    // TODO: Replace with real API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const results = patientIds.map(id => {
-          const patient = mockUnsortedPatients.find(p => p.id === id);
-          return {
-            patient: patient,
-            newFamily: {
-              id: Date.now() + Math.random(),
-              familyName: `${patient.lastName} Family`
-            }
-          };
-        });
-        resolve(results);
-      }, 1000);
-    });
-  },
-
-  // Manually assign patient to family
-  assignPatientToFamily: async (patientId, familyId) => {
-    // TODO: Replace with real API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({ msg: 'Patient assigned to family successfully' });
-      }, 500);
-    });
-  },
-
-  // Create new patient
-  createPatient: async (patientData) => {
-    // TODO: Replace with real API call
-    return new Promise((resolve) => {
-      setTimeout(() => resolve({ id: Date.now(), ...patientData }), 500);
-    });
-  },
-
-  // Update patient
-  updatePatient: async (patientId, patientData) => {
-    // TODO: Replace with real API call
-    return new Promise((resolve) => {
-      setTimeout(() => resolve({ id: patientId, ...patientData }), 500);
-    });
-  },
-
-  // Delete patient
-  deletePatient: async (patientId) => {
-    // TODO: Replace with real API call
-    return new Promise((resolve) => {
-      setTimeout(() => resolve({ msg: 'Patient deleted successfully' }), 500);
-    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching unsorted members:', error.response ? error.response.data : error.message);
+    throw error;
   }
 };
 
-// Family Services with mock data
-export const familyService = {
-  // Get all families
-  getAllFamilies: async () => {
-    // TODO: Replace with real API call
-    return new Promise((resolve) => {
-      setTimeout(() => resolve(mockFamilies), 500);
+/**
+ * Fetches all patients.
+ * @returns {Promise<Array>} A promise that resolves to an array of all patients.
+ */
+const getAllPatients = async () => {
+  try {
+    const response = await axios.get(`/api/patients`, {
+      headers: getAuthHeader(),
     });
-  },
-
-  // Create new family
-  createFamily: async (familyData) => {
-    // TODO: Replace with real API call
-    return new Promise((resolve) => {
-      setTimeout(() => resolve({ id: Date.now(), ...familyData }), 500);
-    });
-  },
-
-  // Update family
-  updateFamily: async (familyId, familyData) => {
-    // TODO: Replace with real API call
-    return new Promise((resolve) => {
-      setTimeout(() => resolve({ id: familyId, ...familyData }), 500);
-    });
-  },
-
-  // Delete family
-  deleteFamily: async (familyId) => {
-    // TODO: Replace with real API call
-    return new Promise((resolve) => {
-      setTimeout(() => resolve({ msg: 'Family deleted successfully' }), 500);
-    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching all patients:', error.response ? error.response.data : error.message);
+    throw error;
   }
 };
 
-// Dashboard Services with mock data
-export const dashboardService = {
-  // Get dashboard statistics
-  getStats: async () => {
-    // TODO: Replace with real API call
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          totalPatients: 235,
-          unsortedPatients: mockUnsortedPatients.length,
-          totalFamilies: mockFamilies.length,
-          activeCheckups: 12,
-          pendingAppointments: 8,
-          completedToday: 7
-        });
-      }, 500);
+/**
+ * Fetches a specific patient by ID with detailed information.
+ * @param {number} patientId - The ID of the patient to fetch.
+ * @returns {Promise<Object>} A promise that resolves to the patient data.
+ */
+const getPatientById = async (patientId) => {
+  try {
+    const response = await axios.get(`/api/patients/${patientId}`, {
+      headers: getAuthHeader(),
     });
-  },
-
-  // Get today's checkups
-  getTodaysCheckups: async () => {
-    // TODO: Replace with real API call
-    return new Promise((resolve) => {
-      setTimeout(() => resolve([]), 500);
-    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching patient by ID:', error.response ? error.response.data : error.message);
+    throw error;
   }
 };
 
-export default {
-  patientService,
-  familyService,
-  dashboardService
+/**
+ * Fetches all families.
+ * @returns {Promise<Array>} A promise that resolves to an array of all families.
+ */
+const getAllFamilies = async () => {
+  try {
+    const response = await axios.get(`/api/families`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching all families:', error.response ? error.response.data : error.message);
+    throw error;
+  }
 };
+
+/**
+ * Creates a new family.
+ * @param {Object} familyData - The family data to create.
+ * @returns {Promise<Object>} A promise that resolves to the created family.
+ */
+const createFamily = async (familyData) => {
+  try {
+    const response = await axios.post(`/api/families`, familyData, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creating family:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Assigns a patient to a family using family ID.
+ * @param {number} patientId - The ID of the patient to assign.
+ * @param {number} familyId - The ID of the family to assign to.
+ * @returns {Promise<Object>} A promise that resolves to the assignment result.
+ */
+const assignPatientToFamily = async (patientId, familyId) => {
+  try {
+    const response = await axios.put(`/api/patients/${patientId}/assign-family`, 
+      { familyId }, 
+      {
+        headers: getAuthHeader(),
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error assigning patient to family:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Assigns an unsorted member to a family (new method following your old system).
+ * @param {number} memberId - The ID of the member to assign.
+ * @param {string} familyName - The name of the family to assign to.
+ * @param {boolean} createNew - Whether to create a new family if it doesn't exist.
+ * @returns {Promise<Object>} A promise that resolves to the assignment result.
+ */
+const assignUnsortedMemberToFamily = async (memberId, familyName, createNew = false) => {
+  try {
+    const response = await axios.patch(`/api/unsorted/${memberId}/assign-family`, 
+      { familyName, createNew }, 
+      {
+        headers: getAuthHeader(),
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error assigning unsorted member to family:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+const autosortPatients = async () => {
+  try {
+    const response = await axios.post(`/api/admin/autosort-patients`, {}, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error auto-sorting patients:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Creates a new patient in the system
+ * @param {Object} patientData - Patient information including name, date of birth, contact info, etc.
+ * @returns {Promise<Object>} A promise that resolves to the created patient
+ */
+const createPatient = async (patientData) => {
+  try {
+    const response = await axios.post('/api/patients', patientData, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creating patient:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Creates a new admin or doctor user.
+ * @param {Object} userData - The user data.
+ * @returns {Promise<Object>} A promise that resolves to the created user.
+ */
+const createStaffUser = async (userData) => {
+  try {
+    const response = await axios.post(`/api/auth/create-staff`, userData, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creating staff user:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+const createFamiliesForPatients = async (patientIds) => {
+  try {
+    const response = await axios.post(`/api/patients/autosort/create-families`, 
+      { patientIds }, 
+      {
+        headers: getAuthHeader(),
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error creating families for patients:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+const adminService = {
+  getUnsortedMembers,
+  getAllPatients,
+  getPatientById,
+  getAllFamilies,
+  createFamily,
+  assignPatientToFamily,
+  autosortPatients,
+  createFamiliesForPatients,
+  createPatient,
+  createStaffUser,
+};
+
+export default adminService;
