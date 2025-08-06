@@ -201,6 +201,40 @@ const createFamiliesForPatients = async (patientIds) => {
   }
 };
 
+/**
+ * Creates a vital signs record for a patient.
+ * @param {Object} vitalSignsData - The vital signs data to save.
+ * @returns {Promise<Object>} A promise that resolves to the created vital signs record.
+ */
+const createVitalSigns = async (vitalSignsData) => {
+  try {
+    const response = await axios.post(`/api/vital-signs`, vitalSignsData, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creating vital signs:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Fetches vital signs history for a specific patient.
+ * @param {number} patientId - The ID of the patient.
+ * @returns {Promise<Array>} A promise that resolves to an array of vital signs records.
+ */
+const getVitalSignsHistory = async (patientId) => {
+  try {
+    const response = await axios.get(`/api/vital-signs/patient/${patientId}`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching vital signs history:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
 const adminService = {
   getUnsortedMembers,
   getAllPatients,
@@ -212,6 +246,8 @@ const adminService = {
   createFamiliesForPatients,
   createPatient,
   createStaffUser,
+  createVitalSigns,
+  getVitalSignsHistory,
 };
 
 export default adminService;

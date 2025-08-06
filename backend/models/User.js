@@ -142,6 +142,30 @@ User.createDefaultUsers = async function() {
       console.log('✅ Default doctor user created');
     }
 
+    // Check if patient exists
+    const patientExists = await User.findOne({ 
+      where: { 
+        role: 'patient',
+        isActive: true 
+      } 
+    });
+    
+    if (!patientExists) {
+      await User.create({
+        username: 'patient',
+        email: 'patient@maybunga.healthcare',
+        password: 'patient123',
+        role: 'patient',
+        firstName: 'Maria',
+        lastName: 'Santos',
+        contactNumber: '09123456791',
+        address: '123 Maybunga St, Pasig City',
+        position: 'Patient',
+        accessLevel: 'Patient'
+      });
+      console.log('✅ Default patient user created');
+    }
+
     console.log('✅ Default users initialization complete');
   } catch (error) {
     console.error('❌ Error creating default users:', error.message);

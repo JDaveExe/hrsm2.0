@@ -25,6 +25,16 @@ The system comes with pre-configured default user accounts for immediate testing
   - Appointment management
   - Clinical data entry
 
+### Patient Account
+- **Username:** `patient` or `patient@maybunga.health`
+- **Password:** `patient123`
+- **Access Level:** Patient portal
+- **Capabilities:**
+  - View personal medical records
+  - Schedule appointments
+  - Access prescription history
+  - Update contact information
+
 ### Custom Created Accounts
 When you create new admin or doctor accounts through the system:
 - **Username format:** `[initials]@maybunga.health`
@@ -38,8 +48,8 @@ When you create new admin or doctor accounts through the system:
 2. **Access the login page:** Click on "SIGN IN / SIGN UP" in the navigation bar
 
 3. **Enter credentials:** 
-   - Enter either `admin` or `doctor` as the username
-   - Enter the corresponding password (`admin123` or `doctor123`)
+   - Enter either `admin`, `doctor`, or `patient` as the username
+   - Enter the corresponding password (`admin123`, `doctor123`, or `patient123`)
 
 4. **Login:** Click the "Log In" button
 

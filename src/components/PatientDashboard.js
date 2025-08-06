@@ -4,10 +4,12 @@ import { Modal, Button, Form, InputGroup, Row, Col, Table, Card, Tabs, Tab, Acco
 import { QRCodeCanvas as QRCode } from 'qrcode.react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
+import { useAuth } from '../context/AuthContext';
 import '../styles/PatientDashboard.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
 const PatientDashboard = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
@@ -709,7 +711,9 @@ const PatientDashboard = () => {
           <div className="user-info">
             <div className="date-time"><span>{formatDate(currentDateTime)}</span></div>
             <div className="user">
-              <span className="user-name">Patient User</span>
+              <span className="user-name">
+                {user ? `${user.firstName} ${user.lastName}` : 'Patient User'}
+              </span>
               <div className="user-avatar"><i className="bi bi-person-circle"></i></div>
             </div>
             <button className="logout-btn" onClick={handleLogout}><i className="bi bi-box-arrow-right"></i></button>

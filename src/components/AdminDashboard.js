@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Modal, Button, Form, InputGroup, Row, Col, Table, Card, Tabs, Tab, Accordion } from 'react-bootstrap';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, BarElement, ArcElement } from 'chart.js';
@@ -16,6 +16,9 @@ import userService from '../services/userService';
 import ReferralForm from './ReferralForm';
 import NotificationManager from './NotificationManager';
 import SMSNotificationModal from './SMSNotificationModal';
+import PatientActionsSection from './PatientActionsSection';
+import PatientInfoCards from './PatientInfoCards';
+import BackupSettingsForm from './BackupSettingsForm';
 
 // Register ChartJS components
 ChartJS.register(
@@ -36,6 +39,21 @@ const AdminDashboard = () => {
   const {
     unsortedMembersData,
     fetchUnsortedMembers,
+    simulationModeStatus,
+    updateSimulationMode,
+    disableSimulationMode,
+    patientsData,
+    familiesData,
+    appointmentsData,
+    sharedCheckupsData,
+    createBackup,
+    restoreBackup,
+    getBackupHistory,
+    getRestoreHistory,
+    deleteBackupHistory,
+    enableAutoBackup,
+    disableAutoBackup,
+    getAutoBackupSettings
   } = useData();
   
   // User Management states - Move these BEFORE useEffect to avoid initialization errors
@@ -126,6 +144,25 @@ const AdminDashboard = () => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeSubDropdown, setActiveSubDropdown] = useState(null);
   const [currentPath, setCurrentPath] = useState('Dashboard');
+  
+  // Appointment management states
+  const [appointmentTabKey, setAppointmentTabKey] = useState('all-appointments');
+  const [appointmentSearchTerm, setAppointmentSearchTerm] = useState('');
+  const [quickSchedulePatientSearch, setQuickSchedulePatientSearch] = useState('');
+  const [isPatientSelected, setIsPatientSelected] = useState(false);
+  const [showQuickScheduleModal, setShowQuickScheduleModal] = useState(false);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const patientSearchRef = useRef(null);
+  const [appointmentFormData, setAppointmentFormData] = useState({
+    patientId: '',
+    date: '',
+    time: '',
+    type: '',
+    doctor: '',
+    duration: 30,
+    notes: ''
+  });
+  
   const [showVitalSignsModal, setShowVitalSignsModal] = useState(false);
   const [showQRCodeModal, setShowQRCodeModal] = useState(false);
   const [showAddPatientModal, setShowAddPatientModal] = useState(false);
@@ -172,6 +209,31 @@ const AdminDashboard = () => {
   const [showSMSNotificationModal, setShowSMSNotificationModal] = useState(false);
   const [previousModalState, setPreviousModalState] = useState(null); // Track which modal was open before
   const [selectedPatient, setSelectedPatient] = useState(null);
+  
+  // Report generation options state
+  const [reportOptions, setReportOptions] = useState({
+    dateRange: 'last30days',
+    format: 'pdf',
+    quality: 'standard',
+    includeCharts: {
+      demographics: true,
+      trends: true,
+      appointments: true,
+      medications: false,
+      financial: false,
+      performance: false
+    }
+  });
+
+  // Backup and Restore state
+  const [showBackupModal, setShowBackupModal] = useState(false);
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [showBackupSettingsModal, setShowBackupSettingsModal] = useState(false);
+  const [backupHistory, setBackupHistory] = useState([]);
+  const [restoreHistory, setRestoreHistory] = useState([]);
+  const [autoBackupSettings, setAutoBackupSettings] = useState({});
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
+  const [isRestoringBackup, setIsRestoringBackup] = useState(false);
   const [selectedFamily, setSelectedFamily] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [appointmentDate, setAppointmentDate] = useState(new Date());
@@ -179,6 +241,16 @@ const AdminDashboard = () => {
   const [dashboardTabKey, setDashboardTabKey] = useState('analytics');
   const [inventoryTabKey, setInventoryTabKey] = useState('vaccines');
   const [isDarkMode, setIsDarkMode] = useState(false);
+  
+  // Simulation mode states
+  const [showSimulationModal, setShowSimulationModal] = useState(false);
+  const [simulationMode, setSimulationMode] = useState({
+    enabled: false,
+    currentSimulatedDate: new Date(),
+    smsSimulation: true,
+    emailSimulation: true,
+    dataSimulation: false
+  });
   
   // Users data and loading state
   const [users, setUsers] = useState([]);
@@ -197,14 +269,109 @@ const AdminDashboard = () => {
   const [confirmAction, setConfirmAction] = useState('');
   const [countdown, setCountdown] = useState(0);
   const [secondCountdown, setSecondCountdown] = useState(0);
-  
-  // Sample data for dashboard statistics
-  const [dashboardStats, setDashboardStats] = useState({
-    totalPatients: 235,
-    activeCheckups: 12,
-    pendingAppointments: 8,
-    completedToday: 7
+
+  // Today's checkups state - for auto login feature with persistence
+  const [todaysCheckups, setTodaysCheckups] = useState(() => {
+    // Load from localStorage on initialization
+    const saved = localStorage.getItem('todaysCheckups');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        // Check if the saved data is from today
+        const today = new Date().toDateString();
+        const savedDate = localStorage.getItem('todaysCheckupsDate');
+        
+        if (savedDate === today) {
+          return parsed;
+        } else {
+          // Clear old data if it's from a different day
+          localStorage.removeItem('todaysCheckups');
+          localStorage.removeItem('todaysCheckupsDate');
+        }
+      } catch (error) {
+        console.error('Error parsing saved checkups:', error);
+        localStorage.removeItem('todaysCheckups');
+        localStorage.removeItem('todaysCheckupsDate');
+      }
+    }
+    return [];
   });
+
+  // Calculate real dashboard statistics
+  const dashboardStats = useMemo(() => {
+    const pendingAppointments = appointmentsData.filter(apt => 
+      apt.status === 'Scheduled' || apt.status === 'Pending'
+    ).length;
+    
+    return {
+      totalPatients: patientsData.length + unsortedMembersData.length,
+      activeCheckups: todaysCheckups.filter(checkup => 
+        checkup.status === 'In Progress' || checkup.status === 'Waiting'
+      ).length,
+      pendingAppointments
+    };
+  }, [appointmentsData, patientsData, unsortedMembersData, todaysCheckups]);
+
+  // Recent Activity Tracking System
+  const [recentActivities, setRecentActivities] = useState(() => {
+    const saved = localStorage.getItem('adminRecentActivities');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (error) {
+        console.error('Error parsing saved activities:', error);
+        return [];
+      }
+    }
+    return [];
+  });
+
+  // Function to add new activity
+  const addActivity = useCallback((action, details, type = 'info') => {
+    const newActivity = {
+      id: Date.now(),
+      action,
+      details,
+      type, // 'info', 'success', 'warning', 'danger'
+      timestamp: new Date().toISOString(),
+      user: user?.username || 'Admin'
+    };
+
+    setRecentActivities(prev => {
+      const updated = [newActivity, ...prev].slice(0, 50); // Keep only last 50 activities
+      localStorage.setItem('adminRecentActivities', JSON.stringify(updated));
+      return updated;
+    });
+  }, [user]);
+
+  // Service availability state for Today's Checkup
+  const [availableServices, setAvailableServices] = useState([]);
+  const [selectedService, setSelectedService] = useState('');
+  const [serviceLoading, setServiceLoading] = useState(false);
+
+  // Remove mode state
+  const [removeMode, setRemoveMode] = useState(false);
+  const [showRemoveModal, setShowRemoveModal] = useState(false);
+
+  // Vital Signs form state
+  const [vitalSignsFormData, setVitalSignsFormData] = useState({
+    temperature: '',
+    heartRate: '',
+    systolicBP: '',
+    diastolicBP: '',
+    respiratoryRate: '',
+    oxygenSaturation: '',
+    weight: '',
+    height: '',
+    clinicalNotes: ''
+  });
+
+  // Vital signs history state
+  const [vitalSignsHistory, setVitalSignsHistory] = useState([]);
+  const [loadingVitalHistory, setLoadingVitalHistory] = useState(false);
+
+  // Vital signs edit mode state
+  const [isVitalSignsEditMode, setIsVitalSignsEditMode] = useState(false);
 
   // Unsorted members states
   const [autosortResults, setAutosortResults] = useState(null);
@@ -228,7 +395,91 @@ const AdminDashboard = () => {
     notes: ''
   });
 
+  // Calendar states
+  const [currentDate, setCurrentDate] = useState(new Date());
+
+  // Appointments state - for persistence across browser refreshes
+  const [appointments, setAppointments] = useState(() => {
+    // Load from localStorage on initialization
+    const saved = localStorage.getItem('appointments');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return parsed;
+      } catch (error) {
+        console.error('Error parsing saved appointments:', error);
+        localStorage.removeItem('appointments');
+      }
+    }
+    return [];
+  });
+
   // Helper functions - defined early to avoid hoisting issues
+  
+  // Service availability functions
+  const fetchAvailableServices = useCallback(async () => {
+    setServiceLoading(true);
+    try {
+      // Use simulated date/time if simulation is enabled, otherwise use real current time
+      const currentDate = simulationMode.enabled ? new Date(simulationMode.currentSimulatedDate) : new Date();
+      const currentTime = currentDate.toTimeString().slice(0, 5); // HH:MM format
+      const currentDay = currentDate.toLocaleDateString('en-US', { weekday: 'long' });
+      
+      // All services available every day and time for testing
+      const allServices = [
+        { id: 1, name: 'General Checkup', available: true, timeSlots: ['00:00-23:59'] },
+        { id: 2, name: 'Blood Pressure Monitoring', available: true, timeSlots: ['00:00-23:59'] },
+        { id: 3, name: 'Diabetes Consultation', available: true, timeSlots: ['00:00-23:59'] },
+        { id: 4, name: 'Prenatal Care', available: true, timeSlots: ['00:00-23:59'] },
+        { id: 5, name: 'Immunization', available: true, timeSlots: ['00:00-23:59'] },
+        { id: 6, name: 'Family Planning', available: true, timeSlots: ['00:00-23:59'] },
+        { id: 7, name: 'Dental Consultation', available: true, timeSlots: ['00:00-23:59'] },
+        { id: 8, name: 'Mental Health Consultation', available: true, timeSlots: ['00:00-23:59'] }
+      ];
+      
+      // All services are always available for testing
+      setAvailableServices(allServices);
+    } catch (error) {
+      console.error('Error fetching available services:', error);
+      setAvailableServices([]);
+    } finally {
+      setServiceLoading(false);
+    }
+  }, [simulationMode]);
+
+  // Helper function to get current effective date (simulated or real)
+  const getCurrentEffectiveDate = useCallback(() => {
+    return simulationMode.enabled ? new Date(simulationMode.currentSimulatedDate) : new Date();
+  }, [simulationMode]);
+
+  const getCurrentEffectiveDateString = useCallback(() => {
+    return getCurrentEffectiveDate().toDateString();
+  }, [getCurrentEffectiveDate]);
+
+  // Initialize available services on component mount
+  useEffect(() => {
+    fetchAvailableServices();
+    // Refresh services every 30 minutes
+    const interval = setInterval(fetchAvailableServices, 30 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchAvailableServices]);
+
+  // Handle Today's Checkups based on simulated vs real date
+  useEffect(() => {
+    const currentDateString = getCurrentEffectiveDateString();
+    const savedDate = localStorage.getItem('todaysCheckupsDate');
+    
+    if (savedDate !== currentDateString) {
+      // Date has changed (either real date change or simulation date change)
+      // Clear checkups if they're from a different day
+      if (savedDate && savedDate !== currentDateString) {
+        setTodaysCheckups([]);
+        localStorage.removeItem('todaysCheckups');
+        localStorage.setItem('todaysCheckupsDate', currentDateString);
+      }
+    }
+  }, [simulationMode, getCurrentEffectiveDateString]);
+
   const getFamilyMembers = (familyId) => {
     if (!patients || !Array.isArray(patients)) return [];
     return patients.filter(patient => patient.familyId === familyId);
@@ -377,6 +628,319 @@ const AdminDashboard = () => {
     return family.contactNumber || family.contact || 'N/A';
   };
 
+  // Helper functions for patient login and QR code
+  const generatePatientLoginInitials = (patient) => {
+    if (!patient) return 'N/A';
+    
+    const firstName = patient.firstName || '';
+    const lastName = patient.lastName || '';
+    const patientId = patient.id || '';
+    
+    // Generate initials: FirstInitial + LastInitial + PatientID
+    const firstInitial = firstName.charAt(0).toUpperCase();
+    const lastInitial = lastName.charAt(0).toUpperCase();
+    const paddedId = String(patientId).padStart(4, '0');
+    
+    return `${firstInitial}${lastInitial}${paddedId}`;
+  };
+
+  const generateQRCodeData = (patient) => {
+    if (!patient) return '';
+    
+    const loginInitials = generatePatientLoginInitials(patient);
+    const patientId = `PT-${String(patient.id).padStart(4, '0')}`;
+    const fullName = getPatientFullName(patient);
+    const dateOfBirth = patient.dateOfBirth ? new Date(patient.dateOfBirth).toLocaleDateString() : '';
+    
+    // QR Code data format for healthcare center login
+    return JSON.stringify({
+      type: 'PATIENT_LOGIN',
+      loginInitials: loginInitials,
+      patientId: patientId,
+      name: fullName,
+      dateOfBirth: dateOfBirth,
+      generatedAt: new Date().toISOString(),
+      healthCenter: 'Maybunga Health Center'
+    });
+  };
+
+  const handlePrintQRCode = () => {
+    if (!selectedPatient) return;
+    
+    const printWindow = window.open('', '_blank');
+    const qrData = generateQRCodeData(selectedPatient);
+    const loginInitials = generatePatientLoginInitials(selectedPatient);
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Patient QR Code - ${getPatientFullName(selectedPatient)}</title>
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              text-align: center;
+              margin: 20px;
+              background: white;
+            }
+            .qr-container {
+              margin: 20px 0;
+              padding: 20px;
+              border: 2px solid #333;
+              display: inline-block;
+            }
+            .patient-info {
+              margin: 15px 0;
+              font-size: 14px;
+            }
+            .login-initials {
+              font-size: 18px;
+              font-weight: bold;
+              background: #f0f0f0;
+              padding: 10px;
+              margin: 10px 0;
+              border-radius: 5px;
+            }
+            .instructions {
+              font-size: 12px;
+              margin-top: 20px;
+              color: #666;
+              max-width: 400px;
+              margin-left: auto;
+              margin-right: auto;
+            }
+            @media print {
+              body { margin: 0; }
+              .no-print { display: none; }
+            }
+          </style>
+        </head>
+        <body>
+          <h2>Maybunga Health Center</h2>
+          <h3>Patient Login QR Code</h3>
+          
+          <div class="qr-container">
+            <div id="qr-code"></div>
+          </div>
+          
+          <div class="patient-info">
+            <strong>Patient:</strong> ${getPatientFullName(selectedPatient)}<br>
+            <strong>Patient ID:</strong> PT-${String(selectedPatient.id).padStart(4, '0')}<br>
+            <strong>Date of Birth:</strong> ${selectedPatient.dateOfBirth ? new Date(selectedPatient.dateOfBirth).toLocaleDateString() : 'N/A'}
+          </div>
+          
+          <div class="login-initials">
+            Login Initials: ${loginInitials}
+          </div>
+          
+          <div class="instructions">
+            <strong>Instructions:</strong><br>
+            1. Present this QR code at the healthcare center for quick check-in<br>
+            2. Alternatively, use the login initials: <strong>${loginInitials}</strong><br>
+            3. This QR code is for healthcare center use only<br>
+            4. Keep this code secure and do not share with unauthorized persons
+          </div>
+          
+          <script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
+          <script>
+            QRCode.toCanvas(document.getElementById('qr-code'), '${qrData}', {
+              width: 200,
+              margin: 2,
+              color: {
+                dark: '#000000',
+                light: '#FFFFFF'
+              }
+            }, function(error) {
+              if (error) console.error(error);
+              else window.print();
+            });
+          </script>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+  };
+
+  const handleDownloadQRCode = () => {
+    if (!selectedPatient) return;
+    
+    const canvas = document.querySelector('#qr-modal-canvas');
+    if (!canvas) return;
+    
+    // Create download link
+    const link = document.createElement('a');
+    link.download = `${getPatientFullName(selectedPatient)}_QR_Code.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+  };
+
+  // Auto Login functionality
+  const handleAutoLogin = (patient) => {
+    if (!patient) {
+      alert('No patient selected for auto login');
+      return;
+    }
+
+    // Check if patient is already in today's checkups
+    const existingCheckup = todaysCheckups.find(checkup => checkup.patientId === patient.id);
+    
+    if (existingCheckup) {
+      alert(`${getPatientFullName(patient)} is already checked in for today.`);
+      return;
+    }
+
+    // Create checkup entry
+    const newCheckup = {
+      id: Date.now(), // Simple ID generation
+      patientId: patient.id,
+      patientName: getPatientFullName(patient),
+      checkInTime: new Date().toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true 
+      }),
+      appointmentTime: 'Walk-in', // Default for auto login
+      purpose: selectedService || 'General Checkup',
+      status: 'Checked In',
+      vitalSignsComplete: false,
+      patientData: patient // Store full patient data for reference
+    };
+
+    // Add to today's checkups
+    setTodaysCheckups(prev => [...prev, newCheckup]);
+
+    // Add activity tracking
+    addActivity(
+      'Patient Check-in',
+      `${getPatientFullName(patient)} checked in for ${selectedService || 'General Checkup'}`,
+      'success'
+    );
+
+    // Close the patient details modal and navigate to Today's Checkup
+    setShowPatientDetailsModal(false);
+    
+    // Show success message with option to view Today's Checkup
+    const viewCheckups = window.confirm(
+      `${getPatientFullName(patient)} has been successfully checked in for today's appointment.\n\nWould you like to view Today's Checkups now?`
+    );
+    
+    if (viewCheckups) {
+      handleNavigation("Today's Checkup");
+      setActiveDropdown('checkup');
+    }
+  };
+
+  // Update checkup status functionality
+  const handleUpdateCheckupStatus = (checkupId) => {
+    const checkup = todaysCheckups.find(c => c.id === checkupId);
+    if (!checkup) return;
+
+    const statusOptions = ['Checked In', 'Waiting', 'In Progress', 'With Doctor', 'Completed'];
+    const currentIndex = statusOptions.indexOf(checkup.status);
+    const nextStatus = statusOptions[(currentIndex + 1) % statusOptions.length];
+
+    setTodaysCheckups(prev => 
+      prev.map(c => 
+        c.id === checkupId 
+          ? { ...c, status: nextStatus }
+          : c
+      )
+    );
+
+    alert(`Status updated to: ${nextStatus}`);
+  };
+
+  // Vital Signs functionality
+  const handleVitalSignsFormChange = (field, value) => {
+    setVitalSignsFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveVitalSigns = async () => {
+    if (!selectedPatient) {
+      alert('No patient selected');
+      return;
+    }
+
+    try {
+      // Validate required fields
+      const requiredFields = ['temperature', 'heartRate', 'systolicBP', 'diastolicBP'];
+      const missingFields = requiredFields.filter(field => !vitalSignsFormData[field]);
+      
+      if (missingFields.length > 0) {
+        alert(`Please fill in the following required fields: ${missingFields.join(', ')}`);
+        return;
+      }
+
+      // Prepare vital signs data
+      const vitalSignsData = {
+        patientId: selectedPatient.id,
+        temperature: parseFloat(vitalSignsFormData.temperature),
+        heartRate: parseInt(vitalSignsFormData.heartRate),
+        systolicBP: parseInt(vitalSignsFormData.systolicBP),
+        diastolicBP: parseInt(vitalSignsFormData.diastolicBP),
+        respiratoryRate: vitalSignsFormData.respiratoryRate ? parseInt(vitalSignsFormData.respiratoryRate) : null,
+        oxygenSaturation: vitalSignsFormData.oxygenSaturation ? parseInt(vitalSignsFormData.oxygenSaturation) : null,
+        weight: vitalSignsFormData.weight ? parseFloat(vitalSignsFormData.weight) : null,
+        height: vitalSignsFormData.height ? parseInt(vitalSignsFormData.height) : null,
+        clinicalNotes: vitalSignsFormData.clinicalNotes || '',
+        recordedAt: new Date().toISOString()
+      };
+
+      // Save to backend (we'll implement this API endpoint)
+      await adminService.createVitalSigns(vitalSignsData);
+
+      // Update today's checkups if this patient is checked in
+      setTodaysCheckups(prev => 
+        prev.map(checkup => 
+          checkup.patientId === selectedPatient.id 
+            ? { ...checkup, vitalSignsComplete: true }
+            : checkup
+        )
+      );
+
+      // Clear form and close modal
+      setVitalSignsFormData({
+        temperature: '',
+        heartRate: '',
+        systolicBP: '',
+        diastolicBP: '',
+        respiratoryRate: '',
+        oxygenSaturation: '',
+        weight: '',
+        height: '',
+        clinicalNotes: ''
+      });
+      
+      // Set to read-only mode after saving
+      setIsVitalSignsEditMode(false);
+      setShowVitalSignsModal(false);
+
+      alert('Vital signs recorded successfully!');
+    } catch (error) {
+      console.error('Error saving vital signs:', error);
+      alert('Error saving vital signs. Please try again.');
+    }
+  };
+
+  // Fetch vital signs history for a patient
+  const fetchVitalSignsHistory = async (patientId) => {
+    setLoadingVitalHistory(true);
+    try {
+      const history = await adminService.getVitalSignsHistory(patientId);
+      setVitalSignsHistory(history || []);
+    } catch (error) {
+      console.error('Error fetching vital signs history:', error);
+      setVitalSignsHistory([]);
+      alert('Error loading vital signs history');
+    } finally {
+      setLoadingVitalHistory(false);
+    }
+  };
+
   // Fetch users on component mount
   useEffect(() => {
     const fetchUsers = async () => {
@@ -398,14 +962,21 @@ const AdminDashboard = () => {
         }));
         setUsers(usersWithAccessRights);
         setBackendConnected(true);
+        console.log('Successfully fetched users:', usersWithAccessRights.length);
       } catch (error) {
-        setUserError(error.message);
-        setBackendConnected(false);
         console.error('Error fetching users:', error);
+        setUserError(error.message);
         
-        // Check if it's a connection error
-        if (error.message.includes('Network Error') || error.code === 'ECONNREFUSED') {
+        // Only set disconnected if it's a real connection error
+        if (error.message.includes('Network Error') || 
+            error.message.includes('ECONNREFUSED') ||
+            error.response?.status === 500) {
+          setBackendConnected(false);
           setUserError('Backend server is not running. Please start the backend server.');
+        } else {
+          // For other errors (like 403 unauthorized), keep connected status
+          // This might just be a permission issue, not a connection issue
+          setBackendConnected(true);
         }
       } finally {
         setLoadingUsers(false);
@@ -458,78 +1029,125 @@ const AdminDashboard = () => {
   useEffect(() => {
     localStorage.setItem('adminShowUserTypeSelection', showUserTypeSelection.toString());
   }, [showUserTypeSelection]);
-  
-  // Sample appointments data
-  const [appointments, setAppointments] = useState([
-    {
-      id: 101,
-      patientName: 'Maria Santos',
-      patientId: 1,
-      date: '2023-06-05',
-      time: '09:30 AM',
-      type: 'Follow-up',
-      status: 'Scheduled'
-    },
-    {
-      id: 102,
-      patientName: 'Ana Reyes',
-      patientId: 3,
-      date: '2023-06-07',
-      time: '10:45 AM',
-      type: 'Check-up',
-      status: 'Scheduled'
-    },
-    {
-      id: 103,
-      patientName: 'Carlos Mendoza',
-      patientId: 4,
-      date: '2023-06-06',
-      time: '02:15 PM',
-      type: 'Medical Certificate',
-      status: 'Scheduled'
+
+  // Persist today's checkups to localStorage
+  useEffect(() => {
+    if (todaysCheckups.length > 0) {
+      localStorage.setItem('todaysCheckups', JSON.stringify(todaysCheckups));
+      localStorage.setItem('todaysCheckupsDate', getCurrentEffectiveDateString());
+    } else {
+      // Clear localStorage when checkups array is empty
+      localStorage.removeItem('todaysCheckups');
+      localStorage.removeItem('todaysCheckupsDate');
     }
-  ]);
+  }, [todaysCheckups, getCurrentEffectiveDateString]);
+
+  // Persist appointments to localStorage
+  useEffect(() => {
+    localStorage.setItem('appointments', JSON.stringify(appointments));
+  }, [appointments]);
   
-  // Chart data
-  const checkupData = {
-    labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-    datasets: [
-      {
-        label: 'Checkups Completed',
-        data: [12, 19, 3, 5, 7, 3, 0],
-        backgroundColor: 'rgba(52, 152, 219, 0.6)',
-        borderColor: 'rgba(52, 152, 219, 1)',
-        borderWidth: 2,
-        tension: 0.3,
-      },
-    ],
-  };
+  // Chart data - real checkup trends based on actual data
+  const checkupData = useMemo(() => {
+    // Calculate checkups by day of the week
+    const dayStats = {
+      'Monday': 0,
+      'Tuesday': 0,
+      'Wednesday': 0,
+      'Thursday': 0,
+      'Friday': 0,
+      'Saturday': 0,
+      'Sunday': 0
+    };
+    
+    todaysCheckups.forEach(checkup => {
+      if (checkup.checkInTime) {
+        const date = new Date(checkup.checkInTime);
+        const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+        if (dayStats[dayName] !== undefined) {
+          dayStats[dayName]++;
+        }
+      }
+    });
+    
+    return {
+      labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+      datasets: [
+        {
+          label: 'Checkups Completed',
+          data: Object.values(dayStats),
+          backgroundColor: 'rgba(56, 189, 248, 0.6)',
+          borderColor: 'rgba(56, 189, 248, 1)',
+          borderWidth: 2,
+          tension: 0.3,
+        },
+      ],
+    };
+  }, [todaysCheckups]);
   
-  const patientDistributionData = {
-    labels: ['Male', 'Female'],
-    datasets: [
-      {
-        label: 'Gender Distribution',
-        data: [120, 115],
-        backgroundColor: ['rgba(52, 152, 219, 0.6)', 'rgba(231, 76, 60, 0.6)'],
-        borderColor: ['rgba(52, 152, 219, 1)', 'rgba(231, 76, 60, 1)'],
-        borderWidth: 1,
-      },
-    ],
-  };
+  // Calculate real chart data based on all patients (including unsorted)
+  const allPatients = useMemo(() => {
+    return [...patientsData, ...unsortedMembersData];
+  }, [patientsData, unsortedMembersData]);
+
+  const patientDistributionData = useMemo(() => {
+    const maleCount = allPatients.filter(p => p.gender === 'Male').length;
+    const femaleCount = allPatients.filter(p => p.gender === 'Female').length;
+    const otherCount = allPatients.filter(p => p.gender && p.gender !== 'Male' && p.gender !== 'Female').length;
+    
+    return {
+      labels: otherCount > 0 ? ['Male', 'Female', 'Other'] : ['Male', 'Female'],
+      datasets: [
+        {
+          label: 'Gender Distribution',
+          data: otherCount > 0 ? [maleCount, femaleCount, otherCount] : [maleCount, femaleCount],
+          backgroundColor: otherCount > 0 
+            ? ['rgba(56, 189, 248, 0.6)', 'rgba(231, 76, 60, 0.6)', 'rgba(155, 89, 182, 0.6)']
+            : ['rgba(56, 189, 248, 0.6)', 'rgba(231, 76, 60, 0.6)'],
+          borderColor: otherCount > 0 
+            ? ['rgba(56, 189, 248, 1)', 'rgba(231, 76, 60, 1)', 'rgba(155, 89, 182, 1)']
+            : ['rgba(56, 189, 248, 1)', 'rgba(231, 76, 60, 1)'],
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [allPatients]);
   
-  const ageDistributionData = {
-    labels: ['0-10', '11-20', '21-30', '31-40', '41-50', '51-60', '61+'],
-    datasets: [
-      {
-        label: 'Age Distribution',
-        data: [28, 34, 42, 51, 39, 25, 16],
-        backgroundColor: 'rgba(46, 204, 113, 0.6)',
-        borderColor: 'rgba(46, 204, 113, 1)',
-        borderWidth: 1,
-      },
-    ],
-  };
+  const ageDistributionData = useMemo(() => {
+    const ageGroups = {
+      '0-10': 0,
+      '11-20': 0,
+      '21-30': 0,
+      '31-40': 0,
+      '41-50': 0,
+      '51-60': 0,
+      '61+': 0
+    };
+    
+    allPatients.forEach(patient => {
+      const age = parseInt(patient.age) || 0;
+      if (age <= 10) ageGroups['0-10']++;
+      else if (age <= 20) ageGroups['11-20']++;
+      else if (age <= 30) ageGroups['21-30']++;
+      else if (age <= 40) ageGroups['31-40']++;
+      else if (age <= 50) ageGroups['41-50']++;
+      else if (age <= 60) ageGroups['51-60']++;
+      else ageGroups['61+']++;
+    });
+    
+    return {
+      labels: ['0-10', '11-20', '21-30', '31-40', '41-50', '51-60', '61+'],
+      datasets: [
+        {
+          label: 'Age Distribution',
+          data: Object.values(ageGroups),
+          backgroundColor: 'rgba(56, 189, 248, 0.6)',
+          borderColor: 'rgba(56, 189, 248, 1)',
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [allPatients]);
   // Update date and time every minute
   useEffect(() => {
     const timer = setInterval(() => {
@@ -539,6 +1157,29 @@ const AdminDashboard = () => {
     return () => {
       clearInterval(timer);
     };
+  }, []);
+
+  // Daily cleanup - clear today's checkups when date changes
+  useEffect(() => {
+    const checkDate = () => {
+      const currentDate = new Date().toDateString();
+      const savedDate = localStorage.getItem('todaysCheckupsDate');
+      
+      if (savedDate && savedDate !== currentDate) {
+        // New day detected, clear today's checkups
+        setTodaysCheckups([]);
+        localStorage.removeItem('todaysCheckups');
+        localStorage.removeItem('todaysCheckupsDate');
+      }
+    };
+
+    // Check immediately
+    checkDate();
+
+    // Check every minute (when time updates)
+    const timer = setInterval(checkDate, 60000);
+
+    return () => clearInterval(timer);
   }, []);
 
   // Fetch initial data
@@ -623,6 +1264,70 @@ const AdminDashboard = () => {
     }
   };
 
+  // Simulation mode handlers
+  const handleSimulationToggle = () => {
+    setSimulationMode(prev => {
+      const newMode = {
+        ...prev,
+        enabled: !prev.enabled
+      };
+      
+      // Add activity tracking
+      addActivity(
+        newMode.enabled ? 'Simulation Mode Enabled' : 'Simulation Mode Disabled',
+        newMode.enabled ? 'System switched to simulation environment' : 'System returned to live environment',
+        newMode.enabled ? 'warning' : 'info'
+      );
+      
+      // Sync with shared state
+      updateSimulationMode(newMode, user?.username || 'admin');
+      
+      return newMode;
+    });
+  };
+
+  const handleSimulationChange = (field, value) => {
+    setSimulationMode(prev => {
+      const newMode = {
+        ...prev,
+        [field]: value
+      };
+      
+      // Sync with shared state
+      updateSimulationMode(newMode, user?.username || 'admin');
+      
+      return newMode;
+    });
+  };
+
+  const handleSimulatedDateChange = (date) => {
+    setSimulationMode(prev => {
+      const newMode = {
+        ...prev,
+        currentSimulatedDate: new Date(date)
+      };
+      
+      // Sync with shared state
+      updateSimulationMode(newMode, user?.username || 'admin');
+      
+      return newMode;
+    });
+  };
+
+  const resetSimulation = () => {
+    const resetMode = {
+      enabled: false,
+      currentSimulatedDate: new Date(),
+      smsSimulation: true,
+      emailSimulation: true,
+      dataSimulation: false
+    };
+    
+    setSimulationMode(resetMode);
+    // Disable in shared state
+    disableSimulationMode();
+  };
+
   // Chart options for dark mode compatibility
   const getChartOptions = (type = 'default') => {
     const textColor = isDarkMode ? '#38bdf8' : '#666';
@@ -694,6 +1399,21 @@ const AdminDashboard = () => {
     const date = new Date(dateStr);
     if (isNaN(date)) return dateStr;
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const formatDateWithTime = (dateObj) => {
+    if (!dateObj) return '';
+    const date = new Date(dateObj);
+    if (isNaN(date)) return '';
+    
+    const dateStr = date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    const timeStr = date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+    
+    return `${dateStr} - ${timeStr}`;
   };
 
   // Unit conversion functions
@@ -1012,9 +1732,132 @@ const AdminDashboard = () => {
     setSelectedPatient(patient);
     setShowPatientDetailsModal(true);
   };
+
+  // Handle service selection for a checkup
+  const handleServiceSelection = (checkupId, serviceId) => {
+    const service = availableServices.find(s => s.id === serviceId);
+    if (!service) return;
+
+    setTodaysCheckups(prevCheckups => {
+      const updatedCheckups = prevCheckups.map(checkup => {
+        if (checkup.id === checkupId) {
+          return {
+            ...checkup,
+            purpose: service.name
+          };
+        }
+        return checkup;
+      });
+      
+      // Save to localStorage
+      localStorage.setItem('todaysCheckups', JSON.stringify(updatedCheckups));
+      localStorage.setItem('todaysCheckupsDate', getCurrentEffectiveDateString());
+      
+      return updatedCheckups;
+    });
+  };
+
+  // Toggle remove mode with modal
+  const toggleRemoveMode = () => {
+    setShowRemoveModal(true);
+  };
+
+  // Handle removing a patient from today's checkups (from modal)
+  const handleRemoveFromCheckup = (checkupId) => {
+    const checkup = todaysCheckups.find(c => c.id === checkupId);
+    if (!checkup) return;
+    
+    const confirmed = window.confirm(
+      `Are you sure you want to remove ${checkup.patientName} from today's checkups?\n\n` +
+      "This will permanently remove their checkup record for today."
+    );
+    
+    if (confirmed) {
+      setTodaysCheckups(prevCheckups => {
+        const updatedCheckups = prevCheckups.filter(checkup => checkup.id !== checkupId);
+        
+        // Update localStorage
+        if (updatedCheckups.length > 0) {
+          localStorage.setItem('todaysCheckups', JSON.stringify(updatedCheckups));
+        } else {
+          localStorage.removeItem('todaysCheckups');
+          localStorage.removeItem('todaysCheckupsDate');
+        }
+        
+        return updatedCheckups;
+      });
+      
+      // Close modal after successful removal
+      setShowRemoveModal(false);
+    }
+  };
   
-  const handleVitalSigns = (patient) => {
+  const handleVitalSigns = async (patient) => {
+    // Check if patient has checked in and selected a service
+    const checkup = todaysCheckups.find(c => c.patientId === patient.id);
+    
+    if (!checkup) {
+      alert('Patient must check in first before vital signs can be recorded.');
+      return;
+    }
+    
+    if (!checkup.purpose || checkup.purpose === 'General Checkup') {
+      alert('Please select a specific service purpose before proceeding with vital signs.');
+      return;
+    }
+    
     setSelectedPatient(patient);
+    
+    // Check if patient has vital signs completed today
+    const hasCompletedVitalSigns = checkup && checkup.vitalSignsComplete;
+    
+    if (hasCompletedVitalSigns) {
+      // Load existing vital signs data for today
+      try {
+        const history = await adminService.getVitalSignsHistory(patient.id);
+        const todayRecord = history.find(record => {
+          const recordDate = new Date(record.recordedAt).toDateString();
+          const today = new Date().toDateString();
+          return recordDate === today;
+        });
+        
+        if (todayRecord) {
+          setVitalSignsFormData({
+            temperature: todayRecord.temperature?.toString() || '',
+            heartRate: todayRecord.heartRate?.toString() || '',
+            systolicBP: todayRecord.systolicBP?.toString() || '',
+            diastolicBP: todayRecord.diastolicBP?.toString() || '',
+            respiratoryRate: todayRecord.respiratoryRate?.toString() || '',
+            oxygenSaturation: todayRecord.oxygenSaturation?.toString() || '',
+            weight: todayRecord.weight?.toString() || '',
+            height: todayRecord.height?.toString() || '',
+            clinicalNotes: todayRecord.clinicalNotes || ''
+          });
+        }
+        
+        // Set to read-only mode initially
+        setIsVitalSignsEditMode(false);
+      } catch (error) {
+        console.error('Error loading vital signs:', error);
+      }
+    } else {
+      // Clear the form when opening for new vital signs
+      setVitalSignsFormData({
+        temperature: '',
+        heartRate: '',
+        systolicBP: '',
+        diastolicBP: '',
+        respiratoryRate: '',
+        oxygenSaturation: '',
+        weight: '',
+        height: '',
+        clinicalNotes: ''
+      });
+      
+      // Set to edit mode for new vital signs
+      setIsVitalSignsEditMode(true);
+    }
+    
     setShowVitalSignsModal(true);
   };
   
@@ -1065,6 +1908,9 @@ const AdminDashboard = () => {
       setPreviousModalState('patientDetails');
       setShowPatientDetailsModal(false);
     }
+    
+    // Fetch vital signs history for this patient
+    fetchVitalSignsHistory(patient.id);
     setShowVitalSignsHistoryModal(true);
   };
 
@@ -1524,6 +2370,120 @@ const AdminDashboard = () => {
     }
     return () => clearTimeout(timer);
   }, [showSecondConfirmModal, secondCountdown]);
+
+  // Backup and Restore Handler Functions
+  const handleCreateBackup = async () => {
+    setIsCreatingBackup(true);
+    try {
+      const backup = createBackup();
+      setBackupHistory(getBackupHistory());
+      
+      // Add activity tracking
+      addActivity(
+        'Backup Created',
+        `System backup created (${backup.metadata.totalPatients} patients, ${backup.metadata.totalFamilies} families)`,
+        'info'
+      );
+      
+      // Show success notification
+      const notification = document.createElement('div');
+      notification.innerHTML = `
+        <div style="position: fixed; top: 20px; right: 20px; background: #28a745; color: white; padding: 15px 20px; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+          <i class="bi bi-check-circle" style="margin-right: 10px;"></i>
+          Backup created successfully! (${backup.metadata.totalPatients} patients, ${backup.metadata.totalFamilies} families)
+        </div>
+      `;
+      document.body.appendChild(notification);
+      setTimeout(() => {
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification);
+        }
+      }, 5000);
+    } catch (error) {
+      alert('Failed to create backup: ' + error.message);
+    } finally {
+      setIsCreatingBackup(false);
+    }
+  };
+
+  const handleRestoreBackup = async (file) => {
+    setIsRestoringBackup(true);
+    try {
+      const backup = await restoreBackup(file);
+      setRestoreHistory(getRestoreHistory());
+      
+      // Track backup restore activity
+      addActivity({
+        action: 'Backup Restored',
+        details: `Restored data from backup created on ${new Date(backup.timestamp).toLocaleDateString()}`,
+        type: 'warning'
+      });
+      
+      // Show success notification
+      const notification = document.createElement('div');
+      notification.innerHTML = `
+        <div style="position: fixed; top: 20px; right: 20px; background: #007bff; color: white; padding: 15px 20px; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+          <i class="bi bi-arrow-clockwise" style="margin-right: 10px;"></i>
+          Data restored successfully from backup created on ${new Date(backup.timestamp).toLocaleDateString()}
+        </div>
+      `;
+      document.body.appendChild(notification);
+      setTimeout(() => {
+        if (document.body.contains(notification)) {
+          document.body.removeChild(notification);
+        }
+        // Refresh the page to reflect restored data
+        window.location.reload();
+      }, 3000);
+    } catch (error) {
+      // Track failed restore attempt
+      addActivity({
+        action: 'Backup Restore Failed',
+        details: `Failed to restore backup: ${error.message}`,
+        type: 'danger'
+      });
+      alert('Failed to restore backup: ' + error.message);
+    } finally {
+      setIsRestoringBackup(false);
+    }
+  };
+
+  const handleBackupFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (window.confirm(`Are you sure you want to restore from "${file.name}"? This will replace all current data.`)) {
+        handleRestoreBackup(file);
+      }
+    }
+    // Reset the input
+    event.target.value = '';
+  };
+
+  const handleToggleAutoBackup = () => {
+    const currentSettings = getAutoBackupSettings();
+    if (currentSettings.enabled) {
+      disableAutoBackup();
+      setAutoBackupSettings(getAutoBackupSettings());
+      alert('Auto backup disabled');
+    } else {
+      setShowBackupSettingsModal(true);
+    }
+  };
+
+  const handleSaveAutoBackupSettings = (settings) => {
+    enableAutoBackup(settings);
+    setAutoBackupSettings(getAutoBackupSettings());
+    setShowBackupSettingsModal(false);
+    alert(`Auto backup enabled - will run ${settings.frequency} at ${settings.time}`);
+  };
+
+  // Initialize backup data on component mount
+  useEffect(() => {
+    setBackupHistory(getBackupHistory());
+    setRestoreHistory(getRestoreHistory());
+    setAutoBackupSettings(getAutoBackupSettings());
+  }, [getBackupHistory, getRestoreHistory, getAutoBackupSettings]);
+
   // Render different content based on currentPath
   const renderContent = () => {
     switch(currentPath) {
@@ -1539,10 +2499,6 @@ const AdminDashboard = () => {
         return renderReportHistory();
       case 'Appointments':
         return renderAppointments();
-      case 'Schedule an Appointment':
-        return renderScheduleAppointment();
-      case 'Appointment History':
-        return renderAppointmentHistory();
       case 'Manage Inventories':
         return renderManageInventories();
       case 'User Management':
@@ -1598,8 +2554,18 @@ const AdminDashboard = () => {
             <i className="bi bi-people"></i>
           </div>
           <div className="info-card-content">
-            <div className="info-card-value">{dashboardStats.totalPatients}</div>
+            <div className="info-card-value">{patientsData.length}</div>
             <div className="info-card-label">Total Patients</div>
+          </div>
+        </div>
+        
+        <div className="info-card clickable" onClick={() => handleNavigation('Family Data')}>
+          <div className="info-card-icon purple">
+            <i className="bi bi-person-plus"></i>
+          </div>
+          <div className="info-card-content">
+            <div className="info-card-value">{unsortedMembersData.length}</div>
+            <div className="info-card-label">Not Yet Sorted</div>
           </div>
         </div>
         
@@ -1622,16 +2588,6 @@ const AdminDashboard = () => {
             <div className="info-card-label">Pending Appointments</div>
           </div>
         </div>
-        
-        <div className="info-card">
-          <div className="info-card-icon red">
-            <i className="bi bi-check-circle"></i>
-          </div>
-          <div className="info-card-content">
-            <div className="info-card-value">{dashboardStats.completedToday}</div>
-            <div className="info-card-label">Completed Today</div>
-          </div>
-        </div>
       </div>
 
       <div className="dashboard-cards">
@@ -1648,18 +2604,18 @@ const AdminDashboard = () => {
             <div className="metrics-container">
               <div className="metric-box">
                 <h4>Total Checkups</h4>
-                <div className="metric-value">49</div>
-                <div className="metric-period">Last 7 days</div>
+                <div className="metric-value">{todaysCheckups.length}</div>
+                <div className="metric-period">Total to date</div>
               </div>
               <div className="metric-box">
-                <h4>Daily Average</h4>
-                <div className="metric-value">7.0</div>
-                <div className="metric-period">checkups per day</div>
+                <h4>Completed</h4>
+                <div className="metric-value">{todaysCheckups.filter(c => c.status === 'Completed').length}</div>
+                <div className="metric-period">checkups completed</div>
               </div>
               <div className="metric-box">
-                <h4>Peak Day</h4>
-                <div className="metric-value">19</div>
-                <div className="metric-period">Tuesday</div>
+                <h4>In Progress</h4>
+                <div className="metric-value">{todaysCheckups.filter(c => c.status === 'In Progress' || c.status === 'Waiting').length}</div>
+                <div className="metric-period">active sessions</div>
               </div>
             </div>
             <div className="chart-container" style={{height: '250px'}}>
@@ -1735,21 +2691,32 @@ const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {appointments.length > 0 ? (
-                  appointments.map(appointment => (
+                {(() => {
+                  const upcomingAppointments = appointmentsData.filter(apt => {
+                    const aptDate = new Date(apt.date);
+                    const today = new Date();
+                    const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+                    return aptDate >= today && aptDate <= nextWeek && apt.status !== 'Cancelled';
+                  }).slice(0, 5);
+                  
+                  return upcomingAppointments.length > 0 ? upcomingAppointments.map(appointment => (
                     <tr key={appointment.id}>
                       <td>{appointment.patientName}</td>
                       <td>{formatShortDate(appointment.date)}</td>
                       <td>{appointment.time}</td>
                       <td>{appointment.type}</td>
-                      <td>{appointment.status}</td>
+                      <td>
+                        <span className={`badge ${appointment.status.toLowerCase().replace(' ', '-')}`}>
+                          {appointment.status}
+                        </span>
+                      </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5" className="text-center">No upcoming appointments</td>
-                  </tr>
-                )}
+                  )) : (
+                    <tr>
+                      <td colSpan="5" className="text-center">No upcoming appointments</td>
+                    </tr>
+                  );
+                })()}
               </tbody>
             </Table>
             <div className="text-center mt-3">
@@ -1770,26 +2737,30 @@ const AdminDashboard = () => {
           </div>
           <div className="card-content">
             <div className="activity-list">
-              <div className="activity-item">
-                <div className="activity-date">Today</div>
-                <div className="activity-details">New patient registration: Maria Garcia</div>
-              </div>
-              <div className="activity-item">
-                <div className="activity-date">Today</div>
-                <div className="activity-details">Checkup completed: Juan Santos</div>
-              </div>
-              <div className="activity-item">
-                <div className="activity-date">Yesterday</div>
-                <div className="activity-details">Appointment scheduled: Ana Reyes</div>
-              </div>
-              <div className="activity-item">
-                <div className="activity-date">Yesterday</div>
-                <div className="activity-details">Medical record updated: Carlos Mendoza</div>
-              </div>
-              <div className="activity-item">
-                <div className="activity-date">06/08/2025</div>
-                <div className="activity-details">Vital signs recorded: Juan Santos</div>
-              </div>
+              {recentActivities.length > 0 ? (
+                recentActivities.slice(0, 10).map(activity => (
+                  <div key={activity.id} className={`activity-item ${activity.type}`}>
+                    <div className="activity-date">
+                      {new Date(activity.timestamp).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                    <div className="activity-details">
+                      <div className="activity-action">{activity.action}</div>
+                      {activity.details && <div className="activity-info">{activity.details}</div>}
+                    </div>
+                    <div className="activity-user">by {activity.user}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="no-activities">
+                  <i className="bi bi-clock-history"></i>
+                  <p>No recent activities</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1798,169 +2769,220 @@ const AdminDashboard = () => {
   );
 
   // Today's Checkup content
-  const renderTodaysCheckup = () => (
-    <>
-      <div className="patient-management">
-        <div className="management-header">
-          <h2 className="management-title">Scheduled Checkups for {formatShortDate(currentDateTime)}</h2>
-          <div className="management-actions">
-            <div className="search-box">
-              <i className="bi bi-search search-icon"></i>
-              <input 
-                type="text" 
-                placeholder="Search patient..." 
-                className="search-input"
-                value={searchTerm}
-                onChange={handlePatientSearch}
-              />
+  const renderTodaysCheckup = () => {
+    const filteredTodaysCheckups = todaysCheckups.filter(checkup => {
+      if (!searchTerm) return true;
+      const term = searchTerm.toLowerCase();
+      return checkup.patientName.toLowerCase().includes(term) ||
+             `PT-${String(checkup.patientId).padStart(4, '0')}`.toLowerCase().includes(term) ||
+             checkup.type.toLowerCase().includes(term) ||
+             checkup.status.toLowerCase().includes(term);
+    });
+
+    return (
+      <>
+        <div className="patient-management">
+          <div className="management-header">
+            <h2 className="management-title">
+              Today's Checkups - {formatDateWithTime(currentDateTime)}
+              <span className="badge bg-primary ms-2">{todaysCheckups.length} Patients</span>
+            </h2>
+            <div className="management-actions">
+              <div className="search-box">
+                <i className="bi bi-search search-icon"></i>
+                <input 
+                  type="text" 
+                  placeholder="Search today's checkups..." 
+                  className="search-input"
+                  value={searchTerm}
+                  onChange={handlePatientSearch}
+                />
+              </div>
+              <button 
+                className="add-patient-btn" 
+                onClick={() => {
+                  handleNavigation('Patient Database');
+                  setTabKey('members');
+                }}
+              >
+                <i className="bi bi-plus-circle"></i>
+                Check In More Patients
+              </button>
+              <button 
+                className="refresh-btn" 
+                style={{marginLeft: '8px'}} 
+                onClick={() => {
+                  setSearchTerm('');
+                  alert('Today\'s checkups refreshed!');
+                }}
+              >
+                <i className="bi bi-arrow-clockwise"></i>
+                Refresh
+              </button>
+              <button 
+                className="remove-mode-btn"
+                style={{
+                  marginLeft: '8px',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '8px 12px',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease-in-out'
+                }}
+                onClick={toggleRemoveMode}
+                title="Remove Patients from Today's Checkups"
+              >
+                <i className="bi bi-trash me-1"></i>
+                Remove Patients
+              </button>
             </div>
-            <button className="add-patient-btn" onClick={handleTodaysCheckups}>
-              <i className="bi bi-plus-circle"></i>
-              Check In Patient
-            </button>
+          </div>
+          
+          <div className="table-container">
+            {filteredTodaysCheckups.length > 0 ? (
+              <Table hover responsive className="data-table">
+                <thead>
+                  <tr>
+                    <th style={{width: '4%', textAlign: 'center'}}>#</th>
+                    <th style={{width: '8%', textAlign: 'center'}}>Patient ID</th>
+                    <th style={{width: '12%', textAlign: 'center'}}>Name</th>
+                    <th style={{width: '10%', textAlign: 'center'}}>Check-in Time</th>
+                    <th style={{width: '8%', textAlign: 'center'}}>Appointment</th>
+                    <th style={{width: '20%', textAlign: 'center'}}>Purpose</th>
+                    <th style={{width: '8%', textAlign: 'center'}}>Status</th>
+                    <th style={{width: '30%', textAlign: 'center'}}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredTodaysCheckups.map((checkup, index) => (
+                    <tr key={checkup.id}>
+                      <td style={{textAlign: 'center'}}>{index + 1}</td>
+                      <td style={{textAlign: 'center'}}>PT-{String(checkup.patientId).padStart(4, '0')}</td>
+                      <td style={{textAlign: 'center'}}>{checkup.patientName}</td>
+                      <td style={{textAlign: 'center'}}>{checkup.checkInTime}</td>
+                      <td style={{textAlign: 'center'}}>{checkup.appointmentTime}</td>
+                      <td style={{textAlign: 'center'}}>
+                        {checkup.vitalSignsComplete ? (
+                          <span className={`badge ${
+                            checkup.purpose === 'General Checkup' ? 'bg-secondary' : 'bg-primary'
+                          }`}>
+                            {checkup.purpose}
+                          </span>
+                        ) : (
+                          <Form.Select
+                            size="sm"
+                            value={availableServices.find(s => s.name === checkup.purpose)?.id || ''}
+                            onChange={(e) => handleServiceSelection(checkup.id, parseInt(e.target.value))}
+                            disabled={serviceLoading}
+                            style={{ fontSize: '0.8rem', minWidth: '140px', maxWidth: '180px', margin: '0 auto' }}
+                          >
+                            <option value="">Select Service...</option>
+                            {availableServices.map(service => (
+                              <option key={service.id} value={service.id}>
+                                {service.name}
+                              </option>
+                            ))}
+                          </Form.Select>
+                        )}
+                      </td>
+                      <td style={{textAlign: 'center'}}>
+                        <span className={`badge ${
+                          checkup.status === 'Checked In' ? 'bg-info' :
+                          checkup.status === 'Waiting' ? 'bg-warning text-dark' :
+                          checkup.status === 'In Progress' ? 'bg-primary' :
+                          checkup.status === 'Completed' ? 'bg-success' :
+                          'bg-secondary'
+                        }`}>
+                          {checkup.status}
+                        </span>
+                      </td>
+                      <td className="action-cell" style={{textAlign: 'center'}}>
+                        <div className="action-buttons-group d-flex flex-wrap gap-1 justify-content-center">
+                          <Button 
+                            variant="outline-primary" 
+                            size="sm" 
+                            className="btn-sm px-2 py-1" 
+                            onClick={() => handleViewInfo(checkup.patientData)}
+                            title="View Patient Info"
+                          >
+                            <i className="bi bi-eye me-1"></i>
+                            View
+                          </Button>
+                          <Button 
+                            variant="outline-warning" 
+                            size="sm" 
+                            className="btn-sm px-2 py-1" 
+                            onClick={() => handleVitalSigns(checkup.patientData)}
+                            title="Record Vital Signs"
+                          >
+                            <i className="bi bi-heart-pulse me-1"></i>
+                            Vitals
+                          </Button>
+                          <Button 
+                            variant="outline-info" 
+                            size="sm" 
+                            className="btn-sm px-2 py-1" 
+                            onClick={() => handleVitalSignsHistory(checkup.patientData)}
+                            title="Vital Signs History"
+                          >
+                            <i className="bi bi-clock-history me-1"></i>
+                            History
+                          </Button>
+                          <Button 
+                            variant="outline-success" 
+                            size="sm" 
+                            className="btn-sm px-2 py-1" 
+                            onClick={() => handleNotifyDoctor(checkup.patientData)}
+                            disabled={!checkup.vitalSignsComplete}
+                            title="Notify Doctor"
+                          >
+                            <i className="bi bi-bell me-1"></i>
+                            Notify
+                          </Button>
+                          <Button 
+                            variant="outline-secondary" 
+                            size="sm" 
+                            className="btn-sm px-2 py-1" 
+                            onClick={() => handleUpdateCheckupStatus(checkup.id)}
+                            title="Update Status"
+                          >
+                            <i className="bi bi-check-circle me-1"></i>
+                            Update
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            ) : (
+              <div className="empty-state text-center py-5">
+                <i className="bi bi-calendar-x" style={{fontSize: '3rem', color: '#6c757d', marginBottom: '1rem'}}></i>
+                <h4 style={{color: '#6c757d', marginBottom: '1rem'}}>No Checkups Scheduled</h4>
+                <p style={{color: '#6c757d', marginBottom: '2rem'}}>
+                  No patients have been checked in for today yet.
+                </p>
+                <Button 
+                  variant="primary" 
+                  onClick={() => {
+                    handleNavigation('Patient Database');
+                    setTabKey('members');
+                  }}
+                >
+                  <i className="bi bi-plus-circle me-2"></i>
+                  Check In Patients from Database
+                </Button>
+              </div>
+            )}
           </div>
         </div>
-        
-        <div className="table-container">
-          <Table hover responsive className="data-table">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Patient ID</th>
-                <th>Name</th>
-                <th>Time</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>1</td>
-                <td>PT-0023</td>
-                <td>Maria Santos</td>
-                <td>09:30 AM</td>
-                <td>Follow-up</td>
-                <td>Waiting</td>
-                <td className="action-cell">
-                  <div className="action-buttons-group">
-                    <Button 
-                      variant="outline-primary" 
-                      size="sm" 
-                      className="action-btn view-btn" 
-                      onClick={() => handleViewPatient(patients[0])}
-                    >
-                      <i className="bi bi-eye me-1"></i>
-                      View Info
-                    </Button>
-                    <Button 
-                      variant="outline-warning" 
-                      size="sm" 
-                      className="action-btn vitals-btn" 
-                      onClick={() => handleVitalSigns(patients[0])}
-                    >
-                      <i className="bi bi-heart-pulse me-1"></i>
-                      Vital Signs
-                    </Button>
-                    <Button 
-                      variant="outline-success" 
-                      size="sm" 
-                      className="action-btn notify-btn" 
-                      onClick={() => handleNotifyDoctor(patients[0])}
-                      disabled={!patients[0].vitalSignsComplete}
-                    >
-                      <i className="bi bi-bell me-1"></i>
-                      Notify Doctor
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td>2</td>
-                <td>PT-0034</td>
-                <td>Carlos Mendoza</td>
-                <td>10:15 AM</td>
-                <td>Check-up</td>
-                <td>In Progress</td>
-                <td className="action-cell">
-                  <div className="action-buttons-group">
-                    <Button 
-                      variant="outline-primary" 
-                      size="sm" 
-                      className="action-btn view-btn" 
-                      onClick={() => handleViewPatient(patients[3])}
-                    >
-                      <i className="bi bi-eye me-1"></i>
-                      View Info
-                    </Button>
-                    <Button 
-                      variant="outline-warning" 
-                      size="sm" 
-                      className="action-btn vitals-btn" 
-                      onClick={() => handleVitalSigns(patients[3])}
-                    >
-                      <i className="bi bi-heart-pulse me-1"></i>
-                      Vital Signs
-                    </Button>
-                    <Button 
-                      variant="outline-success" 
-                      size="sm" 
-                      className="action-btn notify-btn" 
-                      onClick={() => handleNotifyDoctor(patients[3])}
-                      disabled={!patients[3].vitalSignsComplete}
-                    >
-                      <i className="bi bi-bell me-1"></i>
-                      Notify Doctor
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-              <tr>
-                <td>3</td>
-                <td>PT-0031</td>
-                <td>Ana Reyes</td>
-                <td>11:45 AM</td>
-                <td>Medical Certificate</td>
-                <td>Scheduled</td>
-                <td className="action-cell">
-                  <div className="action-buttons-group">
-                    <Button 
-                      variant="outline-primary" 
-                      size="sm" 
-                      className="action-btn view-btn" 
-                      onClick={() => handleViewPatient(patients[2])}
-                    >
-                      <i className="bi bi-eye me-1"></i>
-                      View Info
-                    </Button>
-                    <Button 
-                      variant="outline-warning" 
-                      size="sm" 
-                      className="action-btn vitals-btn" 
-                      onClick={() => handleVitalSigns(patients[2])}
-                    >
-                      <i className="bi bi-heart-pulse me-1"></i>
-                      Vital Signs
-                    </Button>
-                    <Button 
-                      variant="outline-success" 
-                      size="sm" 
-                      className="action-btn notify-btn" 
-                      onClick={() => handleNotifyDoctor(patients[2])}
-                      disabled={!patients[2].vitalSignsComplete}
-                    >
-                      <i className="bi bi-bell me-1"></i>
-                      Notify Doctor
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </Table>
-        </div>
-      </div>
-    </>
-  );
+      </>
+    );
+  };
 
   // Patient Database content
   const renderPatientDatabase = () => (
@@ -2121,7 +3143,25 @@ const AdminDashboard = () => {
                       <td style={{textAlign: 'left'}}>{getPatientContact(patient)}</td>
                       <td style={{textAlign: 'left'}}>{formatShortDate(patient.lastCheckup || patient.createdAt)}</td>
                       <td style={{textAlign: 'center'}} className="action-cell">
-                        <Button variant="outline-primary" size="sm" onClick={() => handleViewPatient(patient)}>View Information</Button>
+                        <div className="d-flex gap-1 justify-content-center">
+                          <Button 
+                            variant="outline-primary" 
+                            size="sm" 
+                            onClick={() => handleViewPatient(patient)}
+                          >
+                            <i className="bi bi-eye me-1"></i>
+                            View Info
+                          </Button>
+                          <Button 
+                            variant="outline-success" 
+                            size="sm" 
+                            onClick={() => handleAutoLogin(patient)}
+                            disabled={todaysCheckups.some(checkup => checkup.patientId === patient.id)}
+                          >
+                            <i className="bi bi-calendar-plus me-1"></i>
+                            {todaysCheckups.some(checkup => checkup.patientId === patient.id) ? 'Checked In' : 'Check In Today'}
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -2204,244 +3244,804 @@ const AdminDashboard = () => {
     </>
   );
 
-  const renderGenerateReports = () => (
-    <div className="reports-management">
-      <div className="management-header">
-        <h2 className="management-title">
-          <i className="bi bi-file-earmark-bar-graph me-2"></i>
-          Generate Reports
-        </h2>
-        <div className="management-actions">
-          <button className="add-patient-btn" onClick={() => alert('Export All Reports feature coming soon!')}>
-            <i className="bi bi-download"></i>
-            Export All
-          </button>
+  const renderGenerateReports = () => {
+    // Report generation functions
+    const generatePatientStatisticsReport = (format = 'pdf') => {
+      const reportData = {
+        title: 'Patient Statistics Report',
+        dateGenerated: new Date().toLocaleDateString(),
+        data: {
+          totalPatients: patientsData.length,
+          totalFamilies: familiesData.length,
+          activeCheckups: todaysCheckups.length,
+          completedToday: todaysCheckups.filter(c => c.status === 'Completed').length,
+          malePatients: patientsData.filter(p => p.gender === 'Male').length,
+          femalePatients: patientsData.filter(p => p.gender === 'Female').length,
+          averageAge: patientsData.reduce((sum, p) => sum + (parseInt(p.age) || 0), 0) / patientsData.length
+        }
+      };
+
+      if (format === 'pdf') {
+        generatePDFReport(reportData, 'patient-statistics');
+      } else if (format === 'excel') {
+        generateExcelReport(reportData, 'patient-statistics');
+      }
+    };
+
+    const generateCheckupTrendsReport = (format = 'pdf') => {
+      const reportData = {
+        title: 'Checkup Trends Report',
+        dateGenerated: new Date().toLocaleDateString(),
+        data: {
+          weeklyTotal: todaysCheckups.length * 7, // Simulated
+          dailyAverage: todaysCheckups.length,
+          monthlyTrend: 'Increasing by 15%',
+          peakHours: '10:00 AM - 12:00 PM',
+          checkupTypes: {
+            consultation: todaysCheckups.filter(c => c.type === 'Consultation').length,
+            followUp: todaysCheckups.filter(c => c.type === 'Follow-up').length,
+            checkUp: todaysCheckups.filter(c => c.type === 'Check-up').length
+          }
+        }
+      };
+
+      if (format === 'pdf') {
+        generatePDFReport(reportData, 'checkup-trends');
+      } else if (format === 'excel') {
+        generateExcelReport(reportData, 'checkup-trends');
+      }
+    };
+
+    const generateDemographicsReport = (format = 'pdf') => {
+      const reportData = {
+        title: 'Demographics Report',
+        dateGenerated: new Date().toLocaleDateString(),
+        data: {
+          ageGroups: {
+            '0-18': patientsData.filter(p => parseInt(p.age) <= 18).length,
+            '19-35': patientsData.filter(p => parseInt(p.age) >= 19 && parseInt(p.age) <= 35).length,
+            '36-55': patientsData.filter(p => parseInt(p.age) >= 36 && parseInt(p.age) <= 55).length,
+            '56+': patientsData.filter(p => parseInt(p.age) > 55).length
+          },
+          genderDistribution: {
+            male: patientsData.filter(p => p.gender === 'Male').length,
+            female: patientsData.filter(p => p.gender === 'Female').length
+          },
+          familyDistribution: {
+            averageFamilySize: familiesData.length > 0 ? Math.round(patientsData.length / familiesData.length) : 0,
+            largestFamily: Math.max(...familiesData.map(f => f.memberCount || 0)),
+            singleMembers: familiesData.filter(f => (f.memberCount || 0) === 1).length
+          }
+        }
+      };
+
+      if (format === 'pdf') {
+        generatePDFReport(reportData, 'demographics');
+      } else if (format === 'excel') {
+        generateExcelReport(reportData, 'demographics');
+      }
+    };
+
+    const generateAppointmentAnalysisReport = (format = 'pdf') => {
+      const reportData = {
+        title: 'Appointment Analysis Report',
+        dateGenerated: new Date().toLocaleDateString(),
+        data: {
+          totalAppointments: appointmentsData.length,
+          scheduledToday: todaysCheckups.length,
+          completedThisWeek: todaysCheckups.filter(c => c.status === 'Completed').length,
+          cancelledThisWeek: 2, // Simulated
+          averageWaitTime: '15 minutes',
+          mostCommonType: 'Check-up',
+          busyDays: ['Monday', 'Wednesday', 'Friday']
+        }
+      };
+
+      if (format === 'pdf') {
+        generatePDFReport(reportData, 'appointment-analysis');
+      } else if (format === 'excel') {
+        generateExcelReport(reportData, 'appointment-analysis');
+      }
+    };
+
+    const generatePDFReport = (reportData, reportType) => {
+      // Enhanced PDF content with better formatting
+      let content = `
+=================================================================
+                    ${reportData.title}
+=================================================================
+Generated: ${reportData.dateGenerated}
+Report Quality: ${reportData.summary?.quality || 'Standard'}
+Report Period: ${reportData.summary?.reportPeriod || 'Last 30 Days'}
+
+=================================================================
+                      EXECUTIVE SUMMARY
+=================================================================
+`;
+
+      if (reportData.summary) {
+        content += `
+Total Patients: ${reportData.summary.totalPatients || 0}
+Total Families: ${reportData.summary.totalFamilies || 0}
+Active Checkups: ${reportData.summary.activeCheckups || 0}
+Total Appointments: ${reportData.summary.totalAppointments || 0}
+`;
+      }
+
+      if (reportData.patientStatistics) {
+        content += `
+=================================================================
+                    PATIENT STATISTICS
+=================================================================
+Total Patients: ${reportData.patientStatistics.totalPatients}
+Male Patients: ${reportData.patientStatistics.malePatients}
+Female Patients: ${reportData.patientStatistics.femalePatients}
+Average Age: ${reportData.patientStatistics.averageAge} years
+`;
+      }
+
+      if (reportData.demographics?.ageGroups) {
+        content += `
+=================================================================
+                    DEMOGRAPHICS BREAKDOWN
+=================================================================
+Age Distribution:
+- Children (0-18): ${reportData.demographics.ageGroups.children}
+- Adults (19-65): ${reportData.demographics.ageGroups.adults}
+- Seniors (65+): ${reportData.demographics.ageGroups.seniors}
+`;
+      }
+
+      if (reportData.checkupTrends) {
+        content += `
+=================================================================
+                    CHECKUP TRENDS
+=================================================================
+Total Checkups: ${reportData.checkupTrends.totalCheckups}
+Completed: ${reportData.checkupTrends.completedCheckups}
+Pending: ${reportData.checkupTrends.pendingCheckups}
+In Progress: ${reportData.checkupTrends.inProgressCheckups}
+`;
+      }
+
+      if (reportData.appointments) {
+        content += `
+=================================================================
+                    APPOINTMENT ANALYSIS
+=================================================================
+Scheduled Checkups: ${reportData.appointments.scheduled}
+Completed Today: ${reportData.appointments.completed}
+Pending: ${reportData.appointments.pending}
+Total Appointments: ${reportData.appointments.totalAppointments}
+`;
+      }
+
+      content += `
+=================================================================
+Report generated by Health Record System Management v2.0
+© 2025 Healthcare Solutions
+=================================================================
+`;
+      
+      // Create blob and download
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${reportType}-report-${new Date().toISOString().split('T')[0]}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    };
+
+    const generateExcelReport = (reportData, reportType) => {
+      // Enhanced CSV content with proper structure
+      let csvContent = `"${reportData.title}"\n`;
+      csvContent += `"Generated","${reportData.dateGenerated}"\n`;
+      csvContent += `"Quality","${reportData.summary?.quality || 'Standard'}"\n`;
+      csvContent += `"Period","${reportData.summary?.reportPeriod || 'Last 30 Days'}"\n\n`;
+      
+      // Executive Summary
+      csvContent += `"EXECUTIVE SUMMARY"\n`;
+      if (reportData.summary) {
+        csvContent += `"Metric","Value"\n`;
+        csvContent += `"Total Patients","${reportData.summary.totalPatients || 0}"\n`;
+        csvContent += `"Total Families","${reportData.summary.totalFamilies || 0}"\n`;
+        csvContent += `"Active Checkups","${reportData.summary.activeCheckups || 0}"\n`;
+        csvContent += `"Total Appointments","${reportData.summary.totalAppointments || 0}"\n\n`;
+      }
+      
+      // Patient Statistics
+      if (reportData.patientStatistics) {
+        csvContent += `"PATIENT STATISTICS"\n`;
+        csvContent += `"Category","Count"\n`;
+        csvContent += `"Total Patients","${reportData.patientStatistics.totalPatients}"\n`;
+        csvContent += `"Male Patients","${reportData.patientStatistics.malePatients}"\n`;
+        csvContent += `"Female Patients","${reportData.patientStatistics.femalePatients}"\n`;
+        csvContent += `"Average Age","${reportData.patientStatistics.averageAge}"\n\n`;
+      }
+      
+      // Demographics
+      if (reportData.demographics?.ageGroups) {
+        csvContent += `"AGE DEMOGRAPHICS"\n`;
+        csvContent += `"Age Group","Count"\n`;
+        csvContent += `"Children (0-18)","${reportData.demographics.ageGroups.children}"\n`;
+        csvContent += `"Adults (19-65)","${reportData.demographics.ageGroups.adults}"\n`;
+        csvContent += `"Seniors (65+)","${reportData.demographics.ageGroups.seniors}"\n\n`;
+      }
+      
+      // Checkup Trends
+      if (reportData.checkupTrends) {
+        csvContent += `"CHECKUP TRENDS"\n`;
+        csvContent += `"Status","Count"\n`;
+        csvContent += `"Total Checkups","${reportData.checkupTrends.totalCheckups}"\n`;
+        csvContent += `"Completed","${reportData.checkupTrends.completedCheckups}"\n`;
+        csvContent += `"Pending","${reportData.checkupTrends.pendingCheckups}"\n`;
+        csvContent += `"In Progress","${reportData.checkupTrends.inProgressCheckups}"\n\n`;
+      }
+      
+      // Appointments
+      if (reportData.appointments) {
+        csvContent += `"APPOINTMENT ANALYSIS"\n`;
+        csvContent += `"Type","Count"\n`;
+        csvContent += `"Scheduled","${reportData.appointments.scheduled}"\n`;
+        csvContent += `"Completed","${reportData.appointments.completed}"\n`;
+        csvContent += `"Pending","${reportData.appointments.pending}"\n`;
+        csvContent += `"Total","${reportData.appointments.totalAppointments}"\n`;
+      }
+      
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${reportType}-report-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      alert(`${reportData.title} (Excel format) has been generated and downloaded!`);
+    };
+
+    const exportAllReports = () => {
+      // Generate all reports in the selected format
+      const format = reportOptions.format;
+      
+      setTimeout(() => generatePatientStatisticsReport(format), 100);
+      setTimeout(() => generateCheckupTrendsReport(format), 500);
+      setTimeout(() => generateDemographicsReport(format), 900);
+      setTimeout(() => generateAppointmentAnalysisReport(format), 1300);
+      
+      alert(`Generating all reports in ${format.toUpperCase()} format. Downloads will start shortly...`);
+    };
+
+    const generateComprehensiveReport = () => {
+      const currentCheckups = sharedCheckupsData || [];
+      const comprehensiveData = {
+        title: 'Comprehensive Health Center Report',
+        dateGenerated: new Date().toLocaleDateString(),
+        summary: {
+          totalPatients: patientsData.length,
+          totalFamilies: familiesData.length,
+          activeCheckups: currentCheckups.length,
+          totalAppointments: appointmentsData.length,
+          reportPeriod: reportOptions.dateRange,
+          quality: reportOptions.quality || 'standard'
+        },
+        patientStatistics: {
+          totalPatients: patientsData.length,
+          malePatients: patientsData.filter(p => p.gender === 'Male').length,
+          femalePatients: patientsData.filter(p => p.gender === 'Female').length,
+          averageAge: patientsData.length > 0 ? 
+            Math.round(patientsData.reduce((sum, p) => sum + (parseInt(p.age) || 0), 0) / patientsData.length) : 0
+        },
+        checkupTrends: {
+          totalCheckups: currentCheckups.length,
+          completedCheckups: currentCheckups.filter(c => c.status === 'Completed').length,
+          pendingCheckups: currentCheckups.filter(c => c.status === 'Waiting').length,
+          inProgressCheckups: currentCheckups.filter(c => c.status === 'In Progress').length
+        },
+        demographics: {
+          ageGroups: {
+            children: patientsData.filter(p => parseInt(p.age) <= 18).length,
+            adults: patientsData.filter(p => parseInt(p.age) > 18 && parseInt(p.age) <= 65).length,
+            seniors: patientsData.filter(p => parseInt(p.age) > 65).length
+          },
+          genderDistribution: {
+            male: patientsData.filter(p => p.gender === 'Male').length,
+            female: patientsData.filter(p => p.gender === 'Female').length,
+            other: patientsData.filter(p => p.gender && p.gender !== 'Male' && p.gender !== 'Female').length
+          }
+        },
+        appointments: {
+          scheduled: currentCheckups.length,
+          completed: currentCheckups.filter(c => c.status === 'Completed').length,
+          pending: currentCheckups.filter(c => c.status === 'Waiting').length,
+          totalAppointments: appointmentsData.length
+        },
+        includeCharts: reportOptions.includeCharts
+      };
+
+      // Show loading state
+      const loadingNotification = document.createElement('div');
+      loadingNotification.innerHTML = `
+        <div style="position: fixed; top: 20px; right: 20px; background: #4CAF50; color: white; padding: 15px 20px; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+          <i class="bi bi-hourglass-split" style="margin-right: 10px;"></i>
+          Generating ${reportOptions.quality} ${reportOptions.format.toUpperCase()} report...
+        </div>
+      `;
+      document.body.appendChild(loadingNotification);
+
+      // Generate report based on format
+      setTimeout(() => {
+        if (reportOptions.format === 'pdf') {
+          generatePDFReport(comprehensiveData, 'comprehensive');
+        } else {
+          generateExcelReport(comprehensiveData, 'comprehensive');
+        }
+        
+        // Remove loading notification
+        document.body.removeChild(loadingNotification);
+        
+        // Show success notification
+        const successNotification = document.createElement('div');
+        successNotification.innerHTML = `
+          <div style="position: fixed; top: 20px; right: 20px; background: #2196F3; color: white; padding: 15px 20px; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+            <i class="bi bi-check-circle" style="margin-right: 10px;"></i>
+            Report generated successfully!
+          </div>
+        `;
+        document.body.appendChild(successNotification);
+        
+        setTimeout(() => {
+          if (document.body.contains(successNotification)) {
+            document.body.removeChild(successNotification);
+          }
+        }, 3000);
+      }, 1000);
+    };
+
+    return (
+      <div className="reports-management">
+        <div className="management-header">
+          <h2 className="management-title">
+            <i className="bi bi-file-earmark-bar-graph me-2"></i>
+            Generate Reports
+          </h2>
+          <div className="management-actions">
+            <button className="add-patient-btn" onClick={exportAllReports}>
+              <i className="bi bi-download"></i>
+              Export All Reports
+            </button>
+          </div>
+        </div>
+
+        {/* Modern Report Generation Dashboard */}
+        <div className="report-generation-dashboard" style={{
+          background: 'white',
+          borderRadius: '15px',
+          padding: '30px',
+          marginBottom: '30px',
+          color: '#333',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+          border: '1px solid #e0e0e0'
+        }}>
+          <div className="dashboard-header" style={{textAlign: 'center', marginBottom: '30px'}}>
+            <h2 style={{margin: '0 0 10px 0', fontSize: '28px', fontWeight: '600', color: '#2c3e50'}}>
+              <i className="bi bi-graph-up-arrow" style={{marginRight: '10px', color: '#3498db'}}></i>
+              Report Generation Center
+            </h2>
+            <p style={{margin: '0', opacity: '0.7', fontSize: '16px', color: '#7f8c8d'}}>
+              Generate comprehensive reports with advanced filtering and export options
+            </p>
+          </div>
+
+          {/* Report Configuration Panel */}
+          <div className="report-config-panel" style={{
+            background: '#f8f9fa',
+            borderRadius: '12px',
+            padding: '25px',
+            marginBottom: '25px',
+            border: '1px solid #e9ecef'
+          }}>
+            <div className="config-grid" style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+              gap: '20px',
+              marginBottom: '25px'
+            }}>
+              {/* Date Range Selection */}
+              <div className="config-group">
+                <label style={{display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px', color: '#2c3e50'}}>
+                  <i className="bi bi-calendar-range" style={{marginRight: '8px', color: '#3498db'}}></i>
+                  Date Range
+                </label>
+                <select 
+                  className="form-select" 
+                  value={reportOptions.dateRange}
+                  onChange={(e) => setReportOptions({...reportOptions, dateRange: e.target.value})}
+                  style={{
+                    background: 'white',
+                    border: '1px solid #dee2e6',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    fontSize: '14px',
+                    color: '#333'
+                  }}
+                >
+                  <option value="last7days">Last 7 Days</option>
+                  <option value="last30days">Last 30 Days</option>
+                  <option value="last90days">Last 90 Days</option>
+                  <option value="last6months">Last 6 Months</option>
+                  <option value="lastyear">Last Year</option>
+                  <option value="custom">Custom Range</option>
+                </select>
+              </div>
+
+              {/* Report Format Selection */}
+              <div className="config-group">
+                <label style={{display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px', color: '#2c3e50'}}>
+                  <i className="bi bi-file-earmark" style={{marginRight: '8px', color: '#3498db'}}></i>
+                  Export Format
+                </label>
+                <select 
+                  className="form-select"
+                  value={reportOptions.format}
+                  onChange={(e) => setReportOptions({...reportOptions, format: e.target.value})}
+                  style={{
+                    background: 'white',
+                    border: '1px solid #dee2e6',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    fontSize: '14px',
+                    color: '#333'
+                  }}
+                >
+                  <option value="pdf">📄 PDF Document</option>
+                  <option value="excel">📊 Excel Spreadsheet</option>
+                  <option value="csv">📋 CSV File</option>
+                </select>
+              </div>
+
+              {/* Report Quality */}
+              <div className="config-group">
+                <label style={{display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px', color: '#2c3e50'}}>
+                  <i className="bi bi-star" style={{marginRight: '8px', color: '#3498db'}}></i>
+                  Report Quality
+                </label>
+                <select 
+                  className="form-select"
+                  value={reportOptions.quality || 'standard'}
+                  onChange={(e) => setReportOptions({...reportOptions, quality: e.target.value})}
+                  style={{
+                    background: 'white',
+                    border: '1px solid #dee2e6',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    fontSize: '14px',
+                    color: '#333'
+                  }}
+                >
+                  <option value="basic">Basic</option>
+                  <option value="standard">Standard</option>
+                  <option value="detailed">Detailed</option>
+                  <option value="comprehensive">Comprehensive</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Chart Inclusions */}
+            <div className="chart-options" style={{marginBottom: '25px'}}>
+              <h4 style={{margin: '0 0 15px 0', fontSize: '16px', fontWeight: '500', color: '#2c3e50'}}>
+                <i className="bi bi-bar-chart" style={{marginRight: '8px', color: '#3498db'}}></i>
+                Include Visual Analytics
+              </h4>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '15px'
+              }}>
+                {[
+                  {key: 'demographics', label: 'Patient Demographics', icon: 'people'},
+                  {key: 'trends', label: 'Health Trends', icon: 'graph-up'},
+                  {key: 'appointments', label: 'Appointment Analytics', icon: 'calendar-check'},
+                  {key: 'medications', label: 'Medication Reports', icon: 'capsule'},
+                  {key: 'financial', label: 'Financial Summary', icon: 'currency-dollar'},
+                  {key: 'performance', label: 'Performance Metrics', icon: 'speedometer2'}
+                ].map(chart => (
+                  <label key={chart.key} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    padding: '10px',
+                    background: 'white',
+                    borderRadius: '8px',
+                    border: '1px solid #e9ecef',
+                    transition: 'all 0.3s'
+                  }}>
+                    <input 
+                      type="checkbox" 
+                      checked={reportOptions.includeCharts[chart.key] || false}
+                      onChange={(e) => setReportOptions({
+                        ...reportOptions, 
+                        includeCharts: {...reportOptions.includeCharts, [chart.key]: e.target.checked}
+                      })}
+                      style={{marginRight: '10px', transform: 'scale(1.2)'}}
+                    />
+                    <i className={`bi bi-${chart.icon}`} style={{marginRight: '8px', fontSize: '16px', color: '#3498db'}}></i>
+                    <span style={{fontSize: '14px', color: '#2c3e50'}}>{chart.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Action Buttons - More Boxy Style */}
+            <div className="action-buttons" style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '15px',
+              justifyContent: 'center'
+            }}>
+              <button 
+                className="btn-generate-comprehensive" 
+                onClick={generateComprehensiveReport}
+                style={{
+                  background: '#28a745',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '15px 30px',
+                  color: 'white',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                  boxShadow: '0 2px 8px rgba(40, 167, 69, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#218838'}
+                onMouseOut={(e) => e.target.style.background = '#28a745'}
+              >
+                <i className="bi bi-file-earmark-bar-graph"></i>
+                Generate Comprehensive Report
+              </button>
+              
+              <button 
+                className="btn-quick-export" 
+                onClick={exportAllReports}
+                style={{
+                  background: '#007bff',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '15px 30px',
+                  color: 'white',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                  boxShadow: '0 2px 8px rgba(0, 123, 255, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#0056b3'}
+                onMouseOut={(e) => e.target.style.background = '#007bff'}
+              >
+                <i className="bi bi-download"></i>
+                Quick Export All
+              </button>
+
+              <button 
+                className="btn-preview" 
+                onClick={() => alert('Report preview functionality coming soon!')}
+                style={{
+                  background: '#fd7e14',
+                  border: 'none',
+                  borderRadius: '6px',
+                  padding: '15px 30px',
+                  color: 'white',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s',
+                  boxShadow: '0 2px 8px rgba(253, 126, 20, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px'
+                }}
+                onMouseOver={(e) => e.target.style.background = '#e8590c'}
+                onMouseOut={(e) => e.target.style.background = '#fd7e14'}
+              >
+                <i className="bi bi-eye"></i>
+                Preview Report
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Report Generation Cards */}
+        <div className="reports-grid">
+          {/* Patient Statistics Report */}
+          <div className="report-card">
+            <div className="report-header">
+              <div className="report-icon stats">
+                <i className="bi bi-people"></i>
+              </div>
+              <div className="report-info">
+                <h3>Patient Statistics Report</h3>
+                <p>Comprehensive overview of patient demographics and statistics</p>
+              </div>
+            </div>
+            <div className="report-content">
+              <div className="report-preview">
+                <div className="preview-stats">
+                  <div className="stat-item">
+                    <span className="stat-label">Total Patients:</span>
+                    <span className="stat-value">{patientsData.length}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Active Checkups:</span>
+                    <span className="stat-value">{sharedCheckupsData.length}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Total Families:</span>
+                    <span className="stat-value">{familiesData.length}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Completed Today:</span>
+                    <span className="stat-value">{todaysCheckups.filter(c => c.status === 'Completed').length}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="report-actions">
+                <button className="btn-generate" onClick={() => generatePatientStatisticsReport('pdf')}>
+                  <i className="bi bi-file-earmark-pdf"></i>
+                  Generate PDF
+                </button>
+                <button className="btn-generate excel" onClick={() => generatePatientStatisticsReport('excel')}>
+                  <i className="bi bi-file-earmark-excel"></i>
+                  Generate Excel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Checkup Trends Report */}
+          <div className="report-card">
+            <div className="report-header">
+              <div className="report-icon trends">
+                <i className="bi bi-graph-up"></i>
+              </div>
+              <div className="report-info">
+                <h3>Checkup Trends Report</h3>
+                <p>Weekly and monthly patient checkup trends analysis</p>
+              </div>
+            </div>
+            <div className="report-content">
+              <div className="report-preview">
+                <div className="chart-mini" style={{height: '120px'}}>
+                  <Bar 
+                    data={checkupData} 
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { display: false },
+                        title: { display: false }
+                      },
+                      scales: {
+                        x: { display: false },
+                        y: { display: false }
+                      }
+                    }} 
+                  />
+                </div>
+                <div className="trend-summary">
+                  <span>Weekly Total: {todaysCheckups.length * 7} checkups</span>
+                  <span>Daily Average: {todaysCheckups.length} checkups</span>
+                </div>
+              </div>
+              <div className="report-actions">
+                <button className="btn-generate" onClick={() => generateCheckupTrendsReport('pdf')}>
+                  <i className="bi bi-file-earmark-pdf"></i>
+                  Generate PDF
+                </button>
+                <button className="btn-generate excel" onClick={() => generateCheckupTrendsReport('excel')}>
+                  <i className="bi bi-file-earmark-excel"></i>
+                  Generate Excel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Demographics Report */}
+          <div className="report-card">
+            <div className="report-header">
+              <div className="report-icon demographics">
+                <i className="bi bi-pie-chart"></i>
+              </div>
+              <div className="report-info">
+                <h3>Demographics Report</h3>
+                <p>Patient demographics breakdown by age and gender</p>
+              </div>
+            </div>
+            <div className="report-content">
+              <div className="report-preview">
+                <div className="chart-mini" style={{height: '120px'}}>
+                  <Pie 
+                    data={patientDistributionData} 
+                    options={getChartOptions('pie', '', false)}
+                  />
+                </div>
+                <div className="demo-summary">
+                  <span>Male: {patientsData.filter(p => p.gender === 'Male').length} patients</span>
+                  <span>Female: {patientsData.filter(p => p.gender === 'Female').length} patients</span>
+                </div>
+              </div>
+              <div className="report-actions">
+                <button className="btn-generate" onClick={() => generateDemographicsReport('pdf')}>
+                  <i className="bi bi-file-earmark-pdf"></i>
+                  Generate PDF
+                </button>
+                <button className="btn-generate excel" onClick={() => generateDemographicsReport('excel')}>
+                  <i className="bi bi-file-earmark-excel"></i>
+                  Generate Excel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Appointment Analysis Report */}
+          <div className="report-card">
+            <div className="report-header">
+              <div className="report-icon appointments">
+                <i className="bi bi-calendar-check"></i>
+              </div>
+              <div className="report-info">
+                <h3>Appointment Analysis</h3>
+                <p>Detailed analysis of appointment patterns and scheduling</p>
+              </div>
+            </div>
+            <div className="report-content">
+              <div className="report-preview">
+                <div className="appointment-stats">
+                  <div className="appt-item">
+                    <span className="appt-type">Total Scheduled:</span>
+                    <span className="appt-count">{appointmentsData.length}</span>
+                  </div>
+                  <div className="appt-item">
+                    <span className="appt-type">Today's Checkups:</span>
+                    <span className="appt-count">{todaysCheckups.length}</span>
+                  </div>
+                  <div className="appt-item">
+                    <span className="appt-type">Completed:</span>
+                    <span className="appt-count">{todaysCheckups.filter(c => c.status === 'Completed').length}</span>
+                  </div>
+                  <div className="appt-item">
+                    <span className="appt-type">Pending:</span>
+                    <span className="appt-count">{todaysCheckups.filter(c => c.status === 'Waiting').length}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="report-actions">
+                <button className="btn-generate" onClick={() => generateAppointmentAnalysisReport('pdf')}>
+                  <i className="bi bi-file-earmark-pdf"></i>
+                  Generate PDF
+                </button>
+                <button className="btn-generate excel" onClick={() => generateAppointmentAnalysisReport('excel')}>
+                  <i className="bi bi-file-earmark-excel"></i>
+                  Generate Excel
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Report Generation Cards */}
-      <div className="reports-grid">
-        {/* Patient Statistics Report */}
-        <div className="report-card">
-          <div className="report-header">
-            <div className="report-icon stats">
-              <i className="bi bi-people"></i>
-            </div>
-            <div className="report-info">
-              <h3>Patient Statistics Report</h3>
-              <p>Comprehensive overview of patient demographics and statistics</p>
-            </div>
-          </div>
-          <div className="report-content">
-            <div className="report-preview">
-              <div className="preview-stats">
-                <div className="stat-item">
-                  <span className="stat-label">Total Patients:</span>
-                  <span className="stat-value">{dashboardStats.totalPatients}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Active Checkups:</span>
-                  <span className="stat-value">{dashboardStats.activeCheckups}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Pending Appointments:</span>
-                  <span className="stat-value">{dashboardStats.pendingAppointments}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Completed Today:</span>
-                  <span className="stat-value">{dashboardStats.completedToday}</span>
-                </div>
-              </div>
-            </div>
-            <div className="report-actions">
-              <button className="btn-generate" onClick={() => alert('Generating Patient Statistics Report...')}>
-                <i className="bi bi-file-earmark-pdf"></i>
-                Generate PDF
-              </button>
-              <button className="btn-generate excel" onClick={() => alert('Generating Excel Report...')}>
-                <i className="bi bi-file-earmark-excel"></i>
-                Generate Excel
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Checkup Trends Report */}
-        <div className="report-card">
-          <div className="report-header">
-            <div className="report-icon trends">
-              <i className="bi bi-graph-up"></i>
-            </div>
-            <div className="report-info">
-              <h3>Checkup Trends Report</h3>
-              <p>Weekly and monthly patient checkup trends analysis</p>
-            </div>
-          </div>
-          <div className="report-content">
-            <div className="report-preview">
-              <div className="chart-mini" style={{height: '120px'}}>
-                <Bar 
-                  data={checkupData} 
-                  options={{
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                      legend: { display: false },
-                      title: { display: false }
-                    },
-                    scales: {
-                      x: { display: false },
-                      y: { display: false }
-                    }
-                  }} 
-                />
-              </div>
-              <div className="trend-summary">
-                <span>Weekly Total: 49 checkups</span>
-                <span>Daily Average: 7.0 checkups</span>
-              </div>
-            </div>
-            <div className="report-actions">
-              <button className="btn-generate" onClick={() => alert('Generating Checkup Trends Report...')}>
-                <i className="bi bi-file-earmark-pdf"></i>
-                Generate PDF
-              </button>
-              <button className="btn-generate excel" onClick={() => alert('Generating Excel Report...')}>
-                <i className="bi bi-file-earmark-excel"></i>
-                Generate Excel
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Demographics Report */}
-        <div className="report-card">
-          <div className="report-header">
-            <div className="report-icon demographics">
-              <i className="bi bi-pie-chart"></i>
-            </div>
-            <div className="report-info">
-              <h3>Demographics Report</h3>
-              <p>Patient demographics breakdown by age and gender</p>
-            </div>
-          </div>
-          <div className="report-content">
-            <div className="report-preview">
-              <div className="chart-mini" style={{height: '120px'}}>
-                <Pie 
-                  data={patientDistributionData} 
-                  options={getChartOptions('pie', '', false)}
-                />
-              </div>
-              <div className="demo-summary">
-                <span>Male: 120 patients</span>
-                <span>Female: 115 patients</span>
-              </div>
-            </div>
-            <div className="report-actions">
-              <button className="btn-generate" onClick={() => alert('Generating Demographics Report...')}>
-                <i className="bi bi-file-earmark-pdf"></i>
-                Generate PDF
-              </button>
-              <button className="btn-generate excel" onClick={() => alert('Generating Excel Report...')}>
-                <i className="bi bi-file-earmark-excel"></i>
-                Generate Excel
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Appointment Analysis Report */}
-        <div className="report-card">
-          <div className="report-header">
-            <div className="report-icon appointments">
-              <i className="bi bi-calendar-check"></i>
-            </div>
-            <div className="report-info">
-              <h3>Appointment Analysis</h3>
-              <p>Detailed analysis of appointment patterns and scheduling</p>
-            </div>
-          </div>
-          <div className="report-content">
-            <div className="report-preview">
-              <div className="appointment-stats">
-                <div className="appt-item">
-                  <span className="appt-type">Scheduled:</span>
-                  <span className="appt-count">{appointments.length}</span>
-                </div>
-                <div className="appt-item">
-                  <span className="appt-type">This Week:</span>
-                  <span className="appt-count">12</span>
-                </div>
-                <div className="appt-item">
-                  <span className="appt-type">Completed:</span>
-                  <span className="appt-count">8</span>
-                </div>
-                <div className="appt-item">
-                  <span className="appt-type">Cancelled:</span>
-                  <span className="appt-count">2</span>
-                </div>
-              </div>
-            </div>
-            <div className="report-actions">
-              <button className="btn-generate" onClick={() => alert('Generating Appointment Analysis Report...')}>
-                <i className="bi bi-file-earmark-pdf"></i>
-                Generate PDF
-              </button>
-              <button className="btn-generate excel" onClick={() => alert('Generating Excel Report...')}>
-                <i className="bi bi-file-earmark-excel"></i>
-                Generate Excel
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Report Generation Options */}
-      <div className="report-options">
-        <div className="options-header">
-          <h3>Report Generation Options</h3>
-        </div>
-        <div className="options-content">
-          <div className="option-group">
-            <label>Date Range:</label>
-            <select className="form-select">
-              <option value="last7days">Last 7 Days</option>
-              <option value="last30days" selected>Last 30 Days</option>
-              <option value="last90days">Last 90 Days</option>
-              <option value="custom">Custom Range</option>
-            </select>
-          </div>
-          <div className="option-group">
-            <label>Report Format:</label>
-            <select className="form-select">
-              <option value="pdf" selected>PDF Document</option>
-              <option value="excel">Excel Spreadsheet</option>
-              <option value="csv">CSV File</option>
-            </select>
-          </div>
-          <div className="option-group">
-            <label>Include Charts:</label>
-            <div className="checkbox-group">
-              <label className="checkbox-item">
-                <input type="checkbox" checked /> Patient Demographics
-              </label>
-              <label className="checkbox-item">
-                <input type="checkbox" checked /> Checkup Trends
-              </label>
-              <label className="checkbox-item">
-                <input type="checkbox" checked /> Appointment Analysis
-              </label>
-            </div>
-          </div>
-          <button className="btn-generate-all" onClick={() => alert('Generating comprehensive report...')}>
-            <i className="bi bi-file-earmark-bar-graph"></i>
-            Generate Comprehensive Report
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
   const renderReportHistory = () => (
     <div className="reports-history">
@@ -2712,321 +4312,848 @@ const AdminDashboard = () => {
     </div>
   );
 
+  // Helper functions for appointment management - memoized to prevent re-renders
+  const formatLongDate = useCallback((date) => {
+    const d = new Date(date);
+    return d.toLocaleDateString('en-US', { 
+      weekday: 'long',
+      month: 'long', 
+      day: 'numeric', 
+      year: 'numeric' 
+    });
+  }, []);
+
+  // Calendar navigation functions
+  const previousMonth = useCallback(() => {
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate);
+      newDate.setMonth(newDate.getMonth() - 1);
+      return newDate;
+    });
+  }, []);
+
+  const nextMonth = useCallback(() => {
+    setCurrentDate(prevDate => {
+      const newDate = new Date(prevDate);
+      newDate.setMonth(newDate.getMonth() + 1);
+      return newDate;
+    });
+  }, []);
+
+  // Generate calendar days for the current month
+  const generateCalendarDays = useCallback((date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const today = new Date();
+    
+    // Get first day of the month and calculate starting date of calendar
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(firstDay.getDate() - firstDay.getDay());
+    
+    const days = [];
+    const currentDate = new Date(startDate);
+    
+    // Generate 42 days (6 weeks * 7 days) for a complete calendar grid
+    for (let i = 0; i < 42; i++) {
+      const dayDate = new Date(currentDate);
+      const isCurrentMonth = dayDate.getMonth() === month;
+      const isToday = dayDate.toDateString() === today.toDateString();
+      
+      // Get appointments for this day
+      const dayAppointments = appointments.filter(apt => {
+        const aptDate = new Date(apt.date);
+        return aptDate.toDateString() === dayDate.toDateString();
+      });
+      
+      days.push({
+        day: dayDate.getDate(),
+        date: dayDate,
+        isToday,
+        isOtherMonth: !isCurrentMonth,
+        hasAppointments: dayAppointments.length > 0,
+        appointmentCount: dayAppointments.length,
+        appointments: dayAppointments
+      });
+      
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    return days;
+  }, [appointments]);
+
+  const getTodaysAppointments = useMemo(() => {
+    const today = '2025-08-04'; // Current date
+    return appointments.filter(apt => apt.date === today);
+  }, [appointments]);
+
+  const getUpcomingAppointments = useMemo(() => {
+    const today = new Date('2025-08-04');
+    return appointments.filter(apt => new Date(apt.date) > today);
+  }, [appointments]);
+
+  const getAppointmentHistory = useMemo(() => {
+    const today = new Date('2025-08-04');
+    return appointments.filter(apt => 
+      new Date(apt.date) < today || 
+      apt.status === 'Completed' || 
+      apt.status === 'Cancelled'
+    );
+  }, [appointments]);
+
+  const getFilteredAppointments = useCallback((appointmentList) => {
+    if (!appointmentSearchTerm) return appointmentList;
+    const term = appointmentSearchTerm.toLowerCase();
+    return appointmentList.filter(appointment => 
+      appointment.patientName.toLowerCase().includes(term) ||
+      appointment.type.toLowerCase().includes(term) ||
+      appointment.doctor.toLowerCase().includes(term) ||
+      appointment.status.toLowerCase().includes(term) ||
+      `PT-${String(appointment.patientId).padStart(4, '0')}`.toLowerCase().includes(term)
+    );
+  }, [appointmentSearchTerm]);
+
+  const getFilteredPatientsForSchedule = useMemo(() => {
+    if (!quickSchedulePatientSearch) return patients;
+    const term = quickSchedulePatientSearch.toLowerCase();
+    return patients.filter(patient => {
+      const fullName = getPatientFullName(patient).toLowerCase();
+      const patientId = `PT-${String(patient.id).padStart(4, '0')}`.toLowerCase();
+      return fullName.includes(term) || patientId.includes(term);
+    });
+  }, [quickSchedulePatientSearch, patients]);
+
+  // Get available appointment types based on date and time
+  const getAvailableAppointmentTypes = useMemo(() => {
+    const { date, time } = appointmentFormData;
+    
+    if (!date || !time) {
+      return [
+        { value: "Regular Checkup", label: "Regular Checkup", available: true },
+        { value: "Follow-up", label: "Follow-up", available: true },
+        { value: "Consultation", label: "Consultation", available: true },
+        { value: "Medical Certificate", label: "Medical Certificate", available: true },
+        { value: "Vaccination", label: "Vaccination", available: true },
+        { value: "Dental", label: "Dental", available: true },
+        { value: "Emergency", label: "Emergency", available: true }
+      ];
+    }
+
+    const appointmentDate = new Date(date);
+    const dayOfWeek = appointmentDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+    const hour = parseInt(time.split(':')[0]);
+    
+    // Define service schedules (this could come from backend/database)
+    const serviceSchedules = {
+      "Regular Checkup": { days: [1, 2, 3, 4, 5], hours: [8, 9, 10, 11, 13, 14, 15, 16] },
+      "Follow-up": { days: [1, 2, 3, 4, 5], hours: [8, 9, 10, 11, 13, 14, 15, 16] },
+      "Consultation": { days: [1, 2, 3, 4, 5], hours: [8, 9, 10, 11, 13, 14, 15, 16] },
+      "Medical Certificate": { days: [1, 2, 3, 4, 5], hours: [9, 10, 11, 14, 15] },
+      "Vaccination": { days: [1, 3, 5], hours: [9, 10, 11, 14, 15] },
+      "Dental": { days: [2, 4], hours: [9, 10, 11, 14, 15, 16] },
+      "Emergency": { days: [0, 1, 2, 3, 4, 5, 6], hours: Array.from({length: 24}, (_, i) => i) }
+    };
+
+    return [
+      { value: "Regular Checkup", label: "Regular Checkup" },
+      { value: "Follow-up", label: "Follow-up" },
+      { value: "Consultation", label: "Consultation" },
+      { value: "Medical Certificate", label: "Medical Certificate" },
+      { value: "Vaccination", label: "Vaccination" },
+      { value: "Dental", label: "Dental" },
+      { value: "Emergency", label: "Emergency" }
+    ].map(type => ({
+      ...type,
+      available: serviceSchedules[type.value] && 
+                 serviceSchedules[type.value].days.includes(dayOfWeek) && 
+                 serviceSchedules[type.value].hours.includes(hour)
+    }));
+  }, [appointmentFormData.date, appointmentFormData.time]);
+
+  const handleScheduleNewAppointment = useCallback(() => {
+    setAppointmentTabKey('quick-schedule');
+  }, []);
+
+  const handlePatientSelection = useCallback((patient) => {
+    setAppointmentFormData(prev => ({...prev, patientId: patient.id}));
+    setQuickSchedulePatientSearch(getPatientFullName(patient));
+    setIsPatientSelected(true); // Mark that a patient has been selected
+  }, []);
+
+  const handleClearForm = useCallback(() => {
+    setAppointmentFormData({patientId: '', date: '', time: '', type: '', doctor: '', duration: 30, notes: ''});
+    setQuickSchedulePatientSearch('');
+    setIsPatientSelected(false); // Reset patient selection state
+  }, []);
+
+  const handleCloseModal = useCallback(() => {
+    setShowQuickScheduleModal(false);
+    setIsPatientSelected(false); // Reset patient selection when modal closes
+  }, []);
+
+  // Function to add sample appointments for testing
+  const addSampleAppointments = useCallback(() => {
+    const sampleAppointments = [
+      {
+        id: Date.now() + 1,
+        patientName: 'Maria Santos',
+        patientId: 1,
+        date: '2025-08-04',
+        time: '09:30 AM',
+        type: 'Regular Checkup',
+        doctor: 'Dr. Santos',
+        status: 'Scheduled',
+        duration: 30,
+        notes: 'Routine health checkup'
+      },
+      {
+        id: Date.now() + 2,
+        patientName: 'Carlos Mendoza',
+        patientId: 4,
+        date: '2025-08-04',
+        time: '10:15 AM',
+        type: 'Follow-up',
+        doctor: 'Dr. Martinez',
+        status: 'In Progress',
+        duration: 45,
+        notes: 'Follow-up for blood pressure medication'
+      },
+      {
+        id: Date.now() + 3,
+        patientName: 'Ana Reyes',
+        patientId: 3,
+        date: '2025-08-04',
+        time: '11:45 AM',
+        type: 'Medical Certificate',
+        doctor: 'Dr. Santos',
+        status: 'Scheduled',
+        duration: 30,
+        notes: 'Medical certificate for employment'
+      },
+      {
+        id: Date.now() + 4,
+        patientName: 'Juan Dela Cruz',
+        patientId: 2,
+        date: '2025-08-05',
+        time: '09:00 AM',
+        type: 'Consultation',
+        doctor: 'Dr. Reyes',
+        status: 'Scheduled',
+        duration: 60,
+        notes: 'General consultation for stomach issues'
+      },
+      {
+        id: Date.now() + 5,
+        patientName: 'Rosa Martinez',
+        patientId: 5,
+        date: '2025-08-06',
+        time: '02:30 PM',
+        type: 'Vaccination',
+        doctor: 'Nurse Ana',
+        status: 'Scheduled',
+        duration: 15,
+        notes: 'COVID-19 booster shot'
+      }
+    ];
+    
+    setAppointments(prev => [...prev, ...sampleAppointments]);
+    alert('Sample appointments added successfully!');
+  }, []);
+
   const renderAppointments = () => (
-    <div className="appointments-management">
-      <div className="management-header">
-        <h2 className="management-title">
-          <i className="bi bi-calendar-check me-2"></i>
-          Appointment Management
-        </h2>
-        <div className="management-actions">
-          <div className="search-box">
-            <i className="bi bi-search search-icon"></i>
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search appointments..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <button className="add-patient-btn" onClick={() => alert('Schedule new appointment coming soon!')}>
-            <i className="bi bi-plus-circle"></i>
-            Schedule Appointment
-          </button>
-          <button className="refresh-btn" onClick={handleRefreshData}>
-            <i className="bi bi-arrow-clockwise"></i>
-            Refresh
-          </button>
-        </div>
-      </div>
-
-      {/* Appointment Summary Cards */}
-      <div className="appointment-summary">
-        <div className="summary-card">
-          <div className="summary-icon today">
-            <i className="bi bi-calendar-day"></i>
-          </div>
-          <div className="summary-content">
-            <div className="summary-value">3</div>
-            <div className="summary-label">Today's Appointments</div>
-          </div>
-        </div>
-        
-        <div className="summary-card">
-          <div className="summary-icon week">
-            <i className="bi bi-calendar-week"></i>
-          </div>
-          <div className="summary-content">
-            <div className="summary-value">15</div>
-            <div className="summary-label">This Week</div>
-          </div>
-        </div>
-        
-        <div className="summary-card">
-          <div className="summary-icon pending">
-            <i className="bi bi-clock-history"></i>
-          </div>
-          <div className="summary-content">
-            <div className="summary-value">{dashboardStats.pendingAppointments}</div>
-            <div className="summary-label">Pending</div>
-          </div>
-        </div>
-        
-        <div className="summary-card">
-          <div className="summary-icon completed">
-            <i className="bi bi-check-circle"></i>
-          </div>
-          <div className="summary-content">
-            <div className="summary-value">42</div>
-            <div className="summary-label">Completed This Month</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Schedule Section */}
-      <div className="quick-schedule">
-        <div className="schedule-header">
-          <h3>
-            <i className="bi bi-lightning-charge me-2"></i>
-            Quick Schedule
-          </h3>
-          <span>Schedule a new appointment quickly</span>
-        </div>
-        <div className="schedule-form">
-          <div className="form-row">
-            <div className="form-group">
-              <label>Patient</label>
-              <select className="form-select">
-                <option value="">Select Patient</option>
-                {patients && patients.length > 0 ? patients.map(patient => (
-                  <option key={patient.id} value={patient.id}>
-                    {getPatientFullName(patient)} (PT-{String(patient.id).padStart(4, '0')})
-                  </option>
-                )) : (
-                  <option disabled>No patients available</option>
-                )}
-              </select>
-            </div>
-            <div className="form-group">
-              <label>Date</label>
-              <input type="date" className="form-control" />
-            </div>
-            <div className="form-group">
-              <label>Time</label>
-              <input type="time" className="form-control" />
-            </div>
-            <div className="form-group">
-              <label>Type</label>
-              <select className="form-select">
-                <option value="">Select Type</option>
-                <option value="checkup">Regular Checkup</option>
-                <option value="followup">Follow-up</option>
-                <option value="consultation">Consultation</option>
-                <option value="medical-cert">Medical Certificate</option>
-                <option value="vaccination">Vaccination</option>
-              </select>
-            </div>
-            <div className="form-group">
-              <button className="btn-schedule" onClick={() => alert('Appointment scheduled successfully!')}>
-                <i className="bi bi-plus-circle"></i>
-                Schedule
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Appointment Calendar View */}
-      <div className="calendar-section">
-        <div className="calendar-header">
-          <h3>
+    <div className="appointments-comprehensive">
+      <Tabs
+        activeKey={appointmentTabKey}
+        onSelect={(k) => setAppointmentTabKey(k)}
+        className="mb-3 appointment-tabs"
+      >
+        <Tab eventKey="all-appointments" title={
+          <span>
             <i className="bi bi-calendar3 me-2"></i>
-            Appointment Calendar
-          </h3>
-          <div className="calendar-controls">
-            <button className="btn-nav" onClick={() => alert('Previous month')}>
-              <i className="bi bi-chevron-left"></i>
-            </button>
-            <span className="current-month">July 2024</span>
-            <button className="btn-nav" onClick={() => alert('Next month')}>
-              <i className="bi bi-chevron-right"></i>
-            </button>
+            All Appointments
+          </span>
+        }>
+          <div className="all-appointments">
+            <div className="management-header">
+              <h3>Appointment Management</h3>
+              <div className="header-actions-row">
+                <div className="search-box">
+                  <i className="bi bi-search search-icon"></i>
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder="Search appointments..."
+                    value={appointmentSearchTerm}
+                    onChange={(e) => setAppointmentSearchTerm(e.target.value)}
+                  />
+                </div>
+                <div className="action-buttons-group">
+                  <button className="quick-schedule-btn" onClick={() => setShowQuickScheduleModal(true)}>
+                    <i className="bi bi-lightning-charge"></i>
+                    Quick Schedule
+                  </button>
+                  {appointments.length === 0 && (
+                    <button className="add-patient-btn" onClick={addSampleAppointments} style={{backgroundColor: '#28a745'}}>
+                      <i className="bi bi-plus-circle"></i>
+                      Add Sample Data
+                    </button>
+                  )}
+                  <button className="refresh-btn" onClick={(e) => {
+                    if (e.ctrlKey || e.metaKey) {
+                      // Clear all appointments when Ctrl+Click or Cmd+Click
+                      if (window.confirm('Clear all appointments? This cannot be undone.')) {
+                        setAppointments([]);
+                        localStorage.removeItem('appointments');
+                        alert('All appointments cleared!');
+                      }
+                    } else {
+                      handleRefreshData();
+                    }
+                  }}>
+                    <i className="bi bi-arrow-clockwise"></i>
+                    Refresh
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Today's Schedule Cards */}
+            <div className="todays-schedule-cards">
+              <h4>
+                <i className="bi bi-clock me-2"></i>
+                Today's Schedule - {formatLongDate(new Date('2025-08-04'))}
+              </h4>
+              <div className="schedule-cards-grid">
+                {getTodaysAppointments.map(appointment => (
+                  <div key={appointment.id} className={`schedule-card ${appointment.status.toLowerCase().replace(' ', '-')}`}>
+                    <div className="card-time">
+                      <span className="time">{appointment.time}</span>
+                      <span className="duration">{appointment.duration}min</span>
+                    </div>
+                    <div className="card-content">
+                      <div className="patient-name">{appointment.patientName}</div>
+                      <div className="appointment-type">{appointment.type}</div>
+                      <div className="doctor-name">Dr. {appointment.doctor}</div>
+                    </div>
+                    <div className="card-status">
+                      <span className={`status-indicator ${appointment.status.toLowerCase().replace(' ', '-')}`}>
+                        {appointment.status}
+                      </span>
+                    </div>
+                    <div className="card-actions">
+                      {appointment.status === 'Scheduled' && (
+                        <button className="card-action-btn start" onClick={() => alert('Starting appointment...')}>
+                          <i className="bi bi-play-circle"></i>
+                        </button>
+                      )}
+                      {appointment.status === 'In Progress' && (
+                        <button className="card-action-btn complete" onClick={() => alert('Completing appointment...')}>
+                          <i className="bi bi-check-circle"></i>
+                        </button>
+                      )}
+                      <button className="card-action-btn edit" onClick={() => alert('Edit appointment...')}>
+                        <i className="bi bi-pencil"></i>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {getTodaysAppointments.length === 0 && (
+                  <div className="no-appointments-card">
+                    <i className="bi bi-calendar-x"></i>
+                    <p>No appointments scheduled for today</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Content Cards Layout - All Appointments and Calendar side by side */}
+            <div className="content-cards-layout">
+              {/* All Appointments Card */}
+              <div className="content-card">
+                <div className="content-card-header">
+                  <i className="bi bi-calendar-check"></i>
+                  All Appointments
+                </div>
+                <div className="content-card-body">
+                  <div className="section-actions" style={{ marginBottom: '1rem' }}>
+                    <div className="search-bar">
+                      <i className="bi bi-search search-icon"></i>
+                      <input
+                        type="text"
+                        placeholder="Search appointments..."
+                        className="search-input"
+                        value={appointmentSearchTerm}
+                        onChange={(e) => setAppointmentSearchTerm(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="appointments-card-table-container">
+                    <table className="appointments-card-table">
+                      <thead>
+                        <tr>
+                          <th>Patient</th>
+                          <th>Date</th>
+                          <th>Time</th>
+                          <th>Type</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getFilteredAppointments(appointments).map((appointment) => (
+                          <tr key={appointment.id}>
+                            <td>{appointment.patientName}</td>
+                            <td>{formatShortDate(appointment.date)}</td>
+                            <td>{appointment.time}</td>
+                            <td>{appointment.type}</td>
+                            <td>
+                              <span className={`status-indicator ${appointment.status.toLowerCase().replace(' ', '-')}`}>
+                                {appointment.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+
+              {/* Calendar Card */}
+              <div className="content-card">
+                <div className="content-card-header">
+                  <i className="bi bi-calendar3"></i>
+                  Calendar View
+                </div>
+                <div className="content-card-body">
+                  <div className="calendar-container">
+                    <div className="calendar-header">
+                      <button className="calendar-nav-btn" onClick={previousMonth}>
+                        <i className="bi bi-chevron-left"></i>
+                      </button>
+                      <h4 className="current-month">{formatLongDate(currentDate)}</h4>
+                      <button className="calendar-nav-btn" onClick={nextMonth}>
+                        <i className="bi bi-chevron-right"></i>
+                      </button>
+                    </div>
+                    
+                    <div className="calendar-grid">
+                      <div className="calendar-weekdays">
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                          <div key={day} className="weekday">{day}</div>
+                        ))}
+                      </div>
+                      
+                      <div className="calendar-days">
+                        {generateCalendarDays(currentDate).map((day, index) => (
+                          <div
+                            key={index}
+                            className={`calendar-day ${day.isToday ? 'today' : ''} ${day.isOtherMonth ? 'other-month' : ''} ${day.hasAppointments ? 'has-appointments' : ''}`}
+                            onClick={() => setShowCalendarModal({ show: true, date: day.date, appointments: day.appointments })}
+                          >
+                            <span>{day.day}</span>
+                            {day.appointmentCount > 0 && (
+                              <div className="appointment-indicator">
+                                <span className="appointment-count">{day.appointmentCount}</span>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Tab>
+        
+        <Tab eventKey="appointment-history" title={
+          <span>
+            <i className="bi bi-clock-history me-2"></i>
+            Appointment History
+          </span>
+        }>
+          <div className="appointment-history">
+            <div className="management-header">
+              <h3>Appointment History</h3>
+              <div className="history-filters">
+                <select className="form-select filter-select">
+                  <option value="all">All Status</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                <select className="form-select filter-select">
+                  <option value="all">All Time</option>
+                  <option value="week">Last Week</option>
+                  <option value="month">Last Month</option>
+                  <option value="quarter">Last Quarter</option>
+                </select>
+                <div className="search-box">
+                  <i className="bi bi-search search-icon"></i>
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder="Search history..."
+                    value={appointmentSearchTerm}
+                    onChange={(e) => setAppointmentSearchTerm(e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <Table hover responsive>
+              <thead>
+                <tr>
+                  <th>Date & Time</th>
+                  <th>Patient</th>
+                  <th>Type</th>
+                  <th>Doctor</th>
+                  <th>Status</th>
+                  <th>Duration</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {getFilteredAppointments(getAppointmentHistory).map(appointment => (
+                  <tr key={appointment.id}>
+                    <td>
+                      <div className="datetime-info">
+                        <span className="date">{formatShortDate(appointment.date)}</span>
+                        <span className="time">{appointment.time}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="patient-info">
+                        <span className="name">{appointment.patientName}</span>
+                        <span className="id">PT-{String(appointment.patientId).padStart(4, '0')}</span>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="type-badge">{appointment.type}</span>
+                    </td>
+                    <td>{appointment.doctor}</td>
+                    <td>
+                      <span className={`status-badge ${appointment.status.toLowerCase().replace(' ', '-')}`}>
+                        {appointment.status}
+                      </span>
+                    </td>
+                    <td>{appointment.duration} min</td>
+                    <td>
+                      <div className="action-buttons">
+                        <button className="action-btn view" title="View Details">
+                          <i className="bi bi-eye"></i>
+                        </button>
+                        <button className="action-btn reprint" title="Reprint Records">
+                          <i className="bi bi-printer"></i>
+                        </button>
+                        <button className="action-btn repeat" title="Schedule Similar">
+                          <i className="bi bi-arrow-repeat"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        </Tab>
+      </Tabs>
+
+      {/* Quick Schedule Modal */}
+      {showQuickScheduleModal && (
+        <div className="modal-overlay" onClick={handleCloseModal}>
+          <div className="quick-schedule-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>
+                <i className="bi bi-lightning-charge me-2"></i>
+                Quick Schedule Appointment
+              </h4>
+              <button className="modal-close" onClick={handleCloseModal}>
+                <i className="bi bi-x"></i>
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="form-row patient-search-row">
+                <div className="form-group patient-search-group">
+                  <label>Patient</label>
+                  <div className="patient-search-container" ref={patientSearchRef}>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Type patient name to search..."
+                      value={quickSchedulePatientSearch}
+                      onChange={(e) => {
+                        setQuickSchedulePatientSearch(e.target.value);
+                        if (isPatientSelected) {
+                          setIsPatientSelected(false); // Reset selection when user types
+                          setAppointmentFormData(prev => ({...prev, patientId: ''}));
+                        }
+                      }}
+                    />
+                    {isPatientSelected ? (
+                      <i className="bi bi-check-circle-fill search-icon patient-selected-icon"></i>
+                    ) : (
+                      <i className="bi bi-search search-icon"></i>
+                    )}
+                    {quickSchedulePatientSearch && !isPatientSelected && getFilteredPatientsForSchedule.length > 0 && (
+                      <div className="patient-dropdown-side">
+                        <div className="dropdown-header">
+                          <i className="bi bi-people me-2"></i>
+                          Found Patients ({getFilteredPatientsForSchedule.length})
+                        </div>
+                        {getFilteredPatientsForSchedule.slice(0, 5).map(patient => (
+                          <div 
+                            key={patient.id} 
+                            className="patient-option"
+                            onClick={() => handlePatientSelection(patient)}
+                          >
+                            <span className="patient-name">{getPatientFullName(patient)}</span>
+                            <span className="patient-id">PT-{String(patient.id).padStart(4, '0')}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {quickSchedulePatientSearch && !isPatientSelected && getFilteredPatientsForSchedule.length === 0 && (
+                      <div className="patient-dropdown-side">
+                        <div className="no-results">
+                          <i className="bi bi-search me-2"></i>
+                          No patients found
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Date</label>
+                  <input 
+                    type="date" 
+                    className="form-control"
+                    value={appointmentFormData.date}
+                    onChange={(e) => setAppointmentFormData(prev => ({...prev, date: e.target.value}))}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Time</label>
+                  <input 
+                    type="time" 
+                    className="form-control"
+                    value={appointmentFormData.time}
+                    onChange={(e) => setAppointmentFormData(prev => ({...prev, time: e.target.value}))}
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Appointment Type</label>
+                  <select 
+                    className="form-select"
+                    value={appointmentFormData.type}
+                    onChange={(e) => setAppointmentFormData(prev => ({...prev, type: e.target.value}))}
+                  >
+                    <option value="">Select Type</option>
+                    {getAvailableAppointmentTypes.map(type => (
+                      <option 
+                        key={type.value} 
+                        value={type.value}
+                        disabled={!type.available}
+                        style={{
+                          color: type.available ? 'inherit' : '#999',
+                          backgroundColor: type.available ? 'inherit' : '#f5f5f5'
+                        }}
+                      >
+                        {type.label} {!type.available ? '(Not available at selected time)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {appointmentFormData.date && appointmentFormData.time && (
+                    <small className="service-availability-note">
+                      <i className="bi bi-info-circle me-1"></i>
+                      Service availability based on selected date & time
+                    </small>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label>Doctor/Staff</label>
+                  <select 
+                    className="form-select"
+                    value={appointmentFormData.doctor}
+                    onChange={(e) => setAppointmentFormData(prev => ({...prev, doctor: e.target.value}))}
+                  >
+                    <option value="">Select Doctor/Staff</option>
+                    <option value="Dr. Santos">Dr. Santos</option>
+                    <option value="Dr. Martinez">Dr. Martinez</option>
+                    <option value="Dr. Reyes">Dr. Reyes</option>
+                    <option value="Nurse Ana">Nurse Ana</option>
+                    <option value="Any Available">Any Available</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Duration (minutes)</label>
+                  <select 
+                    className="form-select"
+                    value={appointmentFormData.duration}
+                    onChange={(e) => setAppointmentFormData(prev => ({...prev, duration: parseInt(e.target.value)}))}
+                  >
+                    <option value={15}>15 minutes</option>
+                    <option value={30}>30 minutes</option>
+                    <option value={45}>45 minutes</option>
+                    <option value={60}>60 minutes</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group full-width">
+                  <label>Notes (Optional)</label>
+                  <textarea 
+                    className="form-control"
+                    rows={3}
+                    placeholder="Additional notes for the appointment..."
+                    value={appointmentFormData.notes}
+                    onChange={(e) => setAppointmentFormData(prev => ({...prev, notes: e.target.value}))}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button 
+                className="btn-schedule-primary"
+                onClick={() => {
+                  // Validate required fields
+                  if (!quickSchedulePatientSearch || !appointmentFormData.date || 
+                      !appointmentFormData.time || !appointmentFormData.type || 
+                      !appointmentFormData.doctor) {
+                    alert('Please fill in all required fields: Patient, Date, Time, Type, and Doctor/Staff');
+                    return;
+                  }
+
+                  // Create new appointment
+                  const newAppointment = {
+                    id: Date.now(), // Simple ID generation
+                    patientName: quickSchedulePatientSearch,
+                    patientId: null, // Will be set when patient selection is properly implemented
+                    date: appointmentFormData.date,
+                    time: appointmentFormData.time,
+                    type: appointmentFormData.type,
+                    doctor: appointmentFormData.doctor,
+                    status: 'Scheduled',
+                    duration: appointmentFormData.duration,
+                    notes: appointmentFormData.notes || ''
+                  };
+
+                  // Add to appointments
+                  setAppointments(prev => [...prev, newAppointment]);
+
+                  // Add activity tracking
+                  addActivity(
+                    'Appointment Scheduled',
+                    `${quickSchedulePatientSearch} - ${appointmentFormData.type} on ${appointmentFormData.date} at ${appointmentFormData.time}`,
+                    'success'
+                  );
+
+                  // Clear form and close modal
+                  handleClearForm();
+                  handleCloseModal();
+                  
+                  alert('Appointment scheduled successfully!');
+                }}
+              >
+                <i className="bi bi-plus-circle me-2"></i>
+                Schedule Appointment
+              </button>
+              <button 
+                className="btn-schedule-secondary"
+                onClick={handleClearForm}
+              >
+                <i className="bi bi-arrow-clockwise me-2"></i>
+                Clear Form
+              </button>
+              <button 
+                className="btn-cancel"
+                onClick={() => setShowQuickScheduleModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
-        <div className="calendar-grid">
-          <div className="calendar-header-days">
-            <div className="day-header">Sun</div>
-            <div className="day-header">Mon</div>
-            <div className="day-header">Tue</div>
-            <div className="day-header">Wed</div>
-            <div className="day-header">Thu</div>
-            <div className="day-header">Fri</div>
-            <div className="day-header">Sat</div>
-          </div>
-          <div className="calendar-days">
-            {/* Sample calendar days with appointments */}
-            <div className="calendar-day other-month">30</div>
-            <div className="calendar-day">1</div>
-            <div className="calendar-day">2</div>
-            <div className="calendar-day">3</div>
-            <div className="calendar-day">4</div>
-            <div className="calendar-day">5</div>
-            <div className="calendar-day">6</div>
-            <div className="calendar-day">7</div>
-            <div className="calendar-day">8</div>
-            <div className="calendar-day">9</div>
-            <div className="calendar-day">10</div>
-            <div className="calendar-day">11</div>
-            <div className="calendar-day">12</div>
-            <div className="calendar-day">13</div>
-            <div className="calendar-day">14</div>
-            <div className="calendar-day">15</div>
-            <div className="calendar-day">16</div>
-            <div className="calendar-day">17</div>
-            <div className="calendar-day">18</div>
-            <div className="calendar-day">19</div>
-            <div className="calendar-day today has-appointments">
-              20
-              <div className="appointment-dots">
-                <div className="dot checkup"></div>
-                <div className="dot followup"></div>
-                <div className="dot consultation"></div>
-              </div>
-            </div>
-            <div className="calendar-day has-appointments">
-              21
-              <div className="appointment-dots">
-                <div className="dot checkup"></div>
-                <div className="dot medical-cert"></div>
-              </div>
-            </div>
-            <div className="calendar-day">22</div>
-            <div className="calendar-day has-appointments">
-              23
-              <div className="appointment-dots">
-                <div className="dot followup"></div>
-              </div>
-            </div>
-            <div className="calendar-day">24</div>
-            <div className="calendar-day">25</div>
-            <div className="calendar-day">26</div>
-            <div className="calendar-day">27</div>
-            <div className="calendar-day">28</div>
-            <div className="calendar-day">29</div>
-            <div className="calendar-day">30</div>
-            <div className="calendar-day">31</div>
-          </div>
-        </div>
-      </div>
+      )}
 
-      {/* Today's Appointments List */}
-      <div className="todays-appointments">
-        <div className="section-header">
-          <h3>
-            <i className="bi bi-clock me-2"></i>
-            Today's Schedule - {formatShortDate(currentDateTime)}
-          </h3>
-          <div className="status-legend">
-            <span className="legend-item scheduled">Scheduled</span>
-            <span className="legend-item in-progress">In Progress</span>
-            <span className="legend-item completed">Completed</span>
-            <span className="legend-item cancelled">Cancelled</span>
-          </div>
-        </div>
-        <div className="appointments-timeline">
-          <div className="appointment-item scheduled">
-            <div className="appointment-time">
-              <span className="time">09:30 AM</span>
-              <span className="duration">30 min</span>
+      {/* Calendar Day Modal */}
+      {showCalendarModal && (
+        <div className="modal-overlay" onClick={() => setShowCalendarModal(false)}>
+          <div className="calendar-day-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>
+                <i className="bi bi-calendar-day me-2"></i>
+                Appointments for August 4, 2025
+              </h4>
+              <button className="modal-close" onClick={() => setShowCalendarModal(false)}>
+                <i className="bi bi-x"></i>
+              </button>
             </div>
-            <div className="appointment-details">
-              <div className="patient-info">
-                <h4>Maria Santos</h4>
-                <span className="patient-id">PT-0001</span>
+            
+            <div className="modal-body">
+              <div className="day-appointments">
+                {getTodaysAppointments.map(appointment => (
+                  <div key={appointment.id} className={`day-appointment-item ${appointment.status.toLowerCase().replace(' ', '-')}`}>
+                    <div className="appointment-time-slot">
+                      <span className="time">{appointment.time}</span>
+                      <span className="duration">{appointment.duration}min</span>
+                    </div>
+                    <div className="appointment-info">
+                      <div className="patient-name">{appointment.patientName}</div>
+                      <div className="appointment-details">
+                        <span className="type">{appointment.type}</span>
+                        <span className="doctor">Dr. {appointment.doctor}</span>
+                      </div>
+                    </div>
+                    <div className="appointment-status">
+                      <span className={`status ${appointment.status.toLowerCase().replace(' ', '-')}`}>
+                        {appointment.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                {getTodaysAppointments.length === 0 && (
+                  <div className="no-appointments">
+                    <i className="bi bi-calendar-x"></i>
+                    <p>No appointments scheduled for this day</p>
+                  </div>
+                )}
               </div>
-              <div className="appointment-meta">
-                <span className="type">Regular Checkup</span>
-                <span className="status scheduled">Scheduled</span>
-              </div>
             </div>
-            <div className="appointment-actions">
-              <button className="action-btn start" onClick={() => alert('Starting appointment...')}>
-                <i className="bi bi-play-circle"></i>
-              </button>
-              <button className="action-btn edit" onClick={() => alert('Edit appointment...')}>
-                <i className="bi bi-pencil"></i>
-              </button>
-              <button className="action-btn cancel" onClick={() => alert('Cancel appointment...')}>
-                <i className="bi bi-x-circle"></i>
-              </button>
-            </div>
-          </div>
 
-          <div className="appointment-item in-progress">
-            <div className="appointment-time">
-              <span className="time">10:15 AM</span>
-              <span className="duration">45 min</span>
-            </div>
-            <div className="appointment-details">
-              <div className="patient-info">
-                <h4>Carlos Mendoza</h4>
-                <span className="patient-id">PT-0004</span>
-              </div>
-              <div className="appointment-meta">
-                <span className="type">Follow-up</span>
-                <span className="status in-progress">In Progress</span>
-              </div>
-            </div>
-            <div className="appointment-actions">
-              <button className="action-btn complete" onClick={() => alert('Completing appointment...')}>
-                <i className="bi bi-check-circle"></i>
+            <div className="modal-footer">
+              <button 
+                className="btn-primary"
+                onClick={() => setShowQuickScheduleModal(true)}
+              >
+                <i className="bi bi-plus-circle me-2"></i>
+                Add Appointment
               </button>
-              <button className="action-btn notes" onClick={() => alert('Add notes...')}>
-                <i className="bi bi-journal-text"></i>
-              </button>
-              <button className="action-btn extend" onClick={() => alert('Extend time...')}>
-                <i className="bi bi-clock"></i>
-              </button>
-            </div>
-          </div>
-
-          <div className="appointment-item scheduled">
-            <div className="appointment-time">
-              <span className="time">11:45 AM</span>
-              <span className="duration">30 min</span>
-            </div>
-            <div className="appointment-details">
-              <div className="patient-info">
-                <h4>Ana Reyes</h4>
-                <span className="patient-id">PT-0003</span>
-              </div>
-              <div className="appointment-meta">
-                <span className="type">Medical Certificate</span>
-                <span className="status scheduled">Scheduled</span>
-              </div>
-            </div>
-            <div className="appointment-actions">
-              <button className="action-btn start" onClick={() => alert('Starting appointment...')}>
-                <i className="bi bi-play-circle"></i>
-              </button>
-              <button className="action-btn edit" onClick={() => alert('Edit appointment...')}>
-                <i className="bi bi-pencil"></i>
-              </button>
-              <button className="action-btn cancel" onClick={() => alert('Cancel appointment...')}>
-                <i className="bi bi-x-circle"></i>
+              <button 
+                className="btn-secondary"
+                onClick={() => setShowCalendarModal(false)}
+              >
+                Close
               </button>
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  );
-
-  const renderScheduleAppointment = () => (
-    <div className="content-placeholder">
-      <h2>Schedule an Appointment</h2>
-      <p>This feature has been merged with the main Appointments section.</p>
+      )}
     </div>
   );
 
@@ -3552,10 +5679,18 @@ const AdminDashboard = () => {
         </div>
         <div className="user-info">
           <div className="date-time">
-            <span>{formatDate(currentDateTime)}</span>
+            <span>{formatDateWithTime(simulationMode.enabled ? simulationMode.currentSimulatedDate : currentDateTime)}</span>
+            {simulationMode.enabled && (
+              <span className="simulation-indicator">
+                <i className="bi bi-lightning-charge me-1"></i>
+                Simulating
+              </span>
+            )}
           </div>
           <div className="user">
-            <span className="user-name">Admin User</span>
+            <span className="user-name">
+              {user ? `${user.firstName} ${user.lastName}` : 'User'}
+            </span>
             <div className="user-avatar">
               <i className="bi bi-person-circle"></i>
             </div>
@@ -4473,13 +6608,13 @@ const AdminDashboard = () => {
                           setSelectedUser(user);
                           setUserFormData({
                             firstName: user.firstName,
-                            middleName: '',
+                            middleName: user.middleName || '',
                             lastName: user.lastName,
-                            emailInitials: user.username,
+                            emailInitials: user.username || user.email?.split('@')[0] || '',
                             password: '',
                             confirmPassword: '',
-                            role: user.userType,
-                            position: user.role
+                            role: user.role,
+                            position: user.position || user.accessLevel || 'Aide'
                           });
                           setShowEditUserModal(true);
                         }}
@@ -4489,11 +6624,7 @@ const AdminDashboard = () => {
                       </button>
                       <button 
                         className="action-btn delete"
-                        onClick={() => {
-                          if (window.confirm(`Are you sure you want to delete ${user.username}?`)) {
-                            setUsers(users.filter(u => u.id !== user.id));
-                          }
-                        }}
+                        onClick={() => handleDeleteUser(user)}
                         title="Delete User"
                       >
                         <i className="bi bi-trash"></i>
@@ -4631,7 +6762,7 @@ const AdminDashboard = () => {
               </Row>
               
               <Row>
-                <Col md={6}>
+                <Col md={8}>
                   <Form.Group className="mb-3">
                     <Form.Label><strong>Email Initials for Login *</strong></Form.Label>
                     <InputGroup>
@@ -4649,7 +6780,7 @@ const AdminDashboard = () => {
                     </Form.Text>
                   </Form.Group>
                 </Col>
-                <Col md={6}>
+                <Col md={4}>
                   <Form.Group className="mb-3">
                     <Form.Label><strong>Position/Role *</strong></Form.Label>
                     <Form.Select
@@ -4949,8 +7080,9 @@ const AdminDashboard = () => {
         }
       }));
       setUsers(usersWithAccessRights);
+      setBackendConnected(true); // Mark as connected since operations succeeded
       
-      alert(`Successfully created user account for ${userFormData.firstName} ${userFormData.lastName}`);
+      alert(`Successfully created user account for ${userFormData.firstName} ${userFormData.lastName}.\n\nLogin credentials:\nEmail: ${userData.emailInitials}@maybunga.health\nPassword: [as provided]`);
       
       // Reset form and go back to user type selection
       setUserFormData({
@@ -4976,7 +7108,180 @@ const AdminDashboard = () => {
       setShowAddUserModal(false);
       
     } catch (error) {
-      alert(`Error creating user: ${error.message}`);
+      console.error('Error creating user:', error);
+      alert(`Error creating user: ${error.response?.data?.msg || error.message}`);
+      
+      // Only mark as disconnected for actual connection errors
+      if (error.message.includes('Network Error') || 
+          error.message.includes('ECONNREFUSED') ||
+          error.response?.status === 500) {
+        setBackendConnected(false);
+      }
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // Handle Edit User
+  const handleEditUser = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedUser) {
+      alert('No user selected for editing');
+      return;
+    }
+
+    // Basic validation
+    if (userFormData.password && userFormData.password !== userFormData.confirmPassword) {
+      alert('Passwords do not match');
+      return;
+    }
+
+    if (!userFormData.firstName || !userFormData.lastName || !userFormData.emailInitials) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setLoadingUsers(true);
+      
+      const userData = {
+        firstName: userFormData.firstName,
+        middleName: userFormData.middleName,
+        lastName: userFormData.lastName,
+        emailInitials: userFormData.emailInitials,
+        position: userFormData.position,
+        role: userFormData.role
+      };
+
+      // Only include password if it's being changed
+      if (userFormData.password) {
+        userData.password = userFormData.password;
+      }
+
+      await userService.updateUser(selectedUser.id, userData);
+      
+      // Refresh users list
+      const response = await userService.getUsers();
+      const usersWithAccessRights = (response.users || []).map(user => ({
+        ...user,
+        accessRights: user.accessRights || {
+          dashboard: true,
+          patients: true,
+          families: true,
+          appointments: true,
+          reports: true,
+          users: user.role === 'admin',
+          settings: user.role === 'admin'
+        }
+      }));
+      setUsers(usersWithAccessRights);
+      setBackendConnected(true);
+      
+      alert(`Successfully updated user account for ${userFormData.firstName} ${userFormData.lastName}`);
+      
+      // Reset form and close modal
+      setUserFormData({
+        firstName: '',
+        middleName: '',
+        lastName: '',
+        emailInitials: '',
+        password: '',
+        confirmPassword: '',
+        role: 'aide',
+        position: 'Aide',
+        userType: ''
+      });
+      setSelectedUser(null);
+      setShowEditUserModal(false);
+      
+    } catch (error) {
+      console.error('Error updating user:', error);
+      alert(`Error updating user: ${error.response?.data?.msg || error.message}`);
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
+  // Handle Delete User
+  const handleDeleteUser = async (userToDelete) => {
+    // Count admins and doctors
+    const adminCount = users.filter(u => u.role === 'admin').length;
+    const doctorCount = users.filter(u => u.role === 'doctor').length;
+    
+    // Prevent deletion if it's the last admin or doctor
+    if (userToDelete.role === 'admin' && adminCount <= 1) {
+      alert('Cannot delete the last administrator account. At least one admin must remain.');
+      return;
+    }
+    
+    if (userToDelete.role === 'doctor' && doctorCount <= 1) {
+      alert('Cannot delete the last doctor account. At least one doctor must remain.');
+      return;
+    }
+
+    // First confirmation
+    const firstConfirm = window.confirm(
+      `Are you sure you want to delete user "${userToDelete.firstName} ${userToDelete.lastName}"?\n\n` +
+      `This action cannot be undone and will permanently remove:\n` +
+      `• User account and login access\n` +
+      `• All associated permissions\n` +
+      `• User activity history\n\n` +
+      `Click OK to continue or Cancel to abort.`
+    );
+
+    if (!firstConfirm) return;
+
+    // Second confirmation
+    const secondConfirm = window.confirm(
+      `⚠️ FINAL CONFIRMATION ⚠️\n\n` +
+      `You are about to PERMANENTLY DELETE:\n` +
+      `User: ${userToDelete.firstName} ${userToDelete.lastName}\n` +
+      `Email: ${userToDelete.email || userToDelete.username + '@maybunga.health'}\n` +
+      `Role: ${userToDelete.role}\n\n` +
+      `This action is IRREVERSIBLE!\n\n` +
+      `Type "DELETE" in the next prompt if you are absolutely certain.`
+    );
+
+    if (!secondConfirm) return;
+
+    // Final text confirmation
+    const textConfirm = prompt(
+      `To confirm deletion, type "DELETE" (all caps) below:`
+    );
+
+    if (textConfirm !== 'DELETE') {
+      alert('Deletion cancelled. Text confirmation did not match.');
+      return;
+    }
+
+    try {
+      setLoadingUsers(true);
+      
+      await userService.deleteUser(userToDelete.id);
+      
+      // Refresh users list
+      const response = await userService.getUsers();
+      const usersWithAccessRights = (response.users || []).map(user => ({
+        ...user,
+        accessRights: user.accessRights || {
+          dashboard: true,
+          patients: true,
+          families: true,
+          appointments: true,
+          reports: true,
+          users: user.role === 'admin',
+          settings: user.role === 'admin'
+        }
+      }));
+      setUsers(usersWithAccessRights);
+      setBackendConnected(true);
+      
+      alert(`User "${userToDelete.firstName} ${userToDelete.lastName}" has been successfully deleted.`);
+      
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert(`Error deleting user: ${error.response?.data?.msg || error.message}`);
     } finally {
       setLoadingUsers(false);
     }
@@ -5055,26 +7360,11 @@ const AdminDashboard = () => {
               </ul>
             </li>
             
-            <li className={activeDropdown === 'appointment' ? 'dropdown active' : 'dropdown'}>
-              <Link to="#" onClick={() => handleDropdownToggle('appointment')}>
+            <li onClick={() => handleNavigation('Appointments')}>
+              <Link to="#">
                 <i className="bi bi-calendar-check"></i>
-                <span>Appointment</span>
-                <i className={`bi ${activeDropdown === 'appointment' ? 'bi-chevron-down' : 'bi-chevron-right'} dropdown-icon`}></i>
+                <span>Appointments</span>
               </Link>
-              <ul className={activeDropdown === 'appointment' ? 'dropdown-menu show' : 'dropdown-menu'}>
-                <li onClick={() => handleNavigation('Appointments')}>
-                  <Link to="#">
-                    <i className="bi bi-calendar-event"></i>
-                    <span>Appointments</span>
-                  </Link>
-                </li>
-                <li onClick={() => handleNavigation('Appointment History')}>
-                  <Link to="#">
-                    <i className="bi bi-calendar-week"></i>
-                    <span>Appointment History</span>
-                  </Link>
-                </li>
-              </ul>
             </li>
             
             <li className={activeDropdown === 'notifications' ? 'dropdown active' : 'dropdown'}>
@@ -5127,7 +7417,7 @@ const AdminDashboard = () => {
                   </Link>
                   <ul className={activeSubDropdown === 'systemConfig' ? 'sub-dropdown-menu show' : 'sub-dropdown-menu'}>
                     <li>
-                      <Link to="#" className="sub-dropdown-item">
+                      <Link to="#" className="sub-dropdown-item" onClick={() => setShowSimulationModal(true)}>
                         <i className="bi bi-clock"></i>
                         <span>Date & Time & Simulation</span>
                       </Link>
@@ -5178,27 +7468,35 @@ const AdminDashboard = () => {
                   </Link>
                   <ul className={activeSubDropdown === 'backupRestore' ? 'sub-dropdown-menu show' : 'sub-dropdown-menu'}>
                     <li>
-                      <Link to="#" className="sub-dropdown-item">
+                      <Link to="#" className="sub-dropdown-item" onClick={handleCreateBackup}>
                         <i className="bi bi-download"></i>
-                        <span>Create Backup</span>
+                        <span>{isCreatingBackup ? 'Creating Backup...' : 'Create Backup'}</span>
                       </Link>
                     </li>
                     <li>
-                      <Link to="#" className="sub-dropdown-item">
+                      <label htmlFor="backup-file-input" className="sub-dropdown-item" style={{cursor: 'pointer'}}>
                         <i className="bi bi-upload"></i>
-                        <span>Restore Backup</span>
-                      </Link>
+                        <span>{isRestoringBackup ? 'Restoring...' : 'Restore Backup'}</span>
+                        <input 
+                          id="backup-file-input"
+                          type="file" 
+                          accept=".json"
+                          onChange={handleBackupFileSelect}
+                          style={{display: 'none'}}
+                          disabled={isRestoringBackup}
+                        />
+                      </label>
                     </li>
                     <li>
-                      <Link to="#" className="sub-dropdown-item">
+                      <Link to="#" className="sub-dropdown-item" onClick={() => setShowBackupSettingsModal(true)}>
                         <i className="bi bi-gear"></i>
                         <span>Backup Settings</span>
                       </Link>
                     </li>
                     <li>
-                      <Link to="#" className="sub-dropdown-item">
-                        <i className="bi bi-check-circle"></i>
-                        <span>Enable Auto Backup</span>
+                      <Link to="#" className="sub-dropdown-item" onClick={handleToggleAutoBackup}>
+                        <i className={`bi ${autoBackupSettings.enabled ? 'bi-check-circle-fill' : 'bi-circle'}`}></i>
+                        <span>{autoBackupSettings.enabled ? 'Disable Auto Backup' : 'Enable Auto Backup'}</span>
                       </Link>
                     </li>
                   </ul>
@@ -5235,10 +7533,18 @@ const AdminDashboard = () => {
           </div>
           <div className="user-info">
             <div className="date-time">
-              <span>{formatDate(currentDateTime)}</span>
+              <span>{formatDateWithTime(simulationMode.enabled ? simulationMode.currentSimulatedDate : currentDateTime)}</span>
+              {simulationMode.enabled && (
+                <span className="simulation-indicator">
+                  <i className="bi bi-lightning-charge me-1"></i>
+                  Simulating
+                </span>
+              )}
             </div>
             <div className="user">
-              <span className="user-name">Admin User</span>
+              <span className="user-name">
+                {user ? `${user.firstName} ${user.lastName}` : 'User'}
+              </span>
               <div className="user-avatar">
                 <i className="bi bi-person-circle"></i>
               </div>
@@ -5333,7 +7639,12 @@ const AdminDashboard = () => {
         <Modal.Header closeButton className="vital-signs-header">
           <Modal.Title>
             <i className="bi bi-heart-pulse me-2 text-warning"></i>
-            Record Vital Signs
+            {isVitalSignsEditMode ? 'Record Vital Signs' : 'View Vital Signs'}
+            {!isVitalSignsEditMode && (
+              <span className="badge bg-info ms-2">
+                <i className="bi bi-eye me-1"></i>Read Only
+              </span>
+            )}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body className="vital-signs-body">
@@ -5367,7 +7678,12 @@ const AdminDashboard = () => {
                       Temperature <span className="normal-range">(Normal: 36.1-37.2°C)</span>
                     </Form.Label>
                     <InputGroup className="vital-input-group">
-                      <Form.Select className="vital-select">
+                      <Form.Select 
+                        className="vital-select"
+                        value={vitalSignsFormData.temperature}
+                        onChange={(e) => handleVitalSignsFormChange('temperature', e.target.value)}
+                        disabled={!isVitalSignsEditMode}
+                      >
                         <option value="">Select temperature...</option>
                         {Array.from({length: 71}, (_, i) => {
                           const temp = (35.0 + (i * 0.1)).toFixed(1);
@@ -5397,7 +7713,12 @@ const AdminDashboard = () => {
                       Heart Rate <span className="normal-range">(Normal: 60-100 bpm)</span>
                     </Form.Label>
                     <InputGroup className="vital-input-group">
-                      <Form.Select className="vital-select">
+                      <Form.Select 
+                        className="vital-select"
+                        value={vitalSignsFormData.heartRate}
+                        onChange={(e) => handleVitalSignsFormChange('heartRate', e.target.value)}
+                        disabled={!isVitalSignsEditMode}
+                      >
                         <option value="">Select heart rate...</option>
                         {Array.from({length: 71}, (_, i) => {
                           const rate = 50 + i;
@@ -5436,7 +7757,12 @@ const AdminDashboard = () => {
                       Systolic <span className="normal-range">(Normal: 90-120 mmHg)</span>
                     </Form.Label>
                     <InputGroup className="vital-input-group">
-                      <Form.Select className="vital-select">
+                      <Form.Select 
+                        className="vital-select"
+                        value={vitalSignsFormData.systolicBP}
+                        onChange={(e) => handleVitalSignsFormChange('systolicBP', e.target.value)}
+                        disabled={!isVitalSignsEditMode}
+                      >
                         <option value="">Select systolic...</option>
                         {Array.from({length: 91}, (_, i) => {
                           const systolic = 90 + i;
@@ -5466,7 +7792,12 @@ const AdminDashboard = () => {
                       Diastolic <span className="normal-range">(Normal: 60-80 mmHg)</span>
                     </Form.Label>
                     <InputGroup className="vital-input-group">
-                      <Form.Select className="vital-select">
+                      <Form.Select 
+                        className="vital-select"
+                        value={vitalSignsFormData.diastolicBP}
+                        onChange={(e) => handleVitalSignsFormChange('diastolicBP', e.target.value)}
+                        disabled={!isVitalSignsEditMode}
+                      >
                         <option value="">Select diastolic...</option>
                         {Array.from({length: 51}, (_, i) => {
                           const diastolic = 60 + i;
@@ -5505,7 +7836,12 @@ const AdminDashboard = () => {
                       Respiratory Rate <span className="normal-range">(Normal: 12-20 brpm)</span>
                     </Form.Label>
                     <InputGroup className="vital-input-group">
-                      <Form.Select className="vital-select">
+                      <Form.Select 
+                        className="vital-select"
+                        value={vitalSignsFormData.respiratoryRate}
+                        onChange={(e) => handleVitalSignsFormChange('respiratoryRate', e.target.value)}
+                        disabled={!isVitalSignsEditMode}
+                      >
                         <option value="">Select respiratory rate...</option>
                         {Array.from({length: 23}, (_, i) => {
                           const rate = 8 + i;
@@ -5535,7 +7871,12 @@ const AdminDashboard = () => {
                       Oxygen Saturation <span className="normal-range">(Normal: 95-100%)</span>
                     </Form.Label>
                     <InputGroup className="vital-input-group">
-                      <Form.Select className="vital-select">
+                      <Form.Select 
+                        className="vital-select"
+                        value={vitalSignsFormData.oxygenSaturation}
+                        onChange={(e) => handleVitalSignsFormChange('oxygenSaturation', e.target.value)}
+                        disabled={!isVitalSignsEditMode}
+                      >
                         <option value="">Select oxygen saturation...</option>
                         {Array.from({length: 31}, (_, i) => {
                           const saturation = 70 + i;
@@ -5594,7 +7935,12 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                     <InputGroup className="vital-input-group">
-                      <Form.Select className="vital-select">
+                      <Form.Select 
+                        className="vital-select"
+                        value={vitalSignsFormData.weight}
+                        onChange={(e) => handleVitalSignsFormChange('weight', e.target.value)}
+                        disabled={!isVitalSignsEditMode}
+                      >
                         <option value="">Select weight...</option>
                         {generateWeightOptions()}
                       </Form.Select>
@@ -5629,7 +7975,12 @@ const AdminDashboard = () => {
                       </div>
                     </div>
                     <InputGroup className="vital-input-group">
-                      <Form.Select className="vital-select">
+                      <Form.Select 
+                        className="vital-select"
+                        value={vitalSignsFormData.height}
+                        onChange={(e) => handleVitalSignsFormChange('height', e.target.value)}
+                        disabled={!isVitalSignsEditMode}
+                      >
                         <option value="">Select height...</option>
                         {generateHeightOptions()}
                       </Form.Select>
@@ -5653,27 +8004,42 @@ const AdminDashboard = () => {
                   rows={3} 
                   placeholder="Enter any additional clinical observations, patient symptoms, or relevant notes..."
                   className="notes-textarea"
+                  value={vitalSignsFormData.clinicalNotes}
+                  onChange={(e) => handleVitalSignsFormChange('clinicalNotes', e.target.value)}
+                  disabled={!isVitalSignsEditMode}
                 />
               </Form.Group>
             </div>
           </Form>
         </Modal.Body>
         <Modal.Footer className="vital-signs-footer">
-          <div className="footer-info">
-            <small className="text-muted">
-              <i className="bi bi-info-circle me-1"></i>
-              All values are validated against medical standards
-            </small>
-          </div>
           <div className="footer-actions">
             <Button variant="outline-secondary" onClick={() => setShowVitalSignsModal(false)}>
               <i className="bi bi-x-circle me-1"></i>
               Cancel
             </Button>
-            <Button variant="success" className="save-vital-btn">
-              <i className="bi bi-check-circle me-1"></i>
-              Save Vital Signs
-            </Button>
+            
+            {/* Show Edit button when in read-only mode and user is admin */}
+            {!isVitalSignsEditMode && user && user.role === 'admin' && (
+              <Button 
+                variant="outline-warning" 
+                onClick={() => setIsVitalSignsEditMode(true)}
+              >
+                <i className="bi bi-pencil me-1"></i>
+                Edit Vital Signs
+              </Button>
+            )}
+            
+            {/* Show Save button when in edit mode */}
+            {isVitalSignsEditMode && (
+              <Button variant="success" className="save-vital-btn" onClick={handleSaveVitalSigns}>
+                <i className="bi bi-check-circle me-1"></i>
+                {todaysCheckups.find(c => c.patientId === selectedPatient?.id)?.vitalSignsComplete 
+                  ? 'Update Vital Signs' 
+                  : 'Save Vital Signs'
+                }
+              </Button>
+            )}
           </div>
         </Modal.Footer>
       </Modal>
@@ -5683,36 +8049,93 @@ const AdminDashboard = () => {
         show={showQRCodeModal} 
         onHide={() => setShowQRCodeModal(false)}
         centered
+        size="lg"
       >
         <Modal.Header closeButton>
-          <Modal.Title>Patient QR Code</Modal.Title>
+          <Modal.Title>
+            <i className="bi bi-qr-code me-2"></i>
+            Patient Login QR Code
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center">
           {selectedPatient && (
             <>
-              <div className="mb-3">
-                <strong>Patient:</strong> {getPatientFullName(selectedPatient)}<br />
-                <strong>ID:</strong> PT-{String(selectedPatient.id).padStart(4, '0')}
+              <div className="mb-4">
+                <h5 className="text-primary">Maybunga Health Center</h5>
+                <p className="text-muted">Patient Check-in QR Code</p>
               </div>
-              <div className="qr-container" style={{marginBottom: '20px'}}>
-                <QRCode 
-                  value={`PT-${selectedPatient.id}|${getPatientFullName(selectedPatient)}|${selectedPatient.familyId}`}
-                  size={200}
-                  bgColor={"#ffffff"}
-                  fgColor={"#000000"}
-                  level={"H"}
-                  includeMargin={true}
-                />
+              
+              <Row>
+                <Col md={6}>
+                  <div className="patient-info-card p-3 mb-3" style={{backgroundColor: isDarkMode ? '#2d3748' : '#f8f9fa', borderRadius: '8px'}}>
+                    <h6 className="mb-3">Patient Information</h6>
+                    <div className="text-start">
+                      <strong>Name:</strong> {getPatientFullName(selectedPatient)}<br />
+                      <strong>Patient ID:</strong> PT-{String(selectedPatient.id).padStart(4, '0')}<br />
+                      <strong>Date of Birth:</strong> {selectedPatient.dateOfBirth ? new Date(selectedPatient.dateOfBirth).toLocaleDateString() : 'N/A'}<br />
+                      <strong>Contact:</strong> {getPatientContact(selectedPatient)}
+                    </div>
+                  </div>
+                  
+                  <div className="login-initials-card p-3" style={{backgroundColor: isDarkMode ? '#4a5568' : '#e3f2fd', borderRadius: '8px', border: '2px solid #2196f3'}}>
+                    <h6 className="mb-2">Login Initials</h6>
+                    <div style={{fontSize: '24px', fontWeight: 'bold', color: '#2196f3', fontFamily: 'monospace'}}>
+                      {generatePatientLoginInitials(selectedPatient)}
+                    </div>
+                    <small className="text-muted">Use these initials for manual login if QR scanner is unavailable</small>
+                  </div>
+                </Col>
+                
+                <Col md={6}>
+                  <div className="qr-container p-3" style={{backgroundColor: 'white', borderRadius: '8px', border: '1px solid #ddd'}}>
+                    <QRCode 
+                      id="qr-modal-canvas"
+                      value={generateQRCodeData(selectedPatient)}
+                      size={200}
+                      bgColor={"#ffffff"}
+                      fgColor={"#000000"}
+                      level={"H"}
+                      includeMargin={true}
+                    />
+                  </div>
+                  
+                  <div className="mt-3">
+                    <small className="text-muted">
+                      <i className="bi bi-info-circle me-1"></i>
+                      Scan this QR code at the healthcare center for quick check-in
+                    </small>
+                  </div>
+                </Col>
+              </Row>
+              
+              <div className="instructions mt-4 p-3" style={{backgroundColor: isDarkMode ? '#2d3748' : '#fff3cd', borderRadius: '8px', border: '1px solid #ffc107'}}>
+                <h6 className="mb-2">
+                  <i className="bi bi-exclamation-triangle me-2"></i>
+                  Important Instructions
+                </h6>
+                <div className="text-start small">
+                  <ul className="mb-0">
+                    <li>Present this QR code at the reception desk for quick check-in</li>
+                    <li>Alternatively, provide the login initials: <strong>{generatePatientLoginInitials(selectedPatient)}</strong></li>
+                    <li>This QR code is for healthcare center use only - do not share online</li>
+                    <li>Print or save this QR code for future visits</li>
+                    <li>Contact the health center if you experience any login issues</li>
+                  </ul>
+                </div>
               </div>
-              <p>Scan this QR code for quick patient identification and check-in</p>
             </>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowQRCodeModal(false)}>
+          <Button variant="outline-secondary" onClick={() => setShowQRCodeModal(false)}>
+            <i className="bi bi-x-circle me-2"></i>
             Close
           </Button>
-          <Button variant="primary">
+          <Button variant="outline-primary" onClick={handleDownloadQRCode}>
+            <i className="bi bi-download me-2"></i>
+            Download QR Code
+          </Button>
+          <Button variant="primary" onClick={handlePrintQRCode}>
             <i className="bi bi-printer me-2"></i>
             Print QR Code
           </Button>
@@ -5768,19 +8191,30 @@ const AdminDashboard = () => {
                   </span>
                 </div>
                 
+                {/* Service Selection for Check-in */}
+                <div style={{
+                  background: 'var(--bg-tertiary)', 
+                  padding: '15px', 
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-primary)',
+                  marginBottom: '15px'
+                }}>
+                  
                 <div className="d-flex gap-2">
                   <Button 
-                    variant="outline-warning" 
+                    variant="primary" 
                     size="sm"
                     style={{borderRadius: '8px', fontWeight: 500}}
+                    onClick={() => handleAutoLogin(selectedPatient)}
                   >
-                    <i className="bi bi-key me-1"></i>
+                    <i className="bi bi-check-circle me-1"></i>
                     Auto Login
                   </Button>
                   <Button 
                     variant="outline-success" 
                     size="sm"
                     style={{borderRadius: '8px', fontWeight: 500}}
+                    onClick={() => handleQRCode(selectedPatient)}
                   >
                     <i className="bi bi-qr-code me-1"></i>
                     Generate QR
@@ -5842,316 +8276,22 @@ const AdminDashboard = () => {
                     )}
                   </div>
                 </div>
+                </div>
               </div>
 
               {/* Information Cards Grid */}
-              <div className="row g-3 mb-4">
-                {/* Personal Information Card */}
-                <div className="col-md-6">
-                  <div style={{
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-primary)',
-                    borderRadius: '12px',
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      background: 'var(--accent-primary)',
-                      color: 'white',
-                      padding: '12px 16px',
-                      fontWeight: 600,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <i className="bi bi-person-circle"></i>
-                      Personal Information
-                    </div>
-                    <div style={{padding: '16px'}}>
-                      <div className="row g-2">
-                        <div className="col-4">
-                          <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Age</small>
-                          <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
-                            {selectedPatient.age || 'N/A'}
-                          </div>
-                        </div>
-                        <div className="col-4">
-                          <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Gender</small>
-                          <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
-                            {selectedPatient.gender || 'N/A'}
-                          </div>
-                        </div>
-                        <div className="col-4">
-                          <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Civil Status</small>
-                          <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
-                            {selectedPatient.civilStatus || 'N/A'}
-                          </div>
-                        </div>
-                        <div className="col-6">
-                          <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Date of Birth</small>
-                          <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
-                            {selectedPatient.dateOfBirth ? new Date(selectedPatient.dateOfBirth).toLocaleDateString() : 'N/A'}
-                          </div>
-                        </div>
-                        <div className="col-6">
-                          <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Blood Type</small>
-                          <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
-                            {selectedPatient.bloodType || 'N/A'}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Contact Information Card */}
-                <div className="col-md-6">
-                  <div style={{
-                    background: 'var(--bg-secondary)',
-                    border: '1px solid var(--border-primary)',
-                    borderRadius: '12px',
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      background: 'var(--success)',
-                      color: 'white',
-                      padding: '12px 16px',
-                      fontWeight: 600,
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <i className="bi bi-telephone"></i>
-                      Contact Information
-                    </div>
-                    <div style={{padding: '16px'}}>
-                      <div className="mb-2">
-                        <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Phone</small>
-                        <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
-                          {selectedPatient.contactNumber || 'N/A'}
-                        </div>
-                      </div>
-                      <div className="mb-2">
-                        <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Email</small>
-                        <div style={{color: 'var(--warning)', fontWeight: 500}}>
-                          {selectedPatient.email || 'N/A'}
-                        </div>
-                      </div>
-                      <div className="mb-2">
-                        <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>PhilHealth Number</small>
-                        <div style={{color: 'var(--text-primary)', fontWeight: 500}}>
-                          {selectedPatient.philHealthNumber || 'N/A'}
-                        </div>
-                      </div>
-                      <div>
-                        <small style={{color: 'var(--text-secondary)', fontWeight: 500}}>Address</small>
-                        <div style={{color: 'var(--text-primary)', fontWeight: 500, fontSize: '0.9rem'}}>
-                          {selectedPatient.formattedAddress || selectedPatient.address || 'N/A'}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <PatientInfoCards selectedPatient={selectedPatient} />
 
               {/* Patient Actions Section */}
-              <div style={{
-                background: 'var(--bg-secondary)',
-                border: '1px solid var(--border-primary)',
-                borderRadius: '12px',
-                overflow: 'hidden'
-              }}>
-                <div style={{
-                  background: 'var(--sidebar-bg)',
-                  color: 'white',
-                  padding: '12px 16px',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}>
-                  <i className="bi bi-activity"></i>
-                  Patient Actions
-                </div>
-                <div style={{padding: '20px'}}>
-                  <div className="row g-3">
-                    <div className="col-md-4">
-                      <div 
-                        className="h-100 d-flex align-items-center p-3"
-                        style={{
-                          background: 'var(--bg-primary)',
-                          border: '1px solid var(--border-secondary)',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onClick={() => handleCheckupHistory(selectedPatient)}
-                        onMouseEnter={(e) => {
-                          e.target.style.borderColor = 'var(--accent-primary)';
-                          e.target.style.transform = 'translateY(-2px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.borderColor = 'var(--border-secondary)';
-                          e.target.style.transform = 'translateY(0)';
-                        }}
-                      >
-                        <div className="me-3">
-                          <i className="bi bi-clipboard-pulse" style={{fontSize: '1.5rem', color: 'var(--accent-primary)'}}></i>
-                        </div>
-                        <div>
-                          <div style={{color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.9rem'}}>
-                            Check Up History
-                          </div>
-                          <small style={{color: 'var(--text-secondary)'}}>
-                            Full examination details
-                          </small>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="col-md-4">
-                      <div 
-                        className="h-100 d-flex align-items-center p-3"
-                        style={{
-                          background: 'var(--bg-primary)',
-                          border: '1px solid var(--border-secondary)',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onClick={() => handleTreatmentRecord(selectedPatient)}
-                        onMouseEnter={(e) => {
-                          e.target.style.borderColor = 'var(--success)';
-                          e.target.style.transform = 'translateY(-2px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.borderColor = 'var(--border-secondary)';
-                          e.target.style.transform = 'translateY(0)';
-                        }}
-                      >
-                        <div className="me-3">
-                          <i className="bi bi-file-medical" style={{fontSize: '1.5rem', color: 'var(--success)'}}></i>
-                        </div>
-                        <div>
-                          <div style={{color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.9rem'}}>
-                            Treatment Record
-                          </div>
-                          <small style={{color: 'var(--text-secondary)'}}>
-                            Previous medical records
-                          </small>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="col-md-4">
-                      <div 
-                        className="h-100 d-flex align-items-center p-3"
-                        style={{
-                          background: 'var(--bg-primary)',
-                          border: '1px solid var(--border-secondary)',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onClick={() => handleImmunizationHistory(selectedPatient)}
-                        onMouseEnter={(e) => {
-                          e.target.style.borderColor = 'var(--error)';
-                          e.target.style.transform = 'translateY(-2px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.borderColor = 'var(--border-secondary)';
-                          e.target.style.transform = 'translateY(0)';
-                        }}
-                      >
-                        <div className="me-3">
-                          <i className="bi bi-shield-check" style={{fontSize: '1.5rem', color: 'var(--error)'}}></i>
-                        </div>
-                        <div>
-                          <div style={{color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.9rem'}}>
-                            Immunization History
-                          </div>
-                          <small style={{color: 'var(--text-secondary)'}}>
-                            Vaccination records
-                          </small>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="col-md-6">
-                      <div 
-                        className="h-100 d-flex align-items-center p-3"
-                        style={{
-                          background: 'var(--bg-primary)',
-                          border: '1px solid var(--border-secondary)',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onClick={() => handleReferralForm(selectedPatient)}
-                        onMouseEnter={(e) => {
-                          e.target.style.borderColor = 'var(--warning)';
-                          e.target.style.transform = 'translateY(-2px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.borderColor = 'var(--border-secondary)';
-                          e.target.style.transform = 'translateY(0)';
-                        }}
-                      >
-                        <div className="me-3">
-                          <i className="bi bi-file-medical-fill" style={{fontSize: '1.5rem', color: 'var(--warning)'}}></i>
-                        </div>
-                        <div>
-                          <div style={{color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.9rem'}}>
-                            Laboratory Referral
-                          </div>
-                          <small style={{color: 'var(--text-secondary)'}}>
-                            Generate referral slip
-                          </small>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="col-md-6">
-                      <div 
-                        className="h-100 d-flex align-items-center p-3"
-                        style={{
-                          background: 'var(--bg-primary)',
-                          border: '1px solid var(--border-secondary)',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.target.style.borderColor = 'var(--accent-secondary)';
-                          e.target.style.transform = 'translateY(-2px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.borderColor = 'var(--border-secondary)';
-                          e.target.style.transform = 'translateY(0)';
-                        }}
-                        onClick={() => handleSMSNotification(selectedPatient)}
-                      >
-                        <div className="me-3">
-                          <i className="bi bi-chat-dots" style={{fontSize: '1.5rem', color: 'var(--accent-secondary)'}}></i>
-                        </div>
-                        <div>
-                          <div style={{color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.9rem'}}>
-                            SMS Notification
-                          </div>
-                          <small style={{color: 'var(--text-secondary)'}}>
-                            Send text message
-                          </small>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="text-center mt-3">
-                    <small style={{color: 'var(--text-secondary)', fontStyle: 'italic'}}>
-                      Select an action to perform
-                    </small>
-                  </div>
-                </div>
-              </div>
+              <PatientActionsSection 
+                selectedPatient={selectedPatient}
+                handleCheckupHistory={handleCheckupHistory}
+                handleVitalSignsHistory={handleVitalSignsHistory}
+                handleTreatmentRecord={handleTreatmentRecord}
+                handleImmunizationHistory={handleImmunizationHistory}
+                handleReferralForm={handleReferralForm}
+                handleSMSNotification={handleSMSNotification}
+              />
 
               {/* Footer Note */}
               <div className="text-center mt-3">
@@ -7126,6 +9266,14 @@ const AdminDashboard = () => {
               };
               
               setUsers([...users, newUser]);
+
+              // Add activity tracking
+              addActivity(
+                'User Created',
+                `New ${newUser.position} account created: ${newUser.firstName} ${newUser.lastName}`,
+                'success'
+              );
+
               setShowAddUserModal(false);
               setUserFormData({
                 firstName: '',
@@ -7196,7 +9344,7 @@ const AdminDashboard = () => {
             </Row>
             
             <Row>
-              <Col md={4}>
+              <Col md={3}>
                 <Form.Group className="mb-3">
                   <Form.Label><strong>Access Level *</strong></Form.Label>
                   <Form.Select
@@ -7218,7 +9366,7 @@ const AdminDashboard = () => {
                   </Form.Select>
                 </Form.Group>
               </Col>
-              <Col md={4}>
+              <Col md={6}>
                 <Form.Group className="mb-3">
                   <Form.Label><strong>Email Initials for Login *</strong></Form.Label>
                   <InputGroup>
@@ -7234,7 +9382,7 @@ const AdminDashboard = () => {
                   </InputGroup>
                 </Form.Group>
               </Col>
-              <Col md={4}>
+              <Col md={3}>
                 <Form.Group className="mb-3">
                   <Form.Label><strong>Position/Role *</strong></Form.Label>
                   <Form.Select
@@ -7324,6 +9472,193 @@ const AdminDashboard = () => {
           >
             <i className="bi bi-person-plus me-2"></i>
             Create User
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Edit User Modal */}
+      <Modal show={showEditUserModal} onHide={() => setShowEditUserModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-pencil me-2"></i>
+            Edit User
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleEditUser}>
+            <Row>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label><strong>First Name *</strong></Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter first name"
+                    value={userFormData.firstName}
+                    onChange={(e) => setUserFormData({
+                      ...userFormData,
+                      firstName: e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1).toLowerCase()
+                    })}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label><strong>Middle Name</strong></Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter middle name (optional)"
+                    value={userFormData.middleName}
+                    onChange={(e) => setUserFormData({
+                      ...userFormData,
+                      middleName: e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1).toLowerCase()
+                    })}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label><strong>Last Name *</strong></Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter last name"
+                    value={userFormData.lastName}
+                    onChange={(e) => setUserFormData({
+                      ...userFormData,
+                      lastName: e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1).toLowerCase()
+                    })}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+            
+            <Row>
+              <Col md={8}>
+                <Form.Group className="mb-3">
+                  <Form.Label><strong>Email Initials for Login *</strong></Form.Label>
+                  <InputGroup>
+                    <Form.Control
+                      type="text"
+                      placeholder="e.g., j.santos"
+                      value={userFormData.emailInitials}
+                      onChange={(e) => setUserFormData({...userFormData, emailInitials: e.target.value.toLowerCase()})}
+                      required
+                    />
+                    <InputGroup.Text>@maybunga.health</InputGroup.Text>
+                  </InputGroup>
+                  <Form.Text className="text-muted">
+                    This will be used as the login email (e.g., j.santos@maybunga.health)
+                  </Form.Text>
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group className="mb-3">
+                  <Form.Label><strong>Position/Role *</strong></Form.Label>
+                  <Form.Select
+                    value={userFormData.position}
+                    onChange={(e) => {
+                      const position = e.target.value;
+                      const role = position === 'Doctor' ? 'doctor' : position === 'Admin' ? 'admin' : 'aide';
+                      setUserFormData({...userFormData, position, role});
+                    }}
+                    required
+                  >
+                    <option value="Aide">Aide</option>
+                    <option value="Nurse">Nurse</option>
+                    <option value="Nutritionist">Nutritionist</option>
+                    <option value="Medical Personnel">Medical Personnel</option>
+                    <option value="Doctor">Doctor</option>
+                    <option value="Admin">Administrator</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+            
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label><strong>New Password</strong></Form.Label>
+                  <InputGroup>
+                    <Form.Control
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter new password (leave blank to keep current)"
+                      value={userFormData.password}
+                      onChange={(e) => setUserFormData({...userFormData, password: e.target.value})}
+                      minLength={8}
+                    />
+                    <InputGroup.Text 
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                    </InputGroup.Text>
+                  </InputGroup>
+                  <Form.Text className="text-muted">
+                    Leave blank to keep current password. Minimum 8 characters if changing.
+                  </Form.Text>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label><strong>Confirm New Password</strong></Form.Label>
+                  <InputGroup>
+                    <Form.Control
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Re-enter new password"
+                      value={userFormData.confirmPassword}
+                      onChange={(e) => setUserFormData({...userFormData, confirmPassword: e.target.value})}
+                      isInvalid={userFormData.password !== userFormData.confirmPassword && userFormData.confirmPassword !== ''}
+                    />
+                    <InputGroup.Text 
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      <i className={`bi ${showConfirmPassword ? 'bi-eye-slash' : 'bi-eye'}`}></i>
+                    </InputGroup.Text>
+                  </InputGroup>
+                  <Form.Control.Feedback type="invalid">
+                    Passwords do not match
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+            </Row>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => {
+            setShowEditUserModal(false);
+            setSelectedUser(null);
+            setUserFormData({
+              firstName: '',
+              middleName: '',
+              lastName: '',
+              emailInitials: '',
+              password: '',
+              confirmPassword: '',
+              role: 'aide',
+              position: 'Aide',
+              userType: ''
+            });
+          }}>
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleEditUser}
+            disabled={loadingUsers || !userFormData.firstName || !userFormData.lastName || !userFormData.emailInitials || (userFormData.password && userFormData.password !== userFormData.confirmPassword)}
+          >
+            {loadingUsers ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Updating...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-check-circle me-1"></i>
+                Update User
+              </>
+            )}
           </Button>
         </Modal.Footer>
       </Modal>
@@ -7830,15 +10165,160 @@ const AdminDashboard = () => {
           padding: '32px',
           minHeight: '50vh'
         }}>
-          <div className="text-center">
-            <i className="bi bi-graph-up" style={{fontSize: '4rem', color: '#0ea5e9'}}></i>
-            <h4 className="mt-3" style={{color: isDarkMode ? '#e2e8f0' : '#2c3e50'}}>Vital Signs History</h4>
-            <p style={{color: isDarkMode ? '#94a3b8' : '#6c757d'}}>
-              This feature will display the patient's vital signs history.
-              <br />
-              Please provide the format you'd like to use for this section.
-            </p>
-          </div>
+          {selectedPatient && (
+            <div className="mb-4">
+              <div className="d-flex align-items-center mb-3">
+                <div className="me-3">
+                  <i className="bi bi-person-circle" style={{fontSize: '2.5rem', color: '#0ea5e9'}}></i>
+                </div>
+                <div>
+                  <h5 className="mb-1" style={{color: isDarkMode ? '#e2e8f0' : '#2c3e50'}}>
+                    {getPatientFullName(selectedPatient)}
+                  </h5>
+                  <p className="mb-0" style={{color: isDarkMode ? '#94a3b8' : '#6c757d'}}>
+                    Patient ID: PT-{String(selectedPatient.id).padStart(4, '0')} | Age: {getPatientAge(selectedPatient)} years
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {loadingVitalHistory ? (
+            <div className="text-center py-5">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <p className="mt-3">Loading vital signs history...</p>
+            </div>
+          ) : !Array.isArray(vitalSignsHistory) || vitalSignsHistory.length === 0 ? (
+            <div className="text-center py-5">
+              <i className="bi bi-clipboard-x" style={{fontSize: '4rem', color: '#6c757d'}}></i>
+              <h5 className="mt-3" style={{color: isDarkMode ? '#94a3b8' : '#6c757d'}}>No Vital Signs Records</h5>
+              <p style={{color: isDarkMode ? '#94a3b8' : '#6c757d'}}>
+                No vital signs have been recorded for this patient yet.
+              </p>
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-hover">
+                <thead style={{background: isDarkMode ? '#334155' : '#f8f9fa'}}>
+                  <tr>
+                    <th>Date & Time</th>
+                    <th>Temperature</th>
+                    <th>Heart Rate</th>
+                    <th>Blood Pressure</th>
+                    <th>Resp. Rate</th>
+                    <th>O2 Sat</th>
+                    <th>Weight</th>
+                    <th>Height</th>
+                    <th>Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.isArray(vitalSignsHistory) && vitalSignsHistory.length > 0 ? (
+                    vitalSignsHistory.map((record, index) => (
+                      <tr key={index}>
+                        <td>
+                          <div>
+                            <strong>{new Date(record.recordedAt).toLocaleDateString()}</strong>
+                          </div>
+                          <small className="text-muted">
+                            {new Date(record.recordedAt).toLocaleTimeString()}
+                          </small>
+                        </td>
+                      <td>
+                        <span className={`badge ${
+                          record.temperature >= 36.1 && record.temperature <= 37.2 
+                            ? 'bg-success' 
+                            : record.temperature > 37.2 
+                              ? 'bg-danger' 
+                              : 'bg-warning'
+                        }`}>
+                          {record.temperature}°C
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${
+                          record.heartRate >= 60 && record.heartRate <= 100 
+                            ? 'bg-success' 
+                            : 'bg-warning'
+                        }`}>
+                          {record.heartRate} bpm
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${
+                          record.systolicBP >= 90 && record.systolicBP <= 120 && 
+                          record.diastolicBP >= 60 && record.diastolicBP <= 80 
+                            ? 'bg-success' 
+                            : 'bg-warning'
+                        }`}>
+                          {record.systolicBP}/{record.diastolicBP}
+                        </span>
+                      </td>
+                      <td>
+                        {record.respiratoryRate ? (
+                          <span className={`badge ${
+                            record.respiratoryRate >= 12 && record.respiratoryRate <= 20 
+                              ? 'bg-success' 
+                              : 'bg-warning'
+                          }`}>
+                            {record.respiratoryRate} brpm
+                          </span>
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
+                      <td>
+                        {record.oxygenSaturation ? (
+                          <span className={`badge ${
+                            record.oxygenSaturation >= 95 
+                              ? 'bg-success' 
+                              : 'bg-warning'
+                          }`}>
+                            {record.oxygenSaturation}%
+                          </span>
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
+                      <td>
+                        {record.weight ? `${record.weight} kg` : <span className="text-muted">-</span>}
+                      </td>
+                      <td>
+                        {record.height ? `${record.height} cm` : <span className="text-muted">-</span>}
+                      </td>
+                      <td>
+                        {record.clinicalNotes ? (
+                          <div style={{maxWidth: '200px'}}>
+                            <small>{record.clinicalNotes}</small>
+                          </div>
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
+                    </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="9" className="text-center text-muted py-4">
+                        {loadingVitalHistory ? (
+                          <div>
+                            <div className="spinner-border spinner-border-sm me-2" role="status">
+                              <span className="visually-hidden">Loading...</span>
+                            </div>
+                            Loading vital signs history...
+                          </div>
+                        ) : (
+                          'No vital signs history found for this patient.'
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )}
         </Modal.Body>
         
         <Modal.Footer style={{
@@ -9148,6 +11628,260 @@ const AdminDashboard = () => {
         onHide={closeSMSNotificationModal}
         selectedPatient={selectedPatient}
       />
+
+      {/* Simulation Mode Modal */}
+      {showSimulationModal && (
+        <div className="modal-overlay" onClick={() => setShowSimulationModal(false)}>
+          <div className="simulation-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h4>
+                <i className="bi bi-clock-history me-2"></i>
+                Simulation System
+              </h4>
+              <button className="modal-close" onClick={() => setShowSimulationModal(false)}>
+                <i className="bi bi-x"></i>
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="simulation-warning">
+                <div className="warning-content">
+                  <div className="warning-header">
+                    <i className="bi bi-exclamation-triangle text-warning me-2"></i>
+                    <strong>Development & Testing Feature</strong>
+                  </div>
+                  <p>Jump to specific dates and times to test time-sensitive features and system behavior.</p>
+                </div>
+              </div>
+
+              <div className="form-section">
+                <div className="form-group">
+                  <div className="simulation-toggle-container">
+                    <button
+                      className={`btn ${simulationMode.enabled ? 'btn-primary' : 'btn-outline-primary'}`}
+                      onClick={handleSimulationToggle}
+                    >
+                      <i className="bi bi-clock me-1"></i>
+                      {simulationMode.enabled ? 'Stop Simulation' : 'Start Simulation'}
+                    </button>
+                    <div className="simulation-notice">
+                      <small className="text-muted">
+                        <i className="bi bi-info-circle me-1"></i>
+                        {simulationMode.enabled ? 'System time will be overridden' : 'Enable to jump to custom date/time'}
+                      </small>
+                    </div>
+                  </div>
+                  {simulationMode.enabled && (
+                    <div className="simulation-status">
+                      <span className="status-badge active">
+                        <i className="bi bi-lightning-charge me-1"></i>
+                        Active
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {simulationMode.enabled && (
+                <>
+                  <div className="form-section">
+                    <label className="section-label">
+                      <i className="bi bi-calendar3 me-2"></i>
+                      Simulated Date & Time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      className="form-control"
+                      value={simulationMode.currentSimulatedDate.toISOString().slice(0, 16)}
+                      onChange={(e) => handleSimulatedDateChange(e.target.value)}
+                    />
+                    <small className="text-muted">
+                      Current: {simulationMode.currentSimulatedDate.toLocaleString()}
+                    </small>
+                  </div>
+
+                  <div className="form-section">
+                    <label className="section-label">
+                      <i className="bi bi-toggles me-2"></i>
+                      Service Options
+                    </label>
+                    <div className="service-toggles">
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          checked={simulationMode.smsSimulation}
+                          onChange={(e) => handleSimulationChange('smsSimulation', e.target.checked)}
+                          id="smsSimulation"
+                        />
+                        <label className="form-check-label" htmlFor="smsSimulation">
+                          <i className="bi bi-chat-text me-2"></i>
+                          Mock SMS Service
+                        </label>
+                      </div>
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          checked={simulationMode.emailSimulation}
+                          onChange={(e) => handleSimulationChange('emailSimulation', e.target.checked)}
+                          id="emailSimulation"
+                        />
+                        <label className="form-check-label" htmlFor="emailSimulation">
+                          <i className="bi bi-envelope me-2"></i>
+                          Mock Email Service
+                        </label>
+                      </div>
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          checked={simulationMode.dataSimulation}
+                          onChange={(e) => handleSimulationChange('dataSimulation', e.target.checked)}
+                          id="dataSimulation"
+                        />
+                        <label className="form-check-label" htmlFor="dataSimulation">
+                          <i className="bi bi-database me-2"></i>
+                          Auto-Generate Test Data
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              <button 
+                className="btn-primary"
+                onClick={() => {
+                  alert(`Simulation ${simulationMode.enabled ? 'activated' : 'deactivated'} successfully!${simulationMode.enabled ? ` Jump to: ${simulationMode.currentSimulatedDate.toLocaleString()}` : ''}`);
+                  setShowSimulationModal(false);
+                }}
+              >
+                <i className="bi bi-check-circle me-2"></i>
+                Apply Settings
+              </button>
+              <button 
+                className="btn-secondary"
+                onClick={resetSimulation}
+              >
+                <i className="bi bi-arrow-clockwise me-2"></i>
+                Reset
+              </button>
+              <button 
+                className="btn-cancel"
+                onClick={() => setShowSimulationModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Remove Patients Modal */}
+      <Modal 
+        show={showRemoveModal} 
+        onHide={() => setShowRemoveModal(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-trash me-2 text-danger"></i>
+            Remove Patients from Today's Checkups
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {todaysCheckups.length === 0 ? (
+            <div className="text-center py-4">
+              <i className="bi bi-calendar-x" style={{fontSize: '3rem', color: '#6c757d', marginBottom: '1rem'}}></i>
+              <h5 style={{color: '#6c757d'}}>No Patients to Remove</h5>
+              <p style={{color: '#6c757d'}}>There are no patients checked in for today.</p>
+            </div>
+          ) : (
+            <>
+              <div className="alert alert-warning d-flex align-items-center mb-3" role="alert">
+                <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                <div>
+                  <strong>Warning:</strong> Removing a patient will permanently delete their checkup record for today. 
+                  This action cannot be undone.
+                </div>
+              </div>
+              
+              <div className="patients-list">
+                <h6 className="mb-3">Select a patient to remove:</h6>
+                <div className="row g-2">
+                  {todaysCheckups.map((checkup) => (
+                    <div key={checkup.id} className="col-md-6">
+                      <div className="card border-danger-subtle">
+                        <div className="card-body p-3">
+                          <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                              <h6 className="card-title mb-1">{checkup.patientName}</h6>
+                              <small className="text-muted">
+                                PT-{String(checkup.patientId).padStart(4, '0')} • 
+                                Check-in: {checkup.checkInTime}
+                              </small>
+                              <br />
+                              <small className="text-muted">
+                                Purpose: {checkup.purpose}
+                              </small>
+                              <br />
+                              <span className={`badge mt-1 ${
+                                checkup.status === 'Checked In' ? 'bg-info' :
+                                checkup.status === 'Waiting' ? 'bg-warning text-dark' :
+                                checkup.status === 'In Progress' ? 'bg-primary' :
+                                checkup.status === 'Completed' ? 'bg-success' :
+                                'bg-secondary'
+                              }`}>
+                                {checkup.status}
+                              </span>
+                            </div>
+                            <Button 
+                              variant="outline-danger" 
+                              size="sm"
+                              onClick={() => handleRemoveFromCheckup(checkup.id)}
+                            >
+                              <i className="bi bi-trash me-1"></i>
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowRemoveModal(false)}>
+            Cancel
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Backup Settings Modal */}
+      <Modal show={showBackupSettingsModal} onHide={() => setShowBackupSettingsModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-gear" style={{marginRight: '10px'}}></i>
+            Backup Settings
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <BackupSettingsForm 
+            settings={autoBackupSettings}
+            onSave={handleSaveAutoBackupSettings}
+            onCancel={() => setShowBackupSettingsModal(false)}
+            backupHistory={backupHistory}
+            restoreHistory={restoreHistory}
+          />
+        </Modal.Body>
+      </Modal>
     </div>
   );
 };

@@ -443,9 +443,7 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.07);
   padding: 25px;
   margin-bottom: 25px;
-  max-width: 1000px;
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
 }
 
 .doc-dashboard-wrapper .management-header {
@@ -1474,25 +1472,25 @@
     grid-template-columns: 1fr;
     gap: 20px;
   }
-  
+
   .doc-dashboard-wrapper .session-info-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .doc-dashboard-wrapper .session-actions {
     flex-direction: column;
   }
-  
+
   .doc-dashboard-wrapper .doctor-action-buttons {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .doc-dashboard-wrapper .filter-controls {
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .doc-dashboard-wrapper .finished-actions {
     flex-direction: column;
   }
@@ -1749,21 +1747,21 @@
     flex-direction: column;
     align-items: stretch;
   }
-  
+
   .history-filter,
   .type-filter {
     max-width: 100%;
   }
-  
+
   .history-actions {
     flex-direction: column;
   }
-  
+
   .history-actions .action-btn {
     width: 100%;
     min-width: auto;
   }
-  
+
   .appointment-details-header .row .col-md-6 {
     margin-bottom: 0.5rem;
   }
@@ -1852,3 +1850,407 @@
 
 #patient-db-tabs-tabpane-members .data-table th:nth-child(9),
 #patient-db-tabs-tabpane-members .data-table td:nth-child(9) { width: 18%; text-align: center; } /* Actions */
+
+/* ========================
+   ACTION BUTTONS STYLING (ADMIN MATCHING)
+   ======================== */
+
+/* Action Buttons Group for My Patient Queue */
+.doc-dashboard-wrapper .action-buttons-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.doc-dashboard-wrapper .action-buttons-group .action-btn {
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  padding: 6px 12px !important;
+  border-radius: 6px !important;
+  border: 1px solid !important;
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  white-space: nowrap !important;
+  min-width: auto !important;
+  height: auto !important;
+  width: auto !important;
+  box-shadow: none !important;
+}
+
+.doc-dashboard-wrapper .action-buttons-group .action-btn.view-btn {
+  border-color: var(--accent-primary) !important;
+  color: var(--accent-primary) !important;
+}
+
+.doc-dashboard-wrapper .action-buttons-group .action-btn.view-btn:hover {
+  background: var(--accent-primary) !important;
+  color: white !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ========================
+   SIMULATION MODE STYLES
+   ======================== */
+
+/* Simulation Row Styling */
+.doc-dashboard-wrapper .simulation-row {
+  background: linear-gradient(90deg, rgba(227, 242, 253, 0.3), rgba(227, 242, 253, 0.1)) !important;
+  border-left: 4px solid #1976d2 !important;
+  position: relative;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .simulation-row {
+  background: linear-gradient(90deg, rgba(30, 41, 59, 0.8), rgba(30, 41, 59, 0.3)) !important;
+  border-left: 4px solid #38bdf8 !important;
+}
+
+/* Simulation Indicator in Row Number */
+.doc-dashboard-wrapper .simulation-indicator {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #1976d2;
+  color: white;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  z-index: 1;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .simulation-indicator {
+  background: #38bdf8;
+  color: #0f172a;
+}
+
+.doc-dashboard-wrapper .row-number {
+  position: relative;
+}
+
+/* Simulation Status Badge */
+.doc-dashboard-wrapper .status-badge.simulation {
+  background: #e3f2fd !important;
+  color: #1976d2 !important;
+  border: 1px solid rgba(25, 118, 210, 0.3) !important;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .status-badge.simulation {
+  background: rgba(56, 189, 248, 0.2) !important;
+  color: #38bdf8 !important;
+  border: 1px solid rgba(56, 189, 248, 0.5) !important;
+}
+
+/* Simulation Badge in Status Indicators */
+.doc-dashboard-wrapper .status-indicators .status-badge.simulation {
+  background: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid rgba(25, 118, 210, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .status-indicators .status-badge.simulation {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.5);
+}
+
+/* Table Status Badge for Simulation */
+.doc-dashboard-wrapper .status-badge-table.status-simulation {
+  background: rgba(25, 118, 210, 0.1);
+  color: #1976d2;
+  border: 1px solid rgba(25, 118, 210, 0.3);
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .status-badge-table.status-simulation {
+  background: rgba(56, 189, 248, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.5);
+}
+
+/* Simulation Row Hover Effect */
+.doc-dashboard-wrapper .simulation-row:hover {
+  background: linear-gradient(90deg, rgba(227, 242, 253, 0.5), rgba(227, 242, 253, 0.2)) !important;
+  transform: translateX(2px);
+  transition: all 0.2s ease;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .simulation-row:hover {
+  background: linear-gradient(90deg, rgba(30, 41, 59, 0.9), rgba(30, 41, 59, 0.4)) !important;
+}
+
+/* Simulation Tooltip */
+.doc-dashboard-wrapper .simulation-indicator[title] {
+  cursor: help;
+}
+
+/* Animation for simulation items */
+@keyframes simulationPulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+.doc-dashboard-wrapper .simulation-row .simulation-indicator {
+  animation: simulationPulse 2s ease-in-out infinite;
+}
+
+/* Responsive adjustments for simulation indicators */
+@media (max-width: 768px) {
+  .doc-dashboard-wrapper .simulation-indicator {
+    width: 14px;
+    height: 14px;
+    font-size: 0.5rem;
+  }
+
+  .doc-dashboard-wrapper .status-indicators .status-badge.simulation {
+    font-size: 0.7rem;
+    padding: 4px 8px;
+  }
+}
+
+.doc-dashboard-wrapper .action-buttons-group .action-btn.vitals-btn {
+  border-color: var(--warning) !important;
+  color: var(--warning) !important;
+}
+
+.doc-dashboard-wrapper .action-buttons-group .action-btn.vitals-btn:hover {
+  background: var(--warning) !important;
+  color: white !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.doc-dashboard-wrapper .action-buttons-group .action-btn.start-btn {
+  border-color: var(--success) !important;
+  color: var(--success) !important;
+}
+
+.doc-dashboard-wrapper .action-buttons-group .action-btn.start-btn:hover {
+  background: var(--success) !important;
+  color: white !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.doc-dashboard-wrapper .action-buttons-group .action-btn.continue-btn {
+  border-color: #0dcaf0 !important;
+  color: #0dcaf0 !important;
+}
+
+.doc-dashboard-wrapper .action-buttons-group .action-btn.continue-btn:hover {
+  background: #0dcaf0 !important;
+  color: white !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.doc-dashboard-wrapper .action-buttons-group .action-btn:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  border-color: var(--border-primary) !important;
+  color: var(--text-secondary) !important;
+}
+
+.doc-dashboard-wrapper .action-buttons-group .action-btn:disabled:hover {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove Bootstrap's default button focus styles for action buttons */
+.doc-dashboard-wrapper .action-buttons-group .action-btn:focus,
+.doc-dashboard-wrapper .action-buttons-group .action-btn:focus-visible,
+.doc-dashboard-wrapper .action-buttons-group .action-btn.focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: inherit !important;
+}
+
+/* ========================
+   SIMULATION NOTIFICATION STYLES
+   ======================== */
+
+/* Simulation Notification Bar */
+.doc-dashboard-wrapper .simulation-notification {
+  background: linear-gradient(135deg, #1976d2, #1565c0);
+  color: white;
+  padding: 12px 20px;
+  margin: 0;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+  border-bottom: 3px solid #0d47a1;
+  position: sticky;
+  top: 60px; /* Below topbar */
+  z-index: 9;
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .simulation-notification {
+  background: linear-gradient(135deg, #38bdf8, #0ea5e9);
+  color: #0f172a;
+  border-bottom-color: #0284c7;
+  box-shadow: 0 2px 8px rgba(56, 189, 248, 0.4);
+}
+
+.doc-dashboard-wrapper .simulation-notification-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: 15px;
+}
+
+.doc-dashboard-wrapper .simulation-icon {
+  font-size: 1.5rem;
+  opacity: 0.9;
+  animation: simulationPulse 2s ease-in-out infinite;
+}
+
+.doc-dashboard-wrapper .simulation-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.doc-dashboard-wrapper .simulation-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.doc-dashboard-wrapper .simulation-info {
+  font-size: 0.8rem;
+  opacity: 0.9;
+  line-height: 1.2;
+}
+
+.doc-dashboard-wrapper .simulation-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+[data-theme="dark"] .doc-dashboard-wrapper .simulation-badge {
+  background: rgba(15, 23, 42, 0.3);
+  border-color: rgba(15, 23, 42, 0.5);
+}
+
+.doc-dashboard-wrapper .simulation-badge i {
+  font-size: 0.8rem;
+}
+
+/* Animation for simulation notification */
+@keyframes simulationNotificationSlide {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.doc-dashboard-wrapper .simulation-notification {
+  animation: simulationNotificationSlide 0.5s ease-out;
+}
+
+/* Responsive Design for Simulation Notification */
+@media (max-width: 768px) {
+  .doc-dashboard-wrapper .simulation-notification {
+    padding: 10px 15px;
+  }
+  
+  .doc-dashboard-wrapper .simulation-notification-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .doc-dashboard-wrapper .simulation-details {
+    order: 1;
+  }
+  
+  .doc-dashboard-wrapper .simulation-icon {
+    order: 0;
+    align-self: flex-start;
+  }
+  
+  .doc-dashboard-wrapper .simulation-badge {
+    order: 2;
+    align-self: flex-end;
+  }
+  
+  .doc-dashboard-wrapper .simulation-info {
+    font-size: 0.75rem;
+  }
+}
+
+/* Adjustment for main content when simulation notification is shown */
+.doc-dashboard-wrapper .main-content:has(.simulation-notification) .dashboard-content {
+  /* Account for additional notification height */
+  height: calc(100vh - 60px - 70px); /* topbar height - notification height */
+}
+
+/* Table Width Improvements */
+.doc-dashboard-wrapper .table-wider {
+  width: 100%;
+  table-layout: fixed;
+}
+
+.doc-dashboard-wrapper .table-container {
+  overflow-x: visible;
+}
+
+/* Action Buttons Improvements */
+.doc-dashboard-wrapper .action-buttons-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-start;
+}
+
+.doc-dashboard-wrapper .action-buttons-group .action-btn {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+
+/* Search bar and refresh button layout */
+.doc-dashboard-wrapper .search-box {
+  flex-grow: 1;
+  max-width: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doc-dashboard-wrapper .refresh-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+  height: 38px;
+  font-size: 0.9rem;
+  padding: 6px 12px;
+}

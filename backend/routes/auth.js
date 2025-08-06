@@ -279,7 +279,7 @@ router.post(
                   { email: login }
                 ]
               },
-              { role: { [Op.in]: ['admin', 'doctor'] } },
+              { role: { [Op.in]: ['admin', 'doctor', 'patient'] } },
               { isActive: true }
             ]
           }
@@ -312,6 +312,16 @@ router.post(
                   firstName: 'Dr. John',
                   lastName: 'Smith',
                   accessLevel: 'Doctor'
+              };
+          } else if (login === 'patient' && password === 'patient123') {
+              user = {
+                  id: 3,
+                  username: 'patient',
+                  email: 'patient@maybunga.healthcare',
+                  role: 'patient',
+                  firstName: 'Maria',
+                  lastName: 'Santos',
+                  accessLevel: 'Patient'
               };
           } else {
               // For any other login, act as if credentials are invalid

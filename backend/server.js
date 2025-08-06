@@ -6,7 +6,7 @@ const { sequelize, connectDB } = require('./config/database');
 const dbProtection = require('./utils/databaseProtection');
 
 // Import models with associations already defined
-const { User, Patient, Family } = require('./models');
+const { User, Patient, Family, VitalSigns } = require('./models');
 
 const app = express();
 
@@ -56,6 +56,7 @@ app.use('/api/families', require('./routes/families'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/vital-signs', require('./routes/vitalSigns'));
 
 // Database status endpoint
 app.get('/api/db-status', async (req, res) => {
