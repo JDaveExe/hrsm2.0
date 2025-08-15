@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import adminService from '../services/adminService';
 import patientService from '../services/patientService';
 
@@ -82,6 +82,20 @@ export const DataProvider = ({ children }) => {
     })
   );
 
+  // Debounced localStorage save function
+  const saveTimeouts = useRef({});
+  
+  const debouncedSave = useCallback((key, data, delay = 300) => {
+    if (saveTimeouts.current[key]) {
+      clearTimeout(saveTimeouts.current[key]);
+    }
+    
+    saveTimeouts.current[key] = setTimeout(() => {
+      saveToLocalStorage(key, data);
+      delete saveTimeouts.current[key];
+    }, delay);
+  }, []);
+
   // Function to fetch unsorted members from the backend
   const fetchUnsortedMembers = async () => {
     try {
@@ -135,6 +149,28 @@ export const DataProvider = ({ children }) => {
     fetchInitialData();
   }, []);
 
+  // Listen for changes in localStorage from other tabs to sync state
+  useEffect(() => {
+    const handleStorageChange = (event) => {
+      if (event.key === 'simulationModeStatus') {
+        try {
+          const newValue = JSON.parse(event.newValue);
+          if (newValue) {
+            setSimulationModeStatus(newValue);
+          }
+        } catch (error) {
+          console.error('Error parsing simulationModeStatus from localStorage:', error);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   // Auto-authenticate for testing (if no auth token exists)
   useEffect(() => {
     const setupAuth = async () => {
@@ -180,50 +216,60 @@ export const DataProvider = ({ children }) => {
     loadFromLocalStorage('analyticsData', {})
   );
 
-  // Auto-save to localStorage whenever data changes
+  // Auto-save to localStorage whenever data changes (debounced for performance)
   useEffect(() => {
-    saveToLocalStorage('dashboardData', dashboardData);
-  }, [dashboardData]);
+    debouncedSave('dashboardData', dashboardData);
+  }, [dashboardData, debouncedSave]);
 
   useEffect(() => {
-    saveToLocalStorage('appointmentsData', appointmentsData);
-  }, [appointmentsData]);
+    debouncedSave('appointmentsData', appointmentsData);
+  }, [appointmentsData, debouncedSave]);
 
   useEffect(() => {
-    saveToLocalStorage('patientsData', patientsData);
-  }, [patientsData]);
+    debouncedSave('patientsData', patientsData);
+  }, [patientsData, debouncedSave]);
 
   useEffect(() => {
-    saveToLocalStorage('inventoryData', inventoryData);
-  }, [inventoryData]);
+    debouncedSave('inventoryData', inventoryData);
+  }, [inventoryData, debouncedSave]);
 
   useEffect(() => {
-    saveToLocalStorage('medicalRecordsData', medicalRecordsData);
-  }, [medicalRecordsData]);
+    debouncedSave('medicalRecordsData', medicalRecordsData);
+  }, [medicalRecordsData, debouncedSave]);
 
   useEffect(() => {
-    saveToLocalStorage('familiesData', familiesData);
-  }, [familiesData]);
+    debouncedSave('familiesData', familiesData);
+  }, [familiesData, debouncedSave]);
 
   useEffect(() => {
-    saveToLocalStorage('unsortedMembersData', unsortedMembersData);
-  }, [unsortedMembersData]);
+    debouncedSave('unsortedMembersData', unsortedMembersData);
+  }, [unsortedMembersData, debouncedSave]);
 
   useEffect(() => {
-    saveToLocalStorage('doctorQueueData', doctorQueueData);
-  }, [doctorQueueData]);
+    debouncedSave('doctorQueueData', doctorQueueData);
+  }, [doctorQueueData, debouncedSave]);
 
   useEffect(() => {
-    saveToLocalStorage('sharedCheckupsData', sharedCheckupsData);
-  }, [sharedCheckupsData]);
+    debouncedSave('sharedCheckupsData', sharedCheckupsData);
+  }, [sharedCheckupsData, debouncedSave]);
 
   useEffect(() => {
-    saveToLocalStorage('simulationModeStatus', simulationModeStatus);
-  }, [simulationModeStatus]);
+    debouncedSave('simulationModeStatus', simulationModeStatus);
+  }, [simulationModeStatus, debouncedSave]);
 
   useEffect(() => {
-    saveToLocalStorage('analyticsData', analyticsData);
-  }, [analyticsData]);
+    debouncedSave('analyticsData', analyticsData);
+  }, [analyticsData, debouncedSave]);
+
+  // Cleanup function to clear any pending timeouts
+  useEffect(() => {
+    return () => {
+      Object.values(saveTimeouts.current).forEach(timeoutId => {
+        if (timeoutId) clearTimeout(timeoutId);
+      });
+      saveTimeouts.current = {};
+    };
+  }, []);
 
   // Dashboard data functions
   const updateDashboardData = (newData) => {

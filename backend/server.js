@@ -12,7 +12,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:5000'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5000'],
   credentials: true
 }));
 app.use(helmet({
@@ -57,6 +57,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/vital-signs', require('./routes/vitalSigns'));
+app.use('/api/inventory', require('./routes/inventory'));
 
 // Database status endpoint
 app.get('/api/db-status', async (req, res) => {

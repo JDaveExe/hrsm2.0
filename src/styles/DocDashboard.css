@@ -7,8 +7,17 @@
   --text-primary: #1e293b;
   --text-secondary: #64748b;
   --border-primary: #e2e8f0;
-  --sidebar-bg: #1e293b;
+  --sidebar-bg: #007bff;
   --sidebar-text: #ffffff;
+  --sidebar-hover: rgba(255, 255, 255, 0.15);
+  --dropdown-bg: #0056b3;
+}
+
+/* Force Sidebar Blue Theme - High Specificity */
+.doc-dashboard-wrapper .sidebar,
+.sidebar {
+  background: #007bff !important;
+  background-color: #007bff !important;
 }
 
 /* Dark Mode Variables */
@@ -163,8 +172,8 @@
 .doc-dashboard-wrapper .sidebar {
   width: 270px;
   height: 100%;
-  background-color: #1e293b; /* Sidebar background color */
-  color: #fff;
+  background-color: #007bff !important; /* Force blue background */
+  color: var(--sidebar-text);
   transition: all 0.3s ease;
   overflow-y: auto;
   position: fixed; /* Fixed sidebar */
@@ -185,21 +194,37 @@
 
 .doc-dashboard-wrapper .sidebar-header {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  padding: 15px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  height: 60px; /* Match topbar height */
+  justify-content: center;
+  padding: 20px 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  height: auto; /* Allow height to adjust for vertical layout */
   box-sizing: border-box;
 }
 
 .doc-dashboard-wrapper .brand {
   display: flex;
+  flex-direction: column;
   align-items: center;
   margin: 0;
-  font-size: 1.2rem;
-  font-weight: 500;
-  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff !important;
+  text-align: center;
+}
+
+.doc-dashboard-wrapper .brand .seal-icon {
+  margin-bottom: 10px;
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+.doc-dashboard-wrapper .brand .text {
+  font-weight: 700 !important;
+  color: #ffffff !important;
+  line-height: 1.2;
 }
 
 .doc-dashboard-wrapper .brand i {
@@ -210,9 +235,10 @@
 .doc-dashboard-wrapper .sidebar-toggle {
   background: none;
   border: none;
-  color: #fff;
+  color: #ffffff !important;
   font-size: 1.5rem;
   cursor: pointer;
+  font-weight: 700 !important;
 }
 
 .doc-dashboard-wrapper .sidebar-menu {
@@ -236,16 +262,23 @@
   display: flex;
   align-items: center;
   padding: 12px 20px;
-  color: #ddd;
+  color: #ffffff !important;
   text-decoration: none;
   transition: all 0.3s ease;
   white-space: nowrap;
+  font-weight: 600 !important;
 }
 
 .doc-dashboard-wrapper .sidebar-menu ul li a:hover,
 .doc-dashboard-wrapper .sidebar-menu ul li.active > a {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  background-color: var(--sidebar-hover);
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.doc-dashboard-wrapper .sidebar-menu ul li a span {
+  font-weight: 600 !important;
+  color: #ffffff !important;
 }
 
 .doc-dashboard-wrapper .sidebar-menu ul li a i:not(.dropdown-icon) {
@@ -253,12 +286,16 @@
   font-size: 1.2rem;
   width: 22px;
   text-align: center;
+  color: #ffffff !important;
+  font-weight: 600 !important;
 }
 
 .doc-dashboard-wrapper .dropdown-icon {
   margin-left: auto;
   font-size: 0.8rem;
   transition: transform 0.3s ease;
+  color: #ffffff !important;
+  font-weight: 600 !important;
 }
 
 .doc-dashboard-wrapper .sidebar-menu ul li.active > a .dropdown-icon {
@@ -273,11 +310,18 @@
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.3s ease-in-out;
-  background-color: #161f2b; /* Slightly darker background for dropdown */
+  background-color: #0056b3 !important; /* Force darker blue for dropdown */
 }
 
 .doc-dashboard-wrapper .dropdown-menu.show {
   max-height: 500px; /* Adjust as needed */
+}
+
+/* Force dropdown blue background */
+.doc-dashboard-wrapper .dropdown-menu,
+.dropdown-menu {
+  background: #0056b3 !important;
+  background-color: #0056b3 !important;
 }
 
 .doc-dashboard-wrapper .dropdown-menu li a {
@@ -285,6 +329,19 @@
   font-size: 1rem; /* Increased font size */
   display: flex; /* Ensure icon and text are aligned */
   align-items: center; /* Ensure icon and text are aligned */
+  font-weight: 600 !important;
+  color: #ffffff !important;
+}
+
+.doc-dashboard-wrapper .dropdown-menu li a:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.doc-dashboard-wrapper .dropdown-menu li a span {
+  font-weight: 600 !important;
+  color: #ffffff !important;
 }
 
 .doc-dashboard-wrapper .dropdown-menu li a i {
@@ -292,6 +349,8 @@
   font-size: 1.1rem; /* Icon size */
   width: 22px; /* Match main menu icon width */
   text-align: center; /* Match main menu icon alignment */
+  color: #ffffff !important;
+  font-weight: 600 !important;
 }
 
 .doc-dashboard-wrapper .sidebar.closed .dropdown-menu li a span {
@@ -2253,4 +2312,468 @@
   height: 38px;
   font-size: 0.9rem;
   padding: 6px 12px;
+}
+
+/* Emergency Queue Styles */
+.emergency-queue-section {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 2px solid #fca5a5;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 25px;
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.1), 0 2px 4px -1px rgba(239, 68, 68, 0.06);
+}
+
+.emergency-header {
+  border-bottom: 2px solid #fca5a5;
+  padding-bottom: 10px;
+  margin-bottom: 15px;
+}
+
+.emergency-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #dc2626 !important;
+  text-shadow: 0 1px 2px rgba(220, 38, 38, 0.1);
+}
+
+.emergency-count-badge {
+  background: #dc2626;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+}
+
+.emergency-queue-table {
+  border: 2px solid #fca5a5;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.emergency-header-row {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white !important;
+}
+
+.emergency-header-row th {
+  color: white !important;
+  font-weight: 600;
+  border-bottom: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.emergency-row {
+  background: linear-gradient(135deg, #fef7f7 0%, #fef2f2 100%);
+  border-left: 4px solid #dc2626;
+  animation: emergency-pulse 2s infinite;
+}
+
+.emergency-row:hover {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.15);
+}
+
+.emergency-indicator {
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  color: #dc2626;
+}
+
+.priority-badge.emergency-priority {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+  animation: emergency-glow 1.5s ease-in-out infinite alternate;
+}
+
+.emergency-start-btn {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  border: none;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3);
+  transition: all 0.2s ease;
+}
+
+.emergency-start-btn:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.4);
+}
+
+/* Regular Queue Section */
+.regular-queue-section {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  padding: 15px;
+}
+
+.queue-title {
+  color: var(--accent-primary) !important;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Emergency animations */
+@keyframes emergency-pulse {
+  0%, 100% { border-left-color: #dc2626; }
+  50% { border-left-color: #f87171; }
+}
+
+@keyframes emergency-glow {
+  0% { box-shadow: 0 2px 4px rgba(220, 38, 38, 0.3); }
+  100% { box-shadow: 0 2px 8px rgba(220, 38, 38, 0.6), 0 0 0 1px rgba(220, 38, 38, 0.2); }
+}
+
+/* ======================== VITAL SIGNS MODAL STYLES ======================== */
+
+/* Modal Container - 20% bigger than SMS modal */
+.vital-signs-modal .modal-dialog {
+  width: 90%; /* 20% bigger than SMS modal's 85% */
+  max-width: 816px; /* 20% bigger than SMS modal's 680px */
+  height: 90vh; /* 20% bigger than SMS modal's 85vh */
+  max-height: 90vh;
+  margin: auto;
+  display: flex;
+  align-items: center;
+}
+
+.vital-signs-modal .modal-content {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Modal Header */
+.vital-signs-header {
+  background: #9BC4CB; /* Pale Cerulean */
+  border: none;
+  padding: 1.25rem 1.5rem;
+  color: white;
+  flex-shrink: 0;
+  border-radius: 12px 12px 0 0;
+}
+
+.vital-signs-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.vital-signs-header .btn-close {
+  filter: brightness(0) invert(1);
+  opacity: 0.8;
+  font-size: 1.2rem;
+}
+
+.vital-signs-header .btn-close:hover {
+  opacity: 1;
+}
+
+/* Modal Body */
+.vital-signs-body {
+  padding: 1.5rem;
+  background: #f8fafc;
+  flex: 1;
+  overflow-y: auto;
+  height: calc(90vh - 140px); /* Account for header and footer */
+}
+
+/* Patient Info Header */
+.patient-info-header {
+  background: white;
+  border-radius: 10px;
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-left: 4px solid #667eea;
+}
+
+.patient-name {
+  color: #1e293b;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.patient-details .badge {
+  font-size: 0.8rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 5px;
+}
+
+.timestamp {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Vital Signs Sections */
+.vital-signs-section {
+  background: white;
+  border-radius: 10px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.vital-signs-section:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Hide any unit toggle buttons in vital signs modal */
+.vital-signs-modal .unit-toggle {
+  display: none !important;
+}
+
+/* Hide any vital-label-with-toggle divs */
+.vital-signs-modal .vital-label-with-toggle {
+  display: block !important;
+}
+
+.vital-signs-modal .vital-label-with-toggle .unit-toggle {
+  display: none !important;
+}
+
+.section-header {
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.6rem;
+  border-bottom: 2px solid #f1f5f9;
+}
+
+.section-title {
+  color: #1e293b;
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+.section-title i {
+  font-size: 1.1rem;
+}
+
+/* Form Labels */
+.vital-label {
+  color: #374151;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.vital-label i {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+.normal-range {
+  color: #059669;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-left: 0.25rem;
+}
+
+/* Input Groups */
+.vital-input {
+  border: 2px solid #e5e7eb;
+  border-radius: 8px 0 0 8px;
+  padding: 0.65rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  background: #fafafa;
+  flex: 1;
+}
+
+.vital-input:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background: white;
+  outline: none;
+  border-right: 1px solid #667eea;
+}
+
+.vital-input::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+/* Input Group styling for unit selectors */
+.input-group .vital-input + .unit-selector {
+  border-left-color: #e5e7eb;
+}
+
+.input-group .vital-input:focus + .unit-selector {
+  border-left-color: #667eea;
+  border-color: #667eea;
+}
+
+/* Physical Measurements Specific Styling */
+.vital-signs-modal .physical-measurements .input-group {
+  display: flex;
+  align-items: stretch;
+}
+
+.vital-signs-modal .physical-measurements .vital-input {
+  flex: 1;
+  border-radius: 8px 0 0 8px;
+  border-right: 1px solid #d1d5db;
+}
+
+.vital-signs-modal .physical-measurements .unit-selector {
+  flex: 0 0 70px;
+  border-radius: 0 8px 8px 0;
+  border-left: 1px solid #d1d5db;
+}
+
+/* Unit Selectors - Improved styling */
+.unit-selector {
+  border: 2px solid #e5e7eb;
+  border-left: 1px solid #d1d5db;
+  background: #f9fafb;
+  color: #374151;
+  font-weight: 500;
+  font-size: 0.875rem;
+  max-width: 70px;
+  border-radius: 0 8px 8px 0;
+  transition: all 0.3s ease;
+}
+
+.unit-selector:focus {
+  border-color: #667eea;
+  box-shadow: none;
+  background: white;
+}
+
+.unit-selector option {
+  font-weight: 500;
+}
+
+/* Input Group Text */
+.input-group-text {
+  background: #f9fafb;
+  border: 2px solid #e5e7eb;
+  border-left: 1px solid #d1d5db;
+  border-radius: 0 8px 8px 0;
+  color: #374151;
+  font-weight: 500;
+  font-size: 0.875rem;
+  min-width: 60px;
+  justify-content: center;
+}
+
+/* For inputs with InputGroup.Text (non-selectable units) */
+.input-group .vital-input + .input-group-text {
+  border-left-color: #e5e7eb;
+}
+
+.input-group .vital-input:focus + .input-group-text {
+  border-left-color: #667eea;
+  border-color: #667eea;
+}
+
+/* Notes Textarea */
+.notes-textarea {
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 100px;
+  background: #fafafa;
+  transition: all 0.3s ease;
+}
+
+.notes-textarea:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background: white;
+  outline: none;
+}
+
+.notes-textarea::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Modal Footer */
+.vital-signs-footer {
+  background: white;
+  border: none;
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+.save-vitals-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  transition: all 0.3s ease;
+}
+
+.save-vitals-btn:hover {
+  background: linear-gradient(135deg, #059669, #10b981);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .vital-signs-modal .modal-dialog {
+    max-width: 98%;
+    margin: 0.5rem auto;
+  }
+  
+  .vital-signs-body {
+    padding: 1rem;
+  }
+  
+  .patient-info-header {
+    padding: 1rem;
+  }
+  
+  .vital-signs-section {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .footer-actions {
+    flex-direction: column;
+  }
+  
+  .footer-actions .btn {
+    width: 100%;
+  }
 }

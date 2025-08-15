@@ -9,6 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import PatientInfoCards from './PatientInfoCards';
 import PatientActionsSection from './PatientActionsSection';
+import sealMainImage from '../images/sealmain.png';
 import '../styles/DocDashboard.css'; // Use DocDashboard.css
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
@@ -24,7 +25,8 @@ const DocDashboard = () => {
     patientsData,
     familiesData,
     setAllPatients,
-    setAllFamilies
+    setAllFamilies,
+    notifyDoctor
   } = useData();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -61,10 +63,7 @@ const DocDashboard = () => {
   });
   // Note: patients and families data now comes from useData() context
   
-  const [todaysCheckups, setTodaysCheckups] = useState([ // Sample data for doctor's checkups
-    { id: 201, patientId: 'PT-0023', name: 'Maria Santos', time: '09:30 AM', type: 'Follow-up', status: 'Waiting'},
-    { id: 202, patientId: 'PT-0034', name: 'Carlos Mendoza', time: '10:15 AM', type: 'Check-up', status: 'In Progress'},
-  ]);
+  const [todaysCheckups, setTodaysCheckups] = useState([]); // Start with empty data
 
   // Merge doctor queue data with local checkups
   const allCheckups = React.useMemo(() => {
@@ -103,13 +102,9 @@ const DocDashboard = () => {
     });
   }, [todaysCheckups, doctorQueueData]);
 
-  const [ongoingAppointments, setOngoingAppointments] = useState([ // Sample data
-    { id: 301, patientName: 'Ana Reyes', date: '2025-06-10', time: '11:00 AM', type: 'Consultation', status: 'Ongoing'},
-  ]);
+  const [ongoingAppointments, setOngoingAppointments] = useState([]); // Start with empty data
 
-  const [finishedAppointments, setFinishedAppointments] = useState([ // Sample data
-    { id: 302, patientName: 'Juan Santos', date: '2025-06-09', time: '02:00 PM', type: 'Follow-up', status: 'Finished'},
-  ]);
+  const [finishedAppointments, setFinishedAppointments] = useState([]); // Start with empty data
 
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [workingHours, setWorkingHours] = useState({ start: '08:00', end: '17:00' });
@@ -118,6 +113,22 @@ const DocDashboard = () => {
   const [autoSaveNotes, setAutoSaveNotes] = useState(true);
   const [reminderMinutes, setReminderMinutes] = useState(10);
   const [fontSize, setFontSize] = useState('medium');
+
+  // Vital Signs Form State
+  const [vitalSignsFormData, setVitalSignsFormData] = useState({
+    temperature: '',
+    temperatureUnit: 'celsius',
+    heartRate: '',
+    systolicBP: '',
+    diastolicBP: '',
+    respiratoryRate: '',
+    oxygenSaturation: '',
+    weight: '',
+    weightUnit: 'kg',
+    height: '',
+    heightUnit: 'cm',
+    clinicalNotes: ''
+  });
 
   // Sorting configuration for Individual Members tab
   const [memberSortConfig, setMemberSortConfig] = useState({ key: 'id', direction: 'ascending' });
@@ -204,17 +215,18 @@ const DocDashboard = () => {
     if (!consultationSearchTerm) return patientsData.slice(0, 10); // Show first 10 if no search
     const term = consultationSearchTerm.toLowerCase();
     return patientsData.filter(patient => {
-      const fullName = patient.name.toLowerCase();
+      if (!patient) return false;
+      const fullName = getPatientFullName(patient).toLowerCase();
       // Search in format: "Last, First" or just any part of the name
       return fullName.includes(term) ||
-        patient.familyId?.toLowerCase().includes(term) ||
-        patient.id?.toString().includes(term);
+        (patient.familyId && patient.familyId.toString().toLowerCase().includes(term)) ||
+        (patient.id && patient.id.toString().toLowerCase().includes(term));
     }).slice(0, 10); // Limit to 10 results
   };
 
   const handleConsultationPatientSelect = (patient) => {
     setSelectedPatientForConsultation(patient);
-    setConsultationSearchTerm(patient.name);
+    setConsultationSearchTerm(getPatientFullName(patient));
   };
 
   const handleConsultationSearchChange = (e) => {
@@ -247,6 +259,57 @@ const DocDashboard = () => {
     setSelectedPatient(patient);
     setShowVitalSignsModal(true);
   };
+
+  // Vital Signs Form Handler
+  const handleVitalSignsFormChange = (field, value) => {
+    setVitalSignsFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSaveVitalSigns = () => {
+    // Validate required fields
+    const requiredFields = ['temperature', 'heartRate', 'systolicBP', 'diastolicBP'];
+    const missingFields = requiredFields.filter(field => !vitalSignsFormData[field]);
+    
+    if (missingFields.length > 0) {
+      alert(`Please fill in the following required fields: ${missingFields.join(', ')}`);
+      return;
+    }
+
+    // Create vital signs record
+    const vitalSignsRecord = {
+      patientId: selectedPatient.id || selectedPatient.patientId,
+      patientName: getPatientFullName(selectedPatient),
+      date: new Date().toLocaleDateString(),
+      time: new Date().toLocaleTimeString(),
+      ...vitalSignsFormData,
+      recordedBy: 'Doctor',
+      recordedAt: new Date().toISOString()
+    };
+
+    console.log('Saving vital signs:', vitalSignsRecord);
+    alert('Vital signs saved successfully!');
+    
+    // Reset form and close modal
+    setVitalSignsFormData({
+      temperature: '',
+      temperatureUnit: 'celsius',
+      heartRate: '',
+      systolicBP: '',
+      diastolicBP: '',
+      respiratoryRate: '',
+      oxygenSaturation: '',
+      weight: '',
+      weightUnit: 'kg',
+      height: '',
+      heightUnit: 'cm',
+      clinicalNotes: ''
+    });
+    setShowVitalSignsModal(false);
+  };
+
   const handleQRCode = (patient) => {
     setSelectedPatient(patient);
     setShowQRCodeModal(true);
@@ -542,7 +605,115 @@ const DocDashboard = () => {
           </div>
         </div>
         
-        <div className="table-container">
+        {/* Emergency Queue Section - Only show if there are emergency cases */}
+        {allCheckups.filter(c => c.status === 'Emergency' || c.priority === 'Emergency').length > 0 && (
+          <div className="emergency-queue-section mb-4">
+            <div className="emergency-header d-flex align-items-center mb-3">
+              <h3 className="emergency-title text-danger mb-0">
+                <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                Emergency Priority Queue
+              </h3>
+              <span className="emergency-count-badge ms-2">
+                {allCheckups.filter(c => c.status === 'Emergency' || c.priority === 'Emergency').length} Emergency Cases
+              </span>
+            </div>
+            <div className="table-container emergency-table">
+              <Table hover className="data-table modern-checkup-table table-wider emergency-queue-table">
+                <thead>
+                  <tr className="emergency-header-row">
+                    <th style={{width: '6%'}}>#</th>
+                    <th style={{width: '14%'}}>Patient ID</th>
+                    <th style={{width: '18%'}}>Patient Name</th>
+                    <th style={{width: '12%'}}>Time</th>
+                    <th style={{width: '16%'}}>Service Type</th>
+                    <th style={{width: '12%'}}>Priority</th>
+                    <th style={{width: '22%'}}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allCheckups
+                    .filter(c => (c.status === 'Emergency' || c.priority === 'Emergency') && c.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                    .map((checkup, index) => (
+                      <tr key={checkup.id} className={`checkup-row emergency-row ${checkup.source === 'admin_simulation' ? 'simulation-row' : ''}`}>
+                        <td className="row-number">
+                          <span className="emergency-indicator">
+                            <i className="bi bi-exclamation-triangle-fill text-danger me-1"></i>
+                            {index + 1}
+                          </span>
+                          {checkup.source === 'admin_simulation' && (
+                            <span className="simulation-indicator" title="From Admin Simulation">
+                              <i className="bi bi-cpu text-primary"></i>
+                            </span>
+                          )}
+                        </td>
+                        <td className="patient-id-cell">
+                          <span className="patient-id">{checkup.patientId}</span>
+                        </td>
+                        <td className="patient-name-cell">
+                          <div className="patient-info">
+                            <span className="patient-name font-weight-bold">{checkup.name}</span>
+                          </div>
+                        </td>
+                        <td className="time-cell">
+                          <span className="appointment-time">{checkup.time}</span>
+                        </td>
+                        <td className="type-cell">
+                          <span className="service-type">{checkup.type}</span>
+                        </td>
+                        <td className="priority-cell">
+                          <span className="priority-badge emergency-priority">
+                            <i className="bi bi-exclamation-triangle-fill me-1"></i>
+                            EMERGENCY
+                          </span>
+                        </td>
+                        <td className="action-cell">
+                          <div className="action-buttons-group d-flex flex-wrap gap-1">
+                            <Button 
+                              variant="outline-primary" 
+                              size="sm" 
+                              className="action-btn view-btn" 
+                              onClick={() => handleViewPatient(patientsData.find(p => p.name === checkup.name) || checkup)}
+                            >
+                              <i className="bi bi-person-lines-fill me-1"></i>
+                              Patient Info
+                            </Button>
+                            <Button 
+                              variant="outline-warning" 
+                              size="sm" 
+                              className="action-btn vitals-btn" 
+                              onClick={() => handleVitalSigns(patientsData.find(p => p.name === checkup.name) || checkup)}
+                            >
+                              <i className="bi bi-heart-pulse me-1"></i>
+                              View Vitals
+                            </Button>
+                            <Button 
+                              variant="danger" 
+                              size="sm" 
+                              className="action-btn emergency-start-btn" 
+                              onClick={() => handleStartSession(checkup)}
+                            >
+                              <i className="bi bi-lightning-fill me-1"></i>
+                              Start Emergency
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </Table>
+            </div>
+          </div>
+        )}
+
+        {/* Regular Queue Section */}
+        <div className="regular-queue-section">
+          <div className="queue-header mb-3">
+            <h3 className="queue-title mb-0">
+              <i className="bi bi-list-ul me-2"></i>
+              Regular Queue
+            </h3>
+          </div>
+          <div className="table-container">
           <Table hover className="data-table modern-checkup-table table-wider">
             <thead>
               <tr>
@@ -556,7 +727,9 @@ const DocDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {allCheckups.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())).map((checkup, index) => (
+              {allCheckups
+                .filter(c => c.status !== 'Emergency' && c.priority !== 'Emergency' && c.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                .map((checkup, index) => (
                 <tr key={checkup.id} className={`checkup-row ${checkup.status.toLowerCase().replace(' ', '-')} ${checkup.source === 'admin_simulation' ? 'simulation-row' : ''}`}>
                   <td className="row-number">
                     {index + 1}
@@ -632,18 +805,21 @@ const DocDashboard = () => {
                   </td>
                 </tr>
               ))}
-              {allCheckups.filter(c => c.name.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+              {allCheckups
+                .filter(c => c.status !== 'Emergency' && c.priority !== 'Emergency' && c.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                .length === 0 && (
                 <tr>
                   <td colSpan="7" className="text-center no-data">
                     <div className="no-data-message">
                       <i className="bi bi-calendar-x"></i>
-                      <p>No checkups found matching your search.</p>
+                      <p>No regular checkups found matching your search.</p>
                     </div>
                   </td>
                 </tr>
               )}
             </tbody>
           </Table>
+        </div>
         </div>
       </div>
     </>
@@ -967,109 +1143,11 @@ const DocDashboard = () => {
               </tr>
             </thead>
             <tbody>
-              {/* Sample Row 1 - Replace with dynamic data */}
-              <tr className="history-row">
-                <td className="patient-cell">
-                  <div className="patient-info-history">
-                    <span className="patient-name">Elena Rodriguez</span>
-                    <small className="patient-id">PT-0101</small>
-                  </div>
-                </td>
-                <td className="date-cell">{formatShortDate('2025-06-01')}</td>
-                <td className="time-cell">10:00 AM</td>
-                <td className="type-cell">
-                  <span className="service-badge consultation">Consultation</span>
-                </td>
-                <td className="status-cell">
-                  <span className="status-badge completed">
-                    <i className="bi bi-check-circle me-1"></i>
-                    Completed
-                  </span>
-                </td>
-                <td className="action-cell">
-                  <div className="history-actions">
-                    <Button 
-                      variant="outline-info" 
-                      size="sm" 
-                      className="action-btn"
-                      onClick={() => handleViewNotes({
-                        id: 1,
-                        patientName: 'Elena Rodriguez',
-                        date: '2025-06-01',
-                        time: '10:00 AM',
-                        type: 'Consultation',
-                        notes: 'Patient presented with flu-like symptoms including fever (38.5°C), body aches, and fatigue. Physical examination revealed mild throat inflammation. Prescribed Paracetamol 500mg every 6 hours for fever and body aches. Advised increased fluid intake, rest, and follow-up if symptoms persist beyond 5 days. Patient education provided on symptom monitoring and when to seek immediate care.'
-                      })}
-                    >
-                      <i className="bi bi-journal-text me-1"></i>
-                      View Notes
-                    </Button>
-                    <Button 
-                      variant="outline-secondary" 
-                      size="sm" 
-                      className="action-btn"
-                      onClick={() => handlePrintRecord({
-                        patientName: 'Elena Rodriguez',
-                        date: '2025-06-01'
-                      })}
-                    >
-                      <i className="bi bi-printer me-1"></i>
-                      Print
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-              
-              {/* Sample Row 2 */}
-              <tr className="history-row">
-                <td className="patient-cell">
-                  <div className="patient-info-history">
-                    <span className="patient-name">Mark Johnson</span>
-                    <small className="patient-id">PT-0089</small>
-                  </div>
-                </td>
-                <td className="date-cell">{formatShortDate('2025-05-28')}</td>
-                <td className="time-cell">02:30 PM</td>
-                <td className="type-cell">
-                  <span className="service-badge follow-up">Follow-up</span>
-                </td>
-                <td className="status-cell">
-                  <span className="status-badge completed">
-                    <i className="bi bi-check-circle me-1"></i>
-                    Completed
-                  </span>
-                </td>
-                <td className="action-cell">
-                  <div className="history-actions">
-                    <Button 
-                      variant="outline-info" 
-                      size="sm" 
-                      className="action-btn"
-                      onClick={() => handleViewNotes({
-                        id: 2,
-                        patientName: 'Mark Johnson',
-                        date: '2025-05-28',
-                        time: '02:30 PM',
-                        type: 'Follow-up',
-                        notes: 'Follow-up visit for hypertension management. Blood pressure readings: 135/85 mmHg (improved from previous 145/95). Patient reports good adherence to prescribed Amlodipine 5mg daily. Dietary modifications showing positive results - reduced sodium intake and increased physical activity. Continue current medication regimen. Schedule next follow-up in 4 weeks. Encouraged to maintain current lifestyle changes.'
-                      })}
-                    >
-                      <i className="bi bi-journal-text me-1"></i>
-                      View Notes
-                    </Button>
-                    <Button 
-                      variant="outline-secondary" 
-                      size="sm" 
-                      className="action-btn"
-                      onClick={() => handlePrintRecord({
-                        patientName: 'Mark Johnson',
-                        date: '2025-05-28'
-                      })}
-                    >
-                      <i className="bi bi-printer me-1"></i>
-                      Print
-                    </Button>
-                  </div>
+              {/* No hardcoded data - will be populated dynamically from the backend */}
+              <tr>
+                <td colSpan="6" className="text-center text-muted py-4">
+                  <i className="bi bi-inbox me-2"></i>
+                  No patient history records found. Records will appear here when patients are seen.
                 </td>
               </tr>
             </tbody>
@@ -1512,7 +1590,7 @@ const DocDashboard = () => {
       <div className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
           <h3 className="brand">
-            <i className="bi bi-hospital"></i>
+            <img src={sealMainImage} alt="Maybunga Seal" className="seal-icon" />
             <span className="text">Maybunga Healthcare</span>
           </h3>
         </div>
@@ -1606,7 +1684,7 @@ const DocDashboard = () => {
                   Admin is running simulation mode • 
                   Activated by: {simulationModeStatus.activatedBy || 'Admin'} • 
                   {simulationModeStatus.currentSimulatedDate ? 
-                    `Simulated Date: ${new Date(simulationModeStatus.currentSimulatedDate).toLocaleDateString()}` :
+                    `Simulated Date & Time: ${new Date(simulationModeStatus.currentSimulatedDate).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}` :
                     'Real-time mode'
                   }
                 </div>
@@ -1770,16 +1848,291 @@ const DocDashboard = () => {
         </Modal>
       )}
 
-      {/* Vital Signs Modal (copied from AdminDashboard) */}
+      {/* Vital Signs Modal - Revamped */}
       {selectedPatient && (
-        <Modal show={showVitalSignsModal} onHide={() => setShowVitalSignsModal(false)} size="lg">
-          <Modal.Header closeButton><Modal.Title>Record Vital Signs for {selectedPatient.name}</Modal.Title></Modal.Header>
-          <Modal.Body>
-          <p><em>Placeholder: Form for vital signs. Backend integration needed.</em></p>
+        <Modal show={showVitalSignsModal} onHide={() => setShowVitalSignsModal(false)} size="lg" className="vital-signs-modal" centered>
+          <Modal.Header closeButton className="vital-signs-header">
+            <Modal.Title className="vital-signs-title">
+              <i className="bi bi-heart-pulse-fill me-2 text-danger"></i>
+              Record Vital Signs
+            </Modal.Title>
+          </Modal.Header>
+          <Modal.Body className="vital-signs-body">
+            {/* Patient Info Header */}
+            <div className="patient-info-header mb-4">
+              <div className="row">
+                <div className="col-md-8">
+                  <h5 className="patient-name">
+                    <i className="bi bi-person-fill me-2 text-primary"></i>
+                    {getPatientFullName(selectedPatient)}
+                  </h5>
+                  <p className="patient-details mb-0">
+                    <span className="badge bg-light text-dark me-2">ID: {selectedPatient.id || selectedPatient.patientId}</span>
+                    <span className="badge bg-light text-dark">Age: {getPatientAge(selectedPatient)} years old</span>
+                  </p>
+                </div>
+                <div className="col-md-4 text-end">
+                  <div className="timestamp">
+                    <small className="text-muted">
+                      <i className="bi bi-clock me-1"></i>
+                      {new Date().toLocaleString()}
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <Form>
+              {/* Primary Vital Signs Section */}
+              <div className="vital-signs-section">
+                <div className="section-header">
+                  <h5 className="section-title">
+                    <i className="bi bi-thermometer-half me-2 text-warning"></i>
+                    Primary Vital Signs
+                  </h5>
+                </div>
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="vital-label">
+                        <i className="bi bi-thermometer me-2"></i>
+                        Temperature <span className="normal-range">(Normal: 36.1-37.2°C)</span>
+                      </Form.Label>
+                      <InputGroup>
+                        <Form.Control
+                          type="text"
+                          placeholder="36.5°C or Normal"
+                          className="vital-input"
+                          value={vitalSignsFormData.temperature}
+                          onChange={(e) => handleVitalSignsFormChange('temperature', e.target.value)}
+                        />
+                        <Form.Select 
+                          className="unit-selector"
+                          value={vitalSignsFormData.temperatureUnit}
+                          onChange={(e) => handleVitalSignsFormChange('temperatureUnit', e.target.value)}
+                        >
+                          <option value="celsius">°C</option>
+                          <option value="fahrenheit">°F</option>
+                        </Form.Select>
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                  
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="vital-label">
+                        <i className="bi bi-heart-fill me-2"></i>
+                        Heart Rate <span className="normal-range">(Normal: 60-100 bpm)</span>
+                      </Form.Label>
+                      <InputGroup>
+                        <Form.Control
+                          type="text"
+                          placeholder="72 bpm or Regular"
+                          className="vital-input"
+                          value={vitalSignsFormData.heartRate}
+                          onChange={(e) => handleVitalSignsFormChange('heartRate', e.target.value)}
+                        />
+                        <InputGroup.Text>bpm</InputGroup.Text>
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </div>
+
+              {/* Blood Pressure Section */}
+              <div className="vital-signs-section">
+                <div className="section-header">
+                  <h5 className="section-title">
+                    <i className="bi bi-activity me-2 text-danger"></i>
+                    Blood Pressure
+                  </h5>
+                </div>
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="vital-label">
+                        <i className="bi bi-arrow-up-circle me-2"></i>
+                        Systolic <span className="normal-range">(Normal: 90-120 mmHg)</span>
+                      </Form.Label>
+                      <InputGroup>
+                        <Form.Control
+                          type="text"
+                          placeholder="120 or High"
+                          className="vital-input"
+                          value={vitalSignsFormData.systolicBP}
+                          onChange={(e) => handleVitalSignsFormChange('systolicBP', e.target.value)}
+                        />
+                        <InputGroup.Text>mmHg</InputGroup.Text>
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                  
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="vital-label">
+                        <i className="bi bi-arrow-down-circle me-2"></i>
+                        Diastolic <span className="normal-range">(Normal: 60-80 mmHg)</span>
+                      </Form.Label>
+                      <InputGroup>
+                        <Form.Control
+                          type="text"
+                          placeholder="80 or Normal"
+                          className="vital-input"
+                          value={vitalSignsFormData.diastolicBP}
+                          onChange={(e) => handleVitalSignsFormChange('diastolicBP', e.target.value)}
+                        />
+                        <InputGroup.Text>mmHg</InputGroup.Text>
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </div>
+
+              {/* Respiratory Assessment Section */}
+              <div className="vital-signs-section">
+                <div className="section-header">
+                  <h5 className="section-title">
+                    <i className="bi bi-lungs me-2 text-info"></i>
+                    Respiratory Assessment
+                  </h5>
+                </div>
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="vital-label">
+                        <i className="bi bi-wind me-2"></i>
+                        Respiratory Rate <span className="normal-range">(Normal: 12-20 brpm)</span>
+                      </Form.Label>
+                      <InputGroup>
+                        <Form.Control
+                          type="text"
+                          placeholder="16 or Labored"
+                          className="vital-input"
+                          value={vitalSignsFormData.respiratoryRate}
+                          onChange={(e) => handleVitalSignsFormChange('respiratoryRate', e.target.value)}
+                        />
+                        <InputGroup.Text>brpm</InputGroup.Text>
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                  
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="vital-label">
+                        <i className="bi bi-droplet me-2"></i>
+                        Oxygen Saturation <span className="normal-range">(Normal: 95-100%)</span>
+                      </Form.Label>
+                      <InputGroup>
+                        <Form.Control
+                          type="text"
+                          placeholder="98% or Good"
+                          className="vital-input"
+                          value={vitalSignsFormData.oxygenSaturation}
+                          onChange={(e) => handleVitalSignsFormChange('oxygenSaturation', e.target.value)}
+                        />
+                        <InputGroup.Text>%</InputGroup.Text>
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </div>
+
+              {/* Physical Measurements Section */}
+              <div className="vital-signs-section physical-measurements">
+                <div className="section-header">
+                  <h5 className="section-title">
+                    <i className="bi bi-rulers me-2 text-success"></i>
+                    Physical Measurements
+                  </h5>
+                </div>
+                <Row className="g-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="vital-label">
+                        <i className="bi bi-speedometer2 me-2"></i>
+                        Weight <span className="normal-range">(Range: 2.0-300.0)</span>
+                      </Form.Label>
+                      <InputGroup>
+                        <Form.Control
+                          type="text"
+                          placeholder="70.5 or Average"
+                          className="vital-input"
+                          value={vitalSignsFormData.weight}
+                          onChange={(e) => handleVitalSignsFormChange('weight', e.target.value)}
+                        />
+                        <Form.Select 
+                          className="unit-selector"
+                          value={vitalSignsFormData.weightUnit}
+                          onChange={(e) => handleVitalSignsFormChange('weightUnit', e.target.value)}
+                        >
+                          <option value="kg">kg</option>
+                          <option value="lbs">lbs</option>
+                        </Form.Select>
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                  
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="vital-label">
+                        <i className="bi bi-arrows-vertical me-2"></i>
+                        Height <span className="normal-range">(Range: 40-250)</span>
+                      </Form.Label>
+                      <InputGroup>
+                        <Form.Control
+                          type="text"
+                          placeholder="175 or Tall"
+                          className="vital-input"
+                          value={vitalSignsFormData.height}
+                          onChange={(e) => handleVitalSignsFormChange('height', e.target.value)}
+                        />
+                        <Form.Select 
+                          className="unit-selector"
+                          value={vitalSignsFormData.heightUnit}
+                          onChange={(e) => handleVitalSignsFormChange('heightUnit', e.target.value)}
+                        >
+                          <option value="cm">cm</option>
+                          <option value="ft">ft</option>
+                        </Form.Select>
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                </Row>
+              </div>
+
+              {/* Clinical Notes Section */}
+              <div className="vital-signs-section">
+                <div className="section-header">
+                  <h5 className="section-title">
+                    <i className="bi bi-journal-text me-2 text-secondary"></i>
+                    Clinical Notes
+                  </h5>
+                </div>
+                <Form.Group>
+                  <Form.Label className="vital-label">Additional Observations</Form.Label>
+                  <Form.Control 
+                    as="textarea" 
+                    rows={3} 
+                    placeholder="Enter any additional clinical observations, patient symptoms, or relevant notes..."
+                    className="notes-textarea"
+                    value={vitalSignsFormData.clinicalNotes}
+                    onChange={(e) => handleVitalSignsFormChange('clinicalNotes', e.target.value)}
+                  />
+                </Form.Group>
+              </div>
+            </Form>
           </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowVitalSignsModal(false)}>Close</Button>
-            <Button variant="primary" onClick={() => {alert("Placeholder: Save Vitals"); setShowVitalSignsModal(false);}}>Save Vitals</Button>
+          <Modal.Footer className="vital-signs-footer">
+            <div className="footer-actions">
+              <Button variant="outline-secondary" onClick={() => setShowVitalSignsModal(false)}>
+                <i className="bi bi-x-circle me-1"></i>
+                Cancel
+              </Button>
+              <Button variant="success" className="save-vitals-btn" onClick={handleSaveVitalSigns}>
+                <i className="bi bi-check-circle me-1"></i>
+                Save Vital Signs
+              </Button>
+            </div>
           </Modal.Footer>
         </Modal>
       )}
@@ -2009,11 +2362,11 @@ const DocDashboard = () => {
                           >
                             <div className="d-flex justify-content-between align-items-center">
                               <div>
-                                <strong>{patient.name}</strong>
+                                <strong>{getPatientFullName(patient)}</strong>
                                 <div className="text-muted small">ID: PT-{String(patient.id).padStart(4, '0')}</div>
                               </div>
                               <div className="text-muted small">
-                                Age: {patient.age}, {patient.gender}
+                                Age: {getPatientAge(patient)}, {patient.gender}
                               </div>
                             </div>
                           </div>
@@ -2031,10 +2384,10 @@ const DocDashboard = () => {
                     <div className="mt-2 p-3 bg-light border rounded">
                       <div className="d-flex justify-content-between align-items-center">
                         <div>
-                          <strong>Selected: {selectedPatientForConsultation.name}</strong>
+                          <strong>Selected: {getPatientFullName(selectedPatientForConsultation)}</strong>
                           <div className="text-muted small">
                             ID: PT-{String(selectedPatientForConsultation.id).padStart(4, '0')} | 
-                            Age: {selectedPatientForConsultation.age} | 
+                            Age: {getPatientAge(selectedPatientForConsultation)} | 
                             {selectedPatientForConsultation.gender}
                           </div>
                         </div>
@@ -2154,23 +2507,40 @@ const DocDashboard = () => {
           <Button 
             variant="success" 
             onClick={() => {
-              // TODO: Implement add consultation logic
+              // Create consultation and add to queue
               const patientInfo = consultationPatientType === 'existing' 
                 ? selectedPatientForConsultation 
                 : {
                     name: `${consultationForm.lastName}, ${consultationForm.firstName}${consultationForm.middleName ? ' ' + consultationForm.middleName : ''}`,
                     id: consultationForm.patientId || `TEMP-${String(Date.now()).slice(-3)}`,
-                    isTemporary: true
+                    isTemporary: true,
+                    firstName: consultationForm.firstName,
+                    lastName: consultationForm.lastName,
+                    middleName: consultationForm.middleName
                   };
               
-              console.log('Adding consultation:', {
-                patient: patientInfo,
+              // Add to doctor queue
+              const consultationData = {
+                id: Date.now(),
+                patientId: patientInfo.id,
+                name: consultationPatientType === 'existing' ? getPatientFullName(patientInfo) : patientInfo.name,
+                time: new Date().toLocaleTimeString('en-US', { 
+                  hour: 'numeric', 
+                  minute: '2-digit',
+                  hour12: true 
+                }),
                 type: consultationForm.consultationType,
                 priority: consultationForm.priority,
-                notes: consultationForm.notes
-              });
+                status: consultationForm.priority === 'Emergency' ? 'Emergency' : 'Waiting',
+                notes: consultationForm.notes,
+                source: 'doctor_consultation',
+                addedBy: 'Doctor',
+                addedAt: new Date().toISOString()
+              };
               
-              alert('Consultation will be added to queue!');
+              notifyDoctor(consultationData);
+              
+              alert(`Consultation added to queue successfully!${consultationForm.priority === 'Emergency' ? ' Emergency priority assigned.' : ''}`);
               resetConsultationModal();
             }}
             disabled={

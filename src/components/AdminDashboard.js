@@ -7,18 +7,20 @@ import { QRCodeCanvas as QRCode } from 'qrcode.react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import '../styles/AdminDashboard.css';
-// Import icons from bootstrap-icons
-import 'bootstrap-icons/font/bootstrap-icons.css';
+// Import optimized icons
+import { PersonIcon, CalendarIcon, DashboardIcon, GearIcon, PlusIcon, EditIcon, DeleteIcon } from './Icons';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import adminService from '../services/adminService';
 import userService from '../services/userService';
+import inventoryService from '../services/inventoryService';
 import ReferralForm from './ReferralForm';
 import NotificationManager from './NotificationManager';
 import SMSNotificationModal from './SMSNotificationModal';
 import PatientActionsSection from './PatientActionsSection';
 import PatientInfoCards from './PatientInfoCards';
 import BackupSettingsForm from './BackupSettingsForm';
+import sealmainImage from '../images/sealmain.png';
 
 // Register ChartJS components
 ChartJS.register(
@@ -197,6 +199,7 @@ const AdminDashboard = () => {
     contactNumber: '',
     notes: ''
   });
+
   const [showPatientDetailsModal, setShowPatientDetailsModal] = useState(false);
   const [showEmailConfirmModal, setShowEmailConfirmModal] = useState(false);
   const [showFamilyModal, setShowFamilyModal] = useState(false);
@@ -225,6 +228,9 @@ const AdminDashboard = () => {
     }
   });
 
+  // Report Generation Center modal state
+  const [showReportCenterModal, setShowReportCenterModal] = useState(false);
+
   // Backup and Restore state
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [showRestoreModal, setShowRestoreModal] = useState(false);
@@ -240,6 +246,79 @@ const AdminDashboard = () => {
   const [tabKey, setTabKey] = useState('families');
   const [dashboardTabKey, setDashboardTabKey] = useState('analytics');
   const [inventoryTabKey, setInventoryTabKey] = useState('vaccines');
+  
+  // Inventory states
+  const [vaccines, setVaccines] = useState([]);
+  const [medications, setMedications] = useState([]);
+  const [inventorySummary, setInventorySummary] = useState(null);
+  const [loadingInventory, setLoadingInventory] = useState(false);
+  const [inventoryError, setInventoryError] = useState(null);
+  const [showAddVaccineModal, setShowAddVaccineModal] = useState(false);
+  const [showAddMedicationModal, setShowAddMedicationModal] = useState(false);
+  const [selectedVaccine, setSelectedVaccine] = useState(null);
+  const [selectedMedication, setSelectedMedication] = useState(null);
+  const [showEditVaccineModal, setShowEditVaccineModal] = useState(false);
+  const [showEditMedicationModal, setShowEditMedicationModal] = useState(false);
+  const [showVaccineDetailsModal, setShowVaccineDetailsModal] = useState(false);
+  const [showMedicationDetailsModal, setShowMedicationDetailsModal] = useState(false);
+  
+  // Stock update modal states
+  const [showStockUpdateModal, setShowStockUpdateModal] = useState(false);
+  const [stockUpdateLoading, setStockUpdateLoading] = useState(false);
+  const [stockUpdateData, setStockUpdateData] = useState({
+    type: '', // 'vaccine' or 'medication'
+    id: null,
+    name: '',
+    currentStock: 0,
+    quantity: 0,
+    operation: 'add' // 'add' or 'remove'
+  });
+  
+  // Vaccine form data
+  const [vaccineFormData, setVaccineFormData] = useState({
+    name: '',
+    category: '',
+    manufacturer: '',
+    administrationRoute: '',
+    description: '',
+    dosesInStock: 0,
+    minimumStock: 0,
+    batchNumber: '',
+    expiryDate: '',
+    storageRequirements: '',
+    costPerDose: 0
+  });
+
+  // Medication form data
+  const [medicationFormData, setMedicationFormData] = useState({
+    name: '',
+    genericName: '',
+    brandName: '',
+    category: '',
+    form: '',
+    dosage: '',
+    unitsInStock: 0,
+    minimumStock: 0,
+    manufacturer: '',
+    batchNumber: '',
+    expiryDate: '',
+    costPerUnit: 0,
+    isPrescriptionRequired: false,
+    isControlledSubstance: false,
+    administrationInstructions: '',
+    sideEffects: '',
+    contraindications: ''
+  });
+  
+  // Inventory view modes
+  const [vaccineViewMode, setVaccineViewMode] = useState('list'); // list, details
+  const [medicationViewMode, setMedicationViewMode] = useState('list'); // list, details
+  
+  // Pagination states
+  const [vaccineCurrentPage, setVaccineCurrentPage] = useState(1);
+  const [medicationCurrentPage, setMedicationCurrentPage] = useState(1);
+  const itemsPerPage = 20; // 4-5 items per row, 4-5 rows per page
+  
   const [isDarkMode, setIsDarkMode] = useState(false);
   
   // Simulation mode states
@@ -480,6 +559,116 @@ const AdminDashboard = () => {
     }
   }, [simulationMode, getCurrentEffectiveDateString]);
 
+  // Load inventory data
+  useEffect(() => {
+    const loadInventoryData = async () => {
+      setLoadingInventory(true);
+      setInventoryError(null);
+      try {
+        const [vaccinesData, medicationsData, summaryData] = await Promise.all([
+          inventoryService.getAllVaccines(),
+          inventoryService.getAllMedications(),
+          inventoryService.getInventorySummary()
+        ]);
+        
+        setVaccines(vaccinesData);
+        setMedications(medicationsData);
+        setInventorySummary(summaryData);
+      } catch (error) {
+        console.error('Error loading inventory data:', error);
+        setInventoryError('Failed to load inventory data');
+      } finally {
+        setLoadingInventory(false);
+      }
+    };
+
+    loadInventoryData();
+  }, []);
+
+  // Add beforeunload protection for unsaved form data
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      const hasUnsavedVaccineData = Object.values(vaccineFormData).some(value => 
+        Array.isArray(value) ? value.length > 0 : value !== '' && value !== false
+      );
+      const hasUnsavedMedicationData = Object.values(medicationFormData).some(value => 
+        value !== '' && value !== false
+      );
+      const hasUnsavedStockData = stockUpdateData.quantity > 0;
+      
+      if (hasUnsavedVaccineData || hasUnsavedMedicationData || hasUnsavedStockData) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [vaccineFormData, medicationFormData, stockUpdateData]);
+
+  // Helper functions for patient data (moved here to avoid initialization issues)
+  const getPatientFullName = (patient) => {
+    if (!patient) return 'N/A'; // Handle null/undefined patient
+    if (patient.name) return patient.name; // Fallback for old data structure
+    return `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
+  };
+
+  const getPatientContact = (patient) => {
+    if (!patient) return 'N/A'; // Handle null/undefined patient
+    return patient.contactNumber || patient.contact || 'N/A';
+  };
+
+  const getPatientAge = (patient) => {
+    if (!patient) return 'N/A'; // Handle null/undefined patient
+    if (patient.age) return patient.age; // Fallback for old data structure
+    if (patient.dateOfBirth) {
+      const today = new Date();
+      const birthDate = new Date(patient.dateOfBirth);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age;
+    }
+    return 'N/A';
+  };
+
+  // Helper function to safely handle status display
+  const getSafeStatusClass = (status) => {
+    return (status || '').toLowerCase().replace(' ', '-');
+  };
+
+  const getSafeStatusText = (status) => {
+    return status || 'Unknown';
+  };
+
+  // Reload inventory data when tab changes
+  useEffect(() => {
+    if (inventoryTabKey === 'vaccines' && vaccines.length === 0) {
+      const loadVaccines = async () => {
+        try {
+          const vaccinesData = await inventoryService.getAllVaccines();
+          setVaccines(vaccinesData);
+        } catch (error) {
+          console.error('Error loading vaccines:', error);
+        }
+      };
+      loadVaccines();
+    } else if (inventoryTabKey === 'medications' && medications.length === 0) {
+      const loadMedications = async () => {
+        try {
+          const medicationsData = await inventoryService.getAllMedications();
+          setMedications(medicationsData);
+        } catch (error) {
+          console.error('Error loading medications:', error);
+        }
+      };
+      loadMedications();
+    }
+  }, [inventoryTabKey, vaccines.length, medications.length]);
+
   const getFamilyMembers = (familyId) => {
     if (!patients || !Array.isArray(patients)) return [];
     return patients.filter(patient => patient.familyId === familyId);
@@ -594,34 +783,6 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchPatientsAndFamilies();
   }, []);
-
-  // Helper functions for patient data
-  const getPatientFullName = (patient) => {
-    if (!patient) return 'N/A'; // Handle null/undefined patient
-    if (patient.name) return patient.name; // Fallback for old data structure
-    return `${patient.firstName || ''} ${patient.lastName || ''}`.trim();
-  };
-
-  const getPatientContact = (patient) => {
-    if (!patient) return 'N/A'; // Handle null/undefined patient
-    return patient.contactNumber || patient.contact || 'N/A';
-  };
-
-  const getPatientAge = (patient) => {
-    if (!patient) return 'N/A'; // Handle null/undefined patient
-    if (patient.age) return patient.age; // Fallback for old data structure
-    if (patient.dateOfBirth) {
-      const today = new Date();
-      const birthDate = new Date(patient.dateOfBirth);
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-      }
-      return age;
-    }
-    return 'N/A';
-  };
 
   // Helper functions for family data
   const getFamilyContact = (family) => {
@@ -1148,6 +1309,68 @@ const AdminDashboard = () => {
       ],
     };
   }, [allPatients]);
+
+  // Prescription Usage Data
+  const prescriptionData = useMemo(() => {
+    const monthlyPrescriptions = {
+      'Jan': Math.floor(Math.random() * 50) + 20,
+      'Feb': Math.floor(Math.random() * 50) + 25,
+      'Mar': Math.floor(Math.random() * 50) + 30,
+      'Apr': Math.floor(Math.random() * 50) + 35,
+      'May': Math.floor(Math.random() * 50) + 40,
+      'Jun': Math.floor(Math.random() * 50) + 38
+    };
+    
+    return {
+      labels: Object.keys(monthlyPrescriptions),
+      datasets: [
+        {
+          label: 'Prescriptions Dispensed',
+          data: Object.values(monthlyPrescriptions),
+          backgroundColor: 'rgba(46, 204, 113, 0.6)',
+          borderColor: 'rgba(46, 204, 113, 1)',
+          borderWidth: 2,
+        },
+      ],
+    };
+  }, []);
+
+  // Vaccination Usage Data
+  const vaccinationData = useMemo(() => {
+    const vaccinationTypes = {
+      'COVID-19': Math.floor(Math.random() * 100) + 50,
+      'Influenza': Math.floor(Math.random() * 80) + 40,
+      'Hepatitis B': Math.floor(Math.random() * 60) + 30,
+      'Tetanus': Math.floor(Math.random() * 40) + 20,
+      'Others': Math.floor(Math.random() * 30) + 15
+    };
+    
+    return {
+      labels: Object.keys(vaccinationTypes),
+      datasets: [
+        {
+          label: 'Vaccinations Administered',
+          data: Object.values(vaccinationTypes),
+          backgroundColor: [
+            'rgba(155, 196, 226, 0.8)',
+            'rgba(243, 156, 18, 0.8)',
+            'rgba(231, 76, 60, 0.8)',
+            'rgba(46, 204, 113, 0.8)',
+            'rgba(155, 89, 182, 0.8)'
+          ],
+          borderColor: [
+            'rgba(155, 196, 226, 1)',
+            'rgba(243, 156, 18, 1)',
+            'rgba(231, 76, 60, 1)',
+            'rgba(46, 204, 113, 1)',
+            'rgba(155, 89, 182, 1)'
+          ],
+          borderWidth: 2,
+        },
+      ],
+    };
+  }, []);
+
   // Update date and time every minute
   useEffect(() => {
     const timer = setInterval(() => {
@@ -1491,9 +1714,10 @@ const AdminDashboard = () => {
     if (!searchTerm) return families;
     const term = searchTerm.toLowerCase();
     return families.filter(family => {
+      if (!family) return false;
       const familyName = family.familyName ? family.familyName.toLowerCase() : '';
       const familyId = family.id ? family.id.toString().toLowerCase() : '';
-      const headOfFamily = getFamilyHead(family).toLowerCase();
+      const headOfFamily = (getFamilyHead(family) || '').toLowerCase();
       const contact = getFamilyContact(family);
       
       return familyName.includes(term) || 
@@ -1507,9 +1731,10 @@ const AdminDashboard = () => {
     setShowAddPatientModal(true);
   };
   
-  const handlePatientFormChange = (field, value) => {
+  // Optimized patient form handler
+  const handlePatientFormChange = useCallback((field, value) => {
+    // Handle date of birth calculation immediately (but optimized)
     if (field === 'dateOfBirth' && value) {
-      // Calculate age based on date of birth
       const today = new Date();
       const birthDate = new Date(value);
       let age = today.getFullYear() - birthDate.getFullYear();
@@ -1525,12 +1750,13 @@ const AdminDashboard = () => {
         age: age.toString()
       }));
     } else {
+      // For all other fields, update immediately
       setPatientFormData(prev => ({
         ...prev,
         [field]: value
       }));
     }
-  };
+  }, []);
   
   const handleSavePatient = async () => {
     try {
@@ -1634,43 +1860,62 @@ const AdminDashboard = () => {
     setShowAddFamilyModal(true);
   };
 
-  // Helper function to capitalize first letter of each word
-  const capitalizeWords = (str) => {
+  // Helper function to capitalize first letter of each word (memoized)
+  const capitalizeWords = useCallback((str) => {
     return str.replace(/\b\w/g, (char) => char.toUpperCase());
+  }, []);
+
+  // Debounce hook
+  const useDebounce = (callback, delay) => {
+    const timeoutRef = useRef(null);
+    
+    return useCallback((...args) => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      timeoutRef.current = setTimeout(() => {
+        callback(...args);
+      }, delay);
+    }, [callback, delay]);
   };
 
-  // Handle family form input changes with auto-capitalization
-  const handleFamilyFormChange = (field, value) => {
-    let processedValue = value;
+  // Debounced capitalization function
+  const debouncedCapitalize = useDebounce((field, value) => {
+    const capitalizedValue = capitalizeWords(value);
+    let finalValue = capitalizedValue;
     
-    // Auto-capitalize for name fields
-    if (field === 'familyName' || field === 'surname' || field === 'headOfFamily') {
-      processedValue = capitalizeWords(value);
-    }
-    
-    // Phone number validation - only allow numbers and limit to 11 digits
-    if (field === 'contactNumber') {
-      // Remove all non-numeric characters
-      processedValue = value.replace(/\D/g, '');
-      // Limit to 11 digits
-      if (processedValue.length > 11) {
-        processedValue = processedValue.slice(0, 11);
-      }
-    }
-    
-    // Automatically append "Family" to familyName
-    if (field === 'familyName') {
-      // The input field only shows the base name, so we append "Family" for storage
-      if (processedValue.trim()) {
-        processedValue = `${processedValue.trim()} Family`;
-      }
+    // Only add "Family" suffix for familyName field
+    if (field === 'familyName' && capitalizedValue.trim()) {
+      finalValue = `${capitalizedValue.trim()} Family`;
     }
     
     setFamilyFormData(prev => ({
       ...prev,
+      [field]: finalValue
+    }));
+  }, 300); // 300ms delay
+
+  // Optimized family form handler - immediate updates for responsiveness
+  const handleFamilyFormChange = useCallback((field, value) => {
+    let processedValue = value;
+    
+    // Only do essential processing immediately
+    if (field === 'contactNumber') {
+      // Simple numeric filter
+      processedValue = value.replace(/\D/g, '').substring(0, 11);
+    }
+    
+    // Update state immediately for responsiveness
+    setFamilyFormData(prev => ({
+      ...prev,
       [field]: processedValue
     }));
-  };
+
+    // Debounce heavy operations like capitalization
+    if (field === 'familyName' || field === 'surname' || field === 'headOfFamily') {
+      debouncedCapitalize(field, value);
+    }
+  }, [debouncedCapitalize]);
 
   // Handle family form submission
   const handleSaveFamily = async () => {
@@ -2670,6 +2915,44 @@ const AdminDashboard = () => {
           </div>
         </div>
 
+        {/* Prescription Usage */}
+        <div className="dashboard-card">
+          <div className="card-header">
+            <h3>
+              <i className="bi bi-capsule"></i>
+              Prescription Usage
+            </h3>
+            <span>Monthly prescription dispensing trends</span>
+          </div>
+          <div className="card-content">
+            <div className="chart-container" style={{height: '250px'}}>
+              <Bar 
+                data={prescriptionData} 
+                options={getChartOptions('bar')}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Vaccination Usage */}
+        <div className="dashboard-card">
+          <div className="card-header">
+            <h3>
+              <i className="bi bi-shield-check"></i>
+              Vaccination Usage
+            </h3>
+            <span>Distribution of vaccination types administered</span>
+          </div>
+          <div className="card-content">
+            <div className="chart-container" style={{height: '250px'}}>
+              <Pie 
+                data={vaccinationData} 
+                options={getChartOptions('pie', 'Vaccination Distribution')}
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Upcoming Appointments */}
         <div className="dashboard-card">
           <div className="card-header">
@@ -2706,8 +2989,8 @@ const AdminDashboard = () => {
                       <td>{appointment.time}</td>
                       <td>{appointment.type}</td>
                       <td>
-                        <span className={`badge ${appointment.status.toLowerCase().replace(' ', '-')}`}>
-                          {appointment.status}
+                        <span className={`badge ${(appointment.status || '').toLowerCase().replace(' ', '-')}`}>
+                          {appointment.status || 'Unknown'}
                         </span>
                       </td>
                     </tr>
@@ -2771,12 +3054,12 @@ const AdminDashboard = () => {
   // Today's Checkup content
   const renderTodaysCheckup = () => {
     const filteredTodaysCheckups = todaysCheckups.filter(checkup => {
-      if (!searchTerm) return true;
+      if (!searchTerm || !checkup) return true;
       const term = searchTerm.toLowerCase();
-      return checkup.patientName.toLowerCase().includes(term) ||
-             `PT-${String(checkup.patientId).padStart(4, '0')}`.toLowerCase().includes(term) ||
-             checkup.type.toLowerCase().includes(term) ||
-             checkup.status.toLowerCase().includes(term);
+      return (checkup.patientName || '').toLowerCase().includes(term) ||
+             `PT-${String(checkup.patientId || '').padStart(4, '0')}`.toLowerCase().includes(term) ||
+             (checkup.type || '').toLowerCase().includes(term) ||
+             (checkup.status || '').toLowerCase().includes(term);
     });
 
     return (
@@ -3344,6 +3627,48 @@ const AdminDashboard = () => {
       }
     };
 
+    const generatePrescriptionReport = (format = 'pdf') => {
+      const reportData = {
+        title: 'Prescription Usage Report',
+        dateGenerated: new Date().toLocaleDateString(),
+        data: {
+          totalPrescriptions: Math.floor(Math.random() * 500) + 200,
+          dispensedThisMonth: Math.floor(Math.random() * 100) + 50,
+          mostPrescribedMedication: 'Paracetamol',
+          averagePerPatient: '2.5 medications',
+          totalMedications: Math.floor(Math.random() * 150) + 75,
+          topMedications: ['Paracetamol', 'Amoxicillin', 'Ibuprofen', 'Cetirizine', 'Metformin']
+        }
+      };
+
+      if (format === 'pdf') {
+        generatePDFReport(reportData, 'prescription-usage');
+      } else if (format === 'excel') {
+        generateExcelReport(reportData, 'prescription-usage');
+      }
+    };
+
+    const generateVaccinationReport = (format = 'pdf') => {
+      const reportData = {
+        title: 'Vaccination Usage Report',
+        dateGenerated: new Date().toLocaleDateString(),
+        data: {
+          totalVaccinations: Math.floor(Math.random() * 300) + 150,
+          administeredThisMonth: Math.floor(Math.random() * 80) + 40,
+          mostCommonVaccine: 'COVID-19 Vaccine',
+          vaccinationRate: '85%',
+          totalVaccineTypes: 12,
+          topVaccines: ['COVID-19', 'Influenza', 'Hepatitis B', 'Tetanus', 'MMR']
+        }
+      };
+
+      if (format === 'pdf') {
+        generatePDFReport(reportData, 'vaccination-usage');
+      } else if (format === 'excel') {
+        generateExcelReport(reportData, 'vaccination-usage');
+      }
+    };
+
     const generatePDFReport = (reportData, reportType) => {
       // Enhanced PDF content with better formatting
       let content = `
@@ -3513,6 +3838,8 @@ Report generated by Health Record System Management v2.0
       setTimeout(() => generateCheckupTrendsReport(format), 500);
       setTimeout(() => generateDemographicsReport(format), 900);
       setTimeout(() => generateAppointmentAnalysisReport(format), 1300);
+      setTimeout(() => generatePrescriptionReport(format), 1700);
+      setTimeout(() => generateVaccinationReport(format), 2100);
       
       alert(`Generating all reports in ${format.toUpperCase()} format. Downloads will start shortly...`);
     };
@@ -3611,254 +3938,14 @@ Report generated by Health Record System Management v2.0
             Generate Reports
           </h2>
           <div className="management-actions">
+            <button className="add-patient-btn" onClick={() => setShowReportCenterModal(true)}>
+              <i className="bi bi-gear"></i>
+              Report Center
+            </button>
             <button className="add-patient-btn" onClick={exportAllReports}>
               <i className="bi bi-download"></i>
               Export All Reports
             </button>
-          </div>
-        </div>
-
-        {/* Modern Report Generation Dashboard */}
-        <div className="report-generation-dashboard" style={{
-          background: 'white',
-          borderRadius: '15px',
-          padding: '30px',
-          marginBottom: '30px',
-          color: '#333',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
-          border: '1px solid #e0e0e0'
-        }}>
-          <div className="dashboard-header" style={{textAlign: 'center', marginBottom: '30px'}}>
-            <h2 style={{margin: '0 0 10px 0', fontSize: '28px', fontWeight: '600', color: '#2c3e50'}}>
-              <i className="bi bi-graph-up-arrow" style={{marginRight: '10px', color: '#3498db'}}></i>
-              Report Generation Center
-            </h2>
-            <p style={{margin: '0', opacity: '0.7', fontSize: '16px', color: '#7f8c8d'}}>
-              Generate comprehensive reports with advanced filtering and export options
-            </p>
-          </div>
-
-          {/* Report Configuration Panel */}
-          <div className="report-config-panel" style={{
-            background: '#f8f9fa',
-            borderRadius: '12px',
-            padding: '25px',
-            marginBottom: '25px',
-            border: '1px solid #e9ecef'
-          }}>
-            <div className="config-grid" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-              gap: '20px',
-              marginBottom: '25px'
-            }}>
-              {/* Date Range Selection */}
-              <div className="config-group">
-                <label style={{display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px', color: '#2c3e50'}}>
-                  <i className="bi bi-calendar-range" style={{marginRight: '8px', color: '#3498db'}}></i>
-                  Date Range
-                </label>
-                <select 
-                  className="form-select" 
-                  value={reportOptions.dateRange}
-                  onChange={(e) => setReportOptions({...reportOptions, dateRange: e.target.value})}
-                  style={{
-                    background: 'white',
-                    border: '1px solid #dee2e6',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    fontSize: '14px',
-                    color: '#333'
-                  }}
-                >
-                  <option value="last7days">Last 7 Days</option>
-                  <option value="last30days">Last 30 Days</option>
-                  <option value="last90days">Last 90 Days</option>
-                  <option value="last6months">Last 6 Months</option>
-                  <option value="lastyear">Last Year</option>
-                  <option value="custom">Custom Range</option>
-                </select>
-              </div>
-
-              {/* Report Format Selection */}
-              <div className="config-group">
-                <label style={{display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px', color: '#2c3e50'}}>
-                  <i className="bi bi-file-earmark" style={{marginRight: '8px', color: '#3498db'}}></i>
-                  Export Format
-                </label>
-                <select 
-                  className="form-select"
-                  value={reportOptions.format}
-                  onChange={(e) => setReportOptions({...reportOptions, format: e.target.value})}
-                  style={{
-                    background: 'white',
-                    border: '1px solid #dee2e6',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    fontSize: '14px',
-                    color: '#333'
-                  }}
-                >
-                  <option value="pdf">📄 PDF Document</option>
-                  <option value="excel">📊 Excel Spreadsheet</option>
-                  <option value="csv">📋 CSV File</option>
-                </select>
-              </div>
-
-              {/* Report Quality */}
-              <div className="config-group">
-                <label style={{display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px', color: '#2c3e50'}}>
-                  <i className="bi bi-star" style={{marginRight: '8px', color: '#3498db'}}></i>
-                  Report Quality
-                </label>
-                <select 
-                  className="form-select"
-                  value={reportOptions.quality || 'standard'}
-                  onChange={(e) => setReportOptions({...reportOptions, quality: e.target.value})}
-                  style={{
-                    background: 'white',
-                    border: '1px solid #dee2e6',
-                    borderRadius: '8px',
-                    padding: '12px',
-                    fontSize: '14px',
-                    color: '#333'
-                  }}
-                >
-                  <option value="basic">Basic</option>
-                  <option value="standard">Standard</option>
-                  <option value="detailed">Detailed</option>
-                  <option value="comprehensive">Comprehensive</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Chart Inclusions */}
-            <div className="chart-options" style={{marginBottom: '25px'}}>
-              <h4 style={{margin: '0 0 15px 0', fontSize: '16px', fontWeight: '500', color: '#2c3e50'}}>
-                <i className="bi bi-bar-chart" style={{marginRight: '8px', color: '#3498db'}}></i>
-                Include Visual Analytics
-              </h4>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '15px'
-              }}>
-                {[
-                  {key: 'demographics', label: 'Patient Demographics', icon: 'people'},
-                  {key: 'trends', label: 'Health Trends', icon: 'graph-up'},
-                  {key: 'appointments', label: 'Appointment Analytics', icon: 'calendar-check'},
-                  {key: 'medications', label: 'Medication Reports', icon: 'capsule'},
-                  {key: 'financial', label: 'Financial Summary', icon: 'currency-dollar'},
-                  {key: 'performance', label: 'Performance Metrics', icon: 'speedometer2'}
-                ].map(chart => (
-                  <label key={chart.key} style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    cursor: 'pointer',
-                    padding: '10px',
-                    background: 'white',
-                    borderRadius: '8px',
-                    border: '1px solid #e9ecef',
-                    transition: 'all 0.3s'
-                  }}>
-                    <input 
-                      type="checkbox" 
-                      checked={reportOptions.includeCharts[chart.key] || false}
-                      onChange={(e) => setReportOptions({
-                        ...reportOptions, 
-                        includeCharts: {...reportOptions.includeCharts, [chart.key]: e.target.checked}
-                      })}
-                      style={{marginRight: '10px', transform: 'scale(1.2)'}}
-                    />
-                    <i className={`bi bi-${chart.icon}`} style={{marginRight: '8px', fontSize: '16px', color: '#3498db'}}></i>
-                    <span style={{fontSize: '14px', color: '#2c3e50'}}>{chart.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Action Buttons - More Boxy Style */}
-            <div className="action-buttons" style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '15px',
-              justifyContent: 'center'
-            }}>
-              <button 
-                className="btn-generate-comprehensive" 
-                onClick={generateComprehensiveReport}
-                style={{
-                  background: '#28a745',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '15px 30px',
-                  color: 'white',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s',
-                  boxShadow: '0 2px 8px rgba(40, 167, 69, 0.3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
-                }}
-                onMouseOver={(e) => e.target.style.background = '#218838'}
-                onMouseOut={(e) => e.target.style.background = '#28a745'}
-              >
-                <i className="bi bi-file-earmark-bar-graph"></i>
-                Generate Comprehensive Report
-              </button>
-              
-              <button 
-                className="btn-quick-export" 
-                onClick={exportAllReports}
-                style={{
-                  background: '#007bff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '15px 30px',
-                  color: 'white',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s',
-                  boxShadow: '0 2px 8px rgba(0, 123, 255, 0.3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
-                }}
-                onMouseOver={(e) => e.target.style.background = '#0056b3'}
-                onMouseOut={(e) => e.target.style.background = '#007bff'}
-              >
-                <i className="bi bi-download"></i>
-                Quick Export All
-              </button>
-
-              <button 
-                className="btn-preview" 
-                onClick={() => alert('Report preview functionality coming soon!')}
-                style={{
-                  background: '#fd7e14',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '15px 30px',
-                  color: 'white',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s',
-                  boxShadow: '0 2px 8px rgba(253, 126, 20, 0.3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px'
-                }}
-                onMouseOver={(e) => e.target.style.background = '#e8590c'}
-                onMouseOut={(e) => e.target.style.background = '#fd7e14'}
-              >
-                <i className="bi bi-eye"></i>
-                Preview Report
-              </button>
-            </div>
           </div>
         </div>
 
@@ -4038,7 +4125,283 @@ Report generated by Health Record System Management v2.0
               </div>
             </div>
           </div>
+
+          {/* Prescription Usage Report */}
+          <div className="report-card">
+            <div className="report-header">
+              <div className="report-icon prescriptions">
+                <i className="bi bi-capsule"></i>
+              </div>
+              <div className="report-info">
+                <h3>Prescription Usage Report</h3>
+                <p>Monthly analysis of prescription dispensing and medication trends</p>
+              </div>
+            </div>
+            <div className="report-content">
+              <div className="report-preview">
+                <div className="chart-mini" style={{height: '120px'}}>
+                  <Bar 
+                    data={prescriptionData} 
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { display: false },
+                        title: { display: false }
+                      },
+                      scales: {
+                        x: { display: false },
+                        y: { display: false }
+                      }
+                    }} 
+                  />
+                </div>
+                <div className="prescription-summary">
+                  <span>Monthly Total: {prescriptionData.datasets[0].data.reduce((a, b) => a + b, 0)} prescriptions</span>
+                  <span>Peak Month: {prescriptionData.labels[prescriptionData.datasets[0].data.indexOf(Math.max(...prescriptionData.datasets[0].data))]}</span>
+                </div>
+              </div>
+              <div className="report-actions">
+                <button className="btn-generate" onClick={() => generatePrescriptionReport('pdf')}>
+                  <i className="bi bi-file-earmark-pdf"></i>
+                  Generate PDF
+                </button>
+                <button className="btn-generate excel" onClick={() => generatePrescriptionReport('excel')}>
+                  <i className="bi bi-file-earmark-excel"></i>
+                  Generate Excel
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Vaccination Usage Report */}
+          <div className="report-card">
+            <div className="report-header">
+              <div className="report-icon vaccinations">
+                <i className="bi bi-shield-check"></i>
+              </div>
+              <div className="report-info">
+                <h3>Vaccination Usage Report</h3>
+                <p>Distribution analysis of vaccination types and immunization tracking</p>
+              </div>
+            </div>
+            <div className="report-content">
+              <div className="report-preview">
+                <div className="chart-mini" style={{height: '120px'}}>
+                  <Pie 
+                    data={vaccinationData} 
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: { display: false },
+                        title: { display: false }
+                      }
+                    }}
+                  />
+                </div>
+                <div className="vaccination-summary">
+                  <span>Total Vaccines: {vaccinationData.datasets[0].data.reduce((a, b) => a + b, 0)} administered</span>
+                  <span>Most Common: {vaccinationData.labels[vaccinationData.datasets[0].data.indexOf(Math.max(...vaccinationData.datasets[0].data))]}</span>
+                </div>
+              </div>
+              <div className="report-actions">
+                <button className="btn-generate" onClick={() => generateVaccinationReport('pdf')}>
+                  <i className="bi bi-file-earmark-pdf"></i>
+                  Generate PDF
+                </button>
+                <button className="btn-generate excel" onClick={() => generateVaccinationReport('excel')}>
+                  <i className="bi bi-file-earmark-excel"></i>
+                  Generate Excel
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
+
+        {/* Report Generation Center Modal */}
+        {showReportCenterModal && (
+          <div className="modal" style={{display: 'block', backgroundColor: 'rgba(0,0,0,0.5)'}}>
+            <div className="modal-dialog modal-xl">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">
+                    <i className="bi bi-graph-up-arrow me-2"></i>
+                    Report Generation Center
+                  </h5>
+                  <button 
+                    type="button" 
+                    className="btn-close" 
+                    onClick={() => setShowReportCenterModal(false)}
+                  ></button>
+                </div>
+                <div className="modal-body">
+                  {/* Report Configuration Panel */}
+                  <div className="report-config-panel" style={{
+                    background: '#f8f9fa',
+                    borderRadius: '12px',
+                    padding: '25px',
+                    marginBottom: '25px',
+                    border: '1px solid #e9ecef'
+                  }}>
+                    <div className="config-grid" style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                      gap: '20px',
+                      marginBottom: '25px'
+                    }}>
+                      {/* Date Range Selection */}
+                      <div className="config-group">
+                        <label style={{display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px', color: '#2c3e50'}}>
+                          <i className="bi bi-calendar-range" style={{marginRight: '8px', color: '#3498db'}}></i>
+                          Date Range
+                        </label>
+                        <select 
+                          className="form-select" 
+                          value={reportOptions.dateRange}
+                          onChange={(e) => setReportOptions({...reportOptions, dateRange: e.target.value})}
+                          style={{
+                            background: 'white',
+                            border: '1px solid #dee2e6',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            fontSize: '14px',
+                            color: '#333'
+                          }}
+                        >
+                          <option value="last7days">Last 7 Days</option>
+                          <option value="last30days">Last 30 Days</option>
+                          <option value="last90days">Last 90 Days</option>
+                          <option value="last6months">Last 6 Months</option>
+                          <option value="lastyear">Last Year</option>
+                          <option value="custom">Custom Range</option>
+                        </select>
+                      </div>
+
+                      {/* Report Format Selection */}
+                      <div className="config-group">
+                        <label style={{display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px', color: '#2c3e50'}}>
+                          <i className="bi bi-file-earmark" style={{marginRight: '8px', color: '#3498db'}}></i>
+                          Export Format
+                        </label>
+                        <select 
+                          className="form-select"
+                          value={reportOptions.format}
+                          onChange={(e) => setReportOptions({...reportOptions, format: e.target.value})}
+                          style={{
+                            background: 'white',
+                            border: '1px solid #dee2e6',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            fontSize: '14px',
+                            color: '#333'
+                          }}
+                        >
+                          <option value="pdf">📄 PDF Document</option>
+                          <option value="excel">📊 Excel Spreadsheet</option>
+                          <option value="csv">📋 CSV File</option>
+                        </select>
+                      </div>
+
+                      {/* Report Quality */}
+                      <div className="config-group">
+                        <label style={{display: 'block', marginBottom: '8px', fontWeight: '500', fontSize: '14px', color: '#2c3e50'}}>
+                          <i className="bi bi-star" style={{marginRight: '8px', color: '#3498db'}}></i>
+                          Report Quality
+                        </label>
+                        <select 
+                          className="form-select"
+                          value={reportOptions.quality || 'standard'}
+                          onChange={(e) => setReportOptions({...reportOptions, quality: e.target.value})}
+                          style={{
+                            background: 'white',
+                            border: '1px solid #dee2e6',
+                            borderRadius: '8px',
+                            padding: '12px',
+                            fontSize: '14px',
+                            color: '#333'
+                          }}
+                        >
+                          <option value="basic">Basic</option>
+                          <option value="standard">Standard</option>
+                          <option value="detailed">Detailed</option>
+                          <option value="comprehensive">Comprehensive</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Chart Inclusions */}
+                    <div className="chart-options" style={{marginBottom: '25px'}}>
+                      <h4 style={{margin: '0 0 15px 0', fontSize: '16px', fontWeight: '500', color: '#2c3e50'}}>
+                        <i className="bi bi-bar-chart" style={{marginRight: '8px', color: '#3498db'}}></i>
+                        Include Visual Analytics
+                      </h4>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: '15px'
+                      }}>
+                        {[
+                          {key: 'demographics', label: 'Patient Demographics', icon: 'people'},
+                          {key: 'trends', label: 'Health Trends', icon: 'graph-up'},
+                          {key: 'appointments', label: 'Appointment Analytics', icon: 'calendar-check'},
+                          {key: 'medications', label: 'Medication Reports', icon: 'capsule'},
+                          {key: 'financial', label: 'Financial Summary', icon: 'currency-dollar'},
+                          {key: 'performance', label: 'Performance Metrics', icon: 'speedometer2'}
+                        ].map(chart => (
+                          <label key={chart.key} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            cursor: 'pointer',
+                            padding: '10px',
+                            background: 'white',
+                            borderRadius: '8px',
+                            border: '1px solid #e9ecef',
+                            transition: 'all 0.3s'
+                          }}>
+                            <input 
+                              type="checkbox" 
+                              checked={reportOptions.includeCharts[chart.key] || false}
+                              onChange={(e) => setReportOptions({
+                                ...reportOptions, 
+                                includeCharts: {...reportOptions.includeCharts, [chart.key]: e.target.checked}
+                              })}
+                              style={{marginRight: '10px', transform: 'scale(1.2)'}}
+                            />
+                            <i className={`bi bi-${chart.icon}`} style={{marginRight: '8px', fontSize: '16px', color: '#3498db'}}></i>
+                            <span style={{fontSize: '14px', color: '#2c3e50'}}>{chart.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button 
+                    className="btn btn-secondary" 
+                    onClick={() => setShowReportCenterModal(false)}
+                  >
+                    Close
+                  </button>
+                  <button 
+                    className="btn btn-success" 
+                    onClick={generateComprehensiveReport}
+                  >
+                    <i className="bi bi-file-earmark-bar-graph me-2"></i>
+                    Generate Comprehensive Report
+                  </button>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={exportAllReports}
+                  >
+                    <i className="bi bi-download me-2"></i>
+                    Quick Export All
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -4406,11 +4769,13 @@ Report generated by Health Record System Management v2.0
     if (!appointmentSearchTerm) return appointmentList;
     const term = appointmentSearchTerm.toLowerCase();
     return appointmentList.filter(appointment => 
-      appointment.patientName.toLowerCase().includes(term) ||
-      appointment.type.toLowerCase().includes(term) ||
-      appointment.doctor.toLowerCase().includes(term) ||
-      appointment.status.toLowerCase().includes(term) ||
-      `PT-${String(appointment.patientId).padStart(4, '0')}`.toLowerCase().includes(term)
+      appointment && (
+        (appointment.patientName || '').toLowerCase().includes(term) ||
+        (appointment.type || '').toLowerCase().includes(term) ||
+        (appointment.doctor || '').toLowerCase().includes(term) ||
+        (appointment.status || '').toLowerCase().includes(term) ||
+        `PT-${String(appointment.patientId || '').padStart(4, '0')}`.toLowerCase().includes(term)
+      )
     );
   }, [appointmentSearchTerm]);
 
@@ -4492,75 +4857,6 @@ Report generated by Health Record System Management v2.0
     setIsPatientSelected(false); // Reset patient selection when modal closes
   }, []);
 
-  // Function to add sample appointments for testing
-  const addSampleAppointments = useCallback(() => {
-    const sampleAppointments = [
-      {
-        id: Date.now() + 1,
-        patientName: 'Maria Santos',
-        patientId: 1,
-        date: '2025-08-04',
-        time: '09:30 AM',
-        type: 'Regular Checkup',
-        doctor: 'Dr. Santos',
-        status: 'Scheduled',
-        duration: 30,
-        notes: 'Routine health checkup'
-      },
-      {
-        id: Date.now() + 2,
-        patientName: 'Carlos Mendoza',
-        patientId: 4,
-        date: '2025-08-04',
-        time: '10:15 AM',
-        type: 'Follow-up',
-        doctor: 'Dr. Martinez',
-        status: 'In Progress',
-        duration: 45,
-        notes: 'Follow-up for blood pressure medication'
-      },
-      {
-        id: Date.now() + 3,
-        patientName: 'Ana Reyes',
-        patientId: 3,
-        date: '2025-08-04',
-        time: '11:45 AM',
-        type: 'Medical Certificate',
-        doctor: 'Dr. Santos',
-        status: 'Scheduled',
-        duration: 30,
-        notes: 'Medical certificate for employment'
-      },
-      {
-        id: Date.now() + 4,
-        patientName: 'Juan Dela Cruz',
-        patientId: 2,
-        date: '2025-08-05',
-        time: '09:00 AM',
-        type: 'Consultation',
-        doctor: 'Dr. Reyes',
-        status: 'Scheduled',
-        duration: 60,
-        notes: 'General consultation for stomach issues'
-      },
-      {
-        id: Date.now() + 5,
-        patientName: 'Rosa Martinez',
-        patientId: 5,
-        date: '2025-08-06',
-        time: '02:30 PM',
-        type: 'Vaccination',
-        doctor: 'Nurse Ana',
-        status: 'Scheduled',
-        duration: 15,
-        notes: 'COVID-19 booster shot'
-      }
-    ];
-    
-    setAppointments(prev => [...prev, ...sampleAppointments]);
-    alert('Sample appointments added successfully!');
-  }, []);
-
   const renderAppointments = () => (
     <div className="appointments-comprehensive">
       <Tabs
@@ -4593,12 +4889,6 @@ Report generated by Health Record System Management v2.0
                     <i className="bi bi-lightning-charge"></i>
                     Quick Schedule
                   </button>
-                  {appointments.length === 0 && (
-                    <button className="add-patient-btn" onClick={addSampleAppointments} style={{backgroundColor: '#28a745'}}>
-                      <i className="bi bi-plus-circle"></i>
-                      Add Sample Data
-                    </button>
-                  )}
                   <button className="refresh-btn" onClick={(e) => {
                     if (e.ctrlKey || e.metaKey) {
                       // Clear all appointments when Ctrl+Click or Cmd+Click
@@ -4626,7 +4916,7 @@ Report generated by Health Record System Management v2.0
               </h4>
               <div className="schedule-cards-grid">
                 {getTodaysAppointments.map(appointment => (
-                  <div key={appointment.id} className={`schedule-card ${appointment.status.toLowerCase().replace(' ', '-')}`}>
+                  <div key={appointment.id} className={`schedule-card ${(appointment.status || '').toLowerCase().replace(' ', '-')}`}>
                     <div className="card-time">
                       <span className="time">{appointment.time}</span>
                       <span className="duration">{appointment.duration}min</span>
@@ -5928,579 +6218,937 @@ Report generated by Health Record System Management v2.0
     </>
   );
 
-  const renderVaccineInventory = () => (
-    <div className="inventory-management">
-      {/* Inventory Summary Cards */}
-      <div className="inventory-summary">
-        <div className="summary-card">
-          <div className="summary-icon vaccines">
-            <i className="bi bi-shield-plus"></i>
-          </div>
-          <div className="summary-content">
-            <div className="summary-value">12</div>
-            <div className="summary-label">Total Vaccines</div>
-          </div>
-        </div>
-        
-        <div className="summary-card">
-          <div className="summary-icon available">
-            <i className="bi bi-check-circle"></i>
-          </div>
-          <div className="summary-content">
-            <div className="summary-value">525</div>
-            <div className="summary-label">Doses Available</div>
-          </div>
-        </div>
-        
-        <div className="summary-card">
-          <div className="summary-icon warning">
-            <i className="bi bi-exclamation-triangle"></i>
-          </div>
-          <div className="summary-content">
-            <div className="summary-value">3</div>
-            <div className="summary-label">Low Stock</div>
-          </div>
-        </div>
-        
-        <div className="summary-card">
-          <div className="summary-icon expiring">
-            <i className="bi bi-calendar-x"></i>
-          </div>
-          <div className="summary-content">
-            <div className="summary-value">2</div>
-            <div className="summary-label">Expiring Soon</div>
-          </div>
-        </div>
-      </div>
+  // Memoized inventory calculations for performance
+  const memoizedVaccineData = useMemo(() => {
+    const filteredVaccines = vaccines.filter(vaccine =>
+      (vaccine.name && vaccine.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (vaccine.manufacturer && vaccine.manufacturer.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (vaccine.category && vaccine.category.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
 
-      <div className="management-header">
-        <h3 className="management-title">
-          <i className="bi bi-shield-plus me-2"></i>
-          Vaccine Inventory
-        </h3>
-        <div className="management-actions">
-          <div className="search-box">
-            <i className="bi bi-search search-icon"></i>
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search vaccines..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="action-buttons">
-            <button className="add-patient-btn">
-              <i className="bi bi-plus"></i>
-              Add New Vaccine
-            </button>
-            <button className="refresh-btn" onClick={() => window.location.reload()}>
-              <i className="bi bi-arrow-clockwise"></i>
-              Refresh
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      {/* Modern Vaccine Cards Grid */}
-      <div className="inventory-grid">
-        <div className="inventory-item">
-          <div className="item-header">
-            <div className="item-icon vaccines">
+    const totalVaccines = vaccines.length;
+    const totalDoses = vaccines.reduce((sum, vaccine) => sum + (vaccine.dosesInStock || 0), 0);
+    const lowStockCount = vaccines.filter(vaccine => vaccine.dosesInStock <= vaccine.minimumStock).length;
+    const expiringSoonCount = vaccines.filter(vaccine => {
+      const expiryDate = new Date(vaccine.expiryDate);
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      return expiryDate <= thirtyDaysFromNow && expiryDate > new Date();
+    }).length;
+
+    return {
+      filteredVaccines,
+      totalVaccines,
+      totalDoses,
+      lowStockCount,
+      expiringSoonCount
+    };
+  }, [vaccines, searchTerm]);
+
+  const memoizedMedicationData = useMemo(() => {
+    const filteredMedications = medications.filter(medication =>
+      (medication.name && medication.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (medication.genericName && medication.genericName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (medication.brandName && medication.brandName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (medication.category && medication.category.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+
+    const totalMedications = medications.length;
+    const totalUnits = medications.reduce((sum, medication) => sum + (medication.unitsInStock || 0), 0);
+    const lowStockCount = medications.filter(medication => medication.unitsInStock <= medication.minimumStock).length;
+    const expiringSoonCount = medications.filter(medication => {
+      const expiryDate = new Date(medication.expiryDate);
+      const thirtyDaysFromNow = new Date();
+      thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+      return expiryDate <= thirtyDaysFromNow && expiryDate > new Date();
+    }).length;
+
+    return {
+      filteredMedications,
+      totalMedications,
+      totalUnits,
+      lowStockCount,
+      expiringSoonCount
+    };
+  }, [medications, searchTerm]);
+
+  // Memoized pagination calculations for vaccines
+  const vaccinePageData = useMemo(() => {
+    const { filteredVaccines } = memoizedVaccineData;
+    const totalItems = filteredVaccines.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startIndex = (vaccineCurrentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentPageItems = filteredVaccines.slice(startIndex, endIndex);
+    
+    return { totalItems, totalPages, currentPageItems };
+  }, [memoizedVaccineData, vaccineCurrentPage, itemsPerPage]);
+
+  // Memoized pagination calculations for medications
+  const medicationPageData = useMemo(() => {
+    const { filteredMedications } = memoizedMedicationData;
+    const totalItems = filteredMedications.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startIndex = (medicationCurrentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    const currentPageItems = filteredMedications.slice(startIndex, endIndex);
+    
+    return { totalItems, totalPages, currentPageItems };
+  }, [memoizedMedicationData, medicationCurrentPage, itemsPerPage]);
+
+  const renderVaccineInventory = () => {
+    const { filteredVaccines, totalVaccines, totalDoses, lowStockCount, expiringSoonCount } = memoizedVaccineData;
+
+    return (
+      <div className="inventory-management">
+        {/* Inventory Summary Cards */}
+        <div className="inventory-summary">
+          <div className="summary-card">
+            <div className="summary-icon vaccines">
               <i className="bi bi-shield-plus"></i>
             </div>
-            <div className="item-status available">Available</div>
-          </div>
-          <div className="item-content">
-            <h4 className="item-name">COVID-19 Vaccine</h4>
-            <div className="item-details">
-              <div className="detail-row">
-                <span className="detail-label">Manufacturer:</span>
-                <span className="detail-value">Pfizer</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Batch:</span>
-                <span className="detail-value">CV001-2024</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Stock:</span>
-                <span className="detail-value stock-high">150 doses</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Expiry:</span>
-                <span className="detail-value">Dec 31, 2024</span>
-              </div>
+            <div className="summary-content">
+              <div className="summary-value">{totalVaccines}</div>
+              <div className="summary-label">Total Vaccines</div>
             </div>
           </div>
-          <div className="item-actions">
-            <button className="action-btn primary" title="View Details">
-              <i className="bi bi-eye"></i>
-            </button>
-            <button className="action-btn secondary" title="Edit">
-              <i className="bi bi-pencil"></i>
-            </button>
-            <button className="action-btn danger" title="Delete">
-              <i className="bi bi-trash"></i>
-            </button>
+          
+          <div className="summary-card">
+            <div className="summary-icon available">
+              <i className="bi bi-check-circle"></i>
+            </div>
+            <div className="summary-content">
+              <div className="summary-value">{totalDoses}</div>
+              <div className="summary-label">Doses Available</div>
+            </div>
+          </div>
+          
+          <div className="summary-card">
+            <div className="summary-icon warning">
+              <i className="bi bi-exclamation-triangle"></i>
+            </div>
+            <div className="summary-content">
+              <div className="summary-value">{lowStockCount}</div>
+              <div className="summary-label">Low Stock</div>
+            </div>
+          </div>
+          
+          <div className="summary-card">
+            <div className="summary-icon expiring">
+              <i className="bi bi-calendar-x"></i>
+            </div>
+            <div className="summary-content">
+              <div className="summary-value">{expiringSoonCount}</div>
+              <div className="summary-label">Expiring Soon</div>
+            </div>
           </div>
         </div>
 
-        <div className="inventory-item">
-          <div className="item-header">
-            <div className="item-icon vaccines">
-              <i className="bi bi-shield-plus"></i>
-            </div>
-            <div className="item-status low-stock">Low Stock</div>
-          </div>
-          <div className="item-content">
-            <h4 className="item-name">Hepatitis B Vaccine</h4>
-            <div className="item-details">
-              <div className="detail-row">
-                <span className="detail-label">Manufacturer:</span>
-                <span className="detail-value">GSK</span>
+        <div className="management-header">
+          <h3 className="management-title">
+            <i className="bi bi-shield-plus me-2"></i>
+            Vaccine Inventory
+          </h3>
+          <div className="management-actions">
+            <div className="search-and-pagination">
+              <div className="search-box">
+                <i className="bi bi-search search-icon"></i>
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search vaccines..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setVaccineCurrentPage(1); // Reset to first page when searching
+                  }}
+                />
               </div>
-              <div className="detail-row">
-                <span className="detail-label">Batch:</span>
-                <span className="detail-value">HB002-2024</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Stock:</span>
-                <span className="detail-value stock-low">75 doses</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Expiry:</span>
-                <span className="detail-value">Jun 30, 2025</span>
-              </div>
-            </div>
-          </div>
-          <div className="item-actions">
-            <button className="action-btn primary" title="View Details">
-              <i className="bi bi-eye"></i>
-            </button>
-            <button className="action-btn secondary" title="Edit">
-              <i className="bi bi-pencil"></i>
-            </button>
-            <button className="action-btn danger" title="Delete">
-              <i className="bi bi-trash"></i>
-            </button>
-          </div>
-        </div>
-
-        <div className="inventory-item">
-          <div className="item-header">
-            <div className="item-icon vaccines">
-              <i className="bi bi-shield-plus"></i>
-            </div>
-            <div className="item-status available">Available</div>
-          </div>
-          <div className="item-content">
-            <h4 className="item-name">Measles Vaccine</h4>
-            <div className="item-details">
-              <div className="detail-row">
-                <span className="detail-label">Manufacturer:</span>
-                <span className="detail-value">Merck</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Batch:</span>
-                <span className="detail-value">MV003-2024</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Stock:</span>
-                <span className="detail-value stock-high">200 doses</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Expiry:</span>
-                <span className="detail-value">Nov 15, 2024</span>
+              <div className="pagination-controls">
+                {(() => {
+                  const { totalPages } = vaccinePageData;
+                  
+                  if (totalPages <= 1) return null;
+                  
+                  return (
+                    <div className="pagination-wrapper">
+                      <span className="page-info">Page:</span>
+                      <div className="page-numbers">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+                          <button
+                            key={pageNum}
+                            className={`page-btn ${vaccineCurrentPage === pageNum ? 'active' : ''}`}
+                            onClick={() => setVaccineCurrentPage(pageNum)}
+                          >
+                            {pageNum}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
-          </div>
-          <div className="item-actions">
-            <button className="action-btn primary" title="View Details">
-              <i className="bi bi-eye"></i>
-            </button>
-            <button className="action-btn secondary" title="Edit">
-              <i className="bi bi-pencil"></i>
-            </button>
-            <button className="action-btn danger" title="Delete">
-              <i className="bi bi-trash"></i>
-            </button>
-          </div>
-        </div>
-
-        <div className="inventory-item">
-          <div className="item-header">
-            <div className="item-icon vaccines">
-              <i className="bi bi-shield-plus"></i>
+            <div className="view-toggle-buttons">
+              <button 
+                className={`view-btn ${vaccineViewMode === 'list' ? 'active' : ''}`}
+                onClick={() => setVaccineViewMode('list')}
+                title="List View"
+              >
+                <i className="bi bi-list-ul"></i>
+              </button>
+              <button 
+                className={`view-btn ${vaccineViewMode === 'details' ? 'active' : ''}`}
+                onClick={() => setVaccineViewMode('details')}
+                title="Details View"
+              >
+                <i className="bi bi-card-text"></i>
+              </button>
             </div>
-            <div className="item-status expiring">Expiring Soon</div>
-          </div>
-          <div className="item-content">
-            <h4 className="item-name">Polio Vaccine</h4>
-            <div className="item-details">
-              <div className="detail-row">
-                <span className="detail-label">Manufacturer:</span>
-                <span className="detail-value">Sanofi</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Batch:</span>
-                <span className="detail-value">PV004-2024</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Stock:</span>
-                <span className="detail-value stock-medium">100 doses</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Expiry:</span>
-                <span className="detail-value expiring-text">Aug 15, 2024</span>
-              </div>
+            <div className="action-buttons">
+              <button 
+                className="add-patient-btn"
+                onClick={() => setShowAddVaccineModal(true)}
+              >
+                <i className="bi bi-plus"></i>
+                Add New Vaccine
+              </button>
+              <button className="refresh-btn" onClick={() => window.location.reload()}>
+                <i className="bi bi-arrow-clockwise"></i>
+                Refresh
+              </button>
             </div>
-          </div>
-          <div className="item-actions">
-            <button className="action-btn primary" title="View Details">
-              <i className="bi bi-eye"></i>
-            </button>
-            <button className="action-btn secondary" title="Edit">
-              <i className="bi bi-pencil"></i>
-            </button>
-            <button className="action-btn danger" title="Delete">
-              <i className="bi bi-trash"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderPrescriptionInventory = () => (
-    <div className="inventory-management">
-      {/* Inventory Summary Cards */}
-      <div className="inventory-summary">
-        <div className="summary-card">
-          <div className="summary-icon medicines">
-            <i className="bi bi-capsule"></i>
-          </div>
-          <div className="summary-content">
-            <div className="summary-value">28</div>
-            <div className="summary-label">Total Medicines</div>
           </div>
         </div>
         
-        <div className="summary-card">
-          <div className="summary-icon available">
-            <i className="bi bi-check-circle"></i>
+        {/* Loading and Error States */}
+        {loadingInventory && (
+          <div className="loading-container">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading vaccines...</span>
+            </div>
           </div>
-          <div className="summary-content">
-            <div className="summary-value">1,250</div>
-            <div className="summary-label">Units Available</div>
+        )}
+
+        {inventoryError && (
+          <div className="alert alert-danger" role="alert">
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            {inventoryError}
+          </div>
+        )}
+        
+        {/* List View */}
+        {vaccineViewMode === 'list' && (
+          <div className="inventory-list">
+            {(() => {
+              const { filteredVaccines } = memoizedVaccineData;
+              const { currentPageItems } = vaccinePageData;
+              
+              if (filteredVaccines.length === 0 && !loadingInventory) {
+                return (
+                  <div className="empty-state">
+                    <i className="bi bi-shield-plus"></i>
+                    <h4>No vaccines found</h4>
+                    <p>{searchTerm ? `No vaccines match "${searchTerm}"` : 'No vaccines in inventory yet'}</p>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={() => setShowAddVaccineModal(true)}
+                    >
+                      <i className="bi bi-plus me-2"></i>
+                      Add First Vaccine
+                    </button>
+                  </div>
+                );
+              }
+              
+              return (
+                <div className="list-container">
+                  <div className="list-header">
+                    <div className="list-col">Name</div>
+                    <div className="list-col">Manufacturer</div>
+                    <div className="list-col">Stock</div>
+                    <div className="list-col">Status</div>
+                    <div className="list-col">Expiry</div>
+                    <div className="list-col">Actions</div>
+                  </div>
+                  {currentPageItems.map(vaccine => (
+                  <div key={vaccine.id} className="list-row">
+                    <div className="list-col">
+                      <div className="list-item-name">
+                        <i className="bi bi-shield-plus me-2"></i>
+                        {vaccine.name}
+                      </div>
+                    </div>
+                    <div className="list-col">{vaccine.manufacturer}</div>
+                    <div className="list-col">
+                      <span className={`stock-badge ${
+                        vaccine.dosesInStock === 0 ? 'stock-empty' :
+                        vaccine.dosesInStock <= vaccine.minimumStock ? 'stock-low' :
+                        vaccine.dosesInStock <= vaccine.minimumStock * 2 ? 'stock-medium' : 'stock-high'
+                      }`}>
+                        {vaccine.dosesInStock} doses
+                      </span>
+                    </div>
+                    <div className="list-col">
+                      <span className={`status-badge ${(vaccine.status || '').toLowerCase().replace(' ', '-')}`}>
+                        {vaccine.status || 'Unknown'}
+                      </span>
+                    </div>
+                    <div className="list-col">
+                      <span className={`${
+                        new Date(vaccine.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) ? 'expiring-text' : ''
+                      }`}>
+                        {new Date(vaccine.expiryDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="list-col">
+                      <div className="list-actions">
+                        <button 
+                          className="action-btn-sm primary" 
+                          title="View Details"
+                          onClick={() => {
+                            setSelectedVaccine(vaccine);
+                            setShowVaccineDetailsModal(true);
+                          }}
+                        >
+                          <i className="bi bi-eye"></i>
+                        </button>
+                        <button 
+                          className="action-btn-sm secondary" 
+                          title="Edit"
+                          onClick={() => {
+                            setSelectedVaccine(vaccine);
+                            setShowEditVaccineModal(true);
+                          }}
+                        >
+                          <i className="bi bi-pencil"></i>
+                        </button>
+                        <button 
+                          className="action-btn-sm success" 
+                          title="Update Stock"
+                          onClick={() => openStockUpdateModal('vaccine', vaccine)}
+                        >
+                          <i className="bi bi-plus-lg"></i>
+                        </button>
+                        <button 
+                          className="action-btn-sm danger" 
+                          title="Delete"
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to delete ${vaccine.name}?`)) {
+                              handleDeleteVaccine(vaccine.id);
+                            }
+                          }}
+                        >
+                          <i className="bi bi-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* Details View */}
+        {vaccineViewMode === 'details' && (
+          <div className="inventory-details-view">
+            {(() => {
+              const { filteredVaccines } = memoizedVaccineData;
+              const { currentPageItems } = vaccinePageData;
+              
+              if (filteredVaccines.length === 0 && !loadingInventory) {
+                return (
+                  <div className="empty-state">
+                    <i className="bi bi-shield-plus"></i>
+                    <h4>No vaccines found</h4>
+                    <p>{searchTerm ? `No vaccines match "${searchTerm}"` : 'No vaccines in inventory yet'}</p>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={() => setShowAddVaccineModal(true)}
+                    >
+                      <i className="bi bi-plus me-2"></i>
+                      Add First Vaccine
+                    </button>
+                  </div>
+                );
+              }
+              
+              return (
+              <div className="inventory-details-grid">
+                {currentPageItems.map(vaccine => (
+                  <div key={vaccine.id} className="inventory-detail-card">
+                    <div className="detail-card-header">
+                      <div className="detail-card-icon vaccines">
+                        <i className="bi bi-shield-plus"></i>
+                      </div>
+                      <div className="detail-card-title">
+                        <h5 className="vaccine-name">{vaccine.name}</h5>
+                        <span className={`status-badge ${(vaccine.status || '').toLowerCase().replace(' ', '-')}`}>
+                          {vaccine.status || 'Unknown'}
+                        </span>
+                      </div>
+                      <div className="detail-card-actions">
+                        <button 
+                          className="action-btn-detail primary" 
+                          title="View Full Details"
+                          onClick={() => {
+                            setSelectedVaccine(vaccine);
+                            setShowVaccineDetailsModal(true);
+                          }}
+                        >
+                          <i className="bi bi-eye"></i>
+                        </button>
+                        <button 
+                          className="action-btn-detail secondary" 
+                          title="Edit"
+                          onClick={() => {
+                            setSelectedVaccine(vaccine);
+                            setShowEditVaccineModal(true);
+                          }}
+                        >
+                          <i className="bi bi-pencil"></i>
+                        </button>
+                        <button 
+                          className="action-btn-detail danger" 
+                          title="Delete"
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to delete ${vaccine.name}?`)) {
+                              handleDeleteVaccine(vaccine.id);
+                            }
+                          }}
+                        >
+                          <i className="bi bi-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="detail-card-body">
+                      <div className="detail-info-grid">
+                        <div className="detail-info-section">
+                          <h6 className="section-title">
+                            <i className="bi bi-calendar-date me-2"></i>
+                            Expiry Date
+                          </h6>
+                          <div className={`detail-value ${
+                            new Date(vaccine.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) ? 'expiring-text' : ''
+                          }`}>
+                            {new Date(vaccine.expiryDate).toLocaleDateString('en-US', {
+                              month: '2-digit',
+                              day: '2-digit', 
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </div>
+                        </div>
+                        
+                        <div className="detail-info-section">
+                          <h6 className="section-title">
+                            <i className="bi bi-tags me-2"></i>
+                            Type
+                          </h6>
+                          <div className="detail-value">Vaccine</div>
+                        </div>
+                        
+                        <div className="detail-info-section">
+                          <h6 className="section-title">
+                            <i className="bi bi-boxes me-2"></i>
+                            Stock
+                          </h6>
+                          <div className={`detail-value stock-amount ${
+                            vaccine.dosesInStock === 0 ? 'stock-empty' :
+                            vaccine.dosesInStock <= vaccine.minimumStock ? 'stock-low' :
+                            vaccine.dosesInStock <= vaccine.minimumStock * 2 ? 'stock-medium' : 'stock-high'
+                          }`}>
+                            {vaccine.dosesInStock} doses
+                          </div>
+                        </div>
+                        
+                        <div className="detail-info-section">
+                          <h6 className="section-title">
+                            <i className="bi bi-building me-2"></i>
+                            Manufacturer
+                          </h6>
+                          <div className="detail-value">{vaccine.manufacturer}</div>
+                        </div>
+                      </div>
+                      
+                      {vaccine.description && (
+                        <div className="detail-description">
+                          <h6 className="section-title">
+                            <i className="bi bi-card-text me-2"></i>
+                            Description
+                          </h6>
+                          <p className="description-text">{vaccine.description}</p>
+                        </div>
+                      )}
+                      
+                      <div className="detail-additional-info">
+                        <div className="info-row">
+                          <span className="info-label">Batch Number:</span>
+                          <span className="info-value">{vaccine.batchNumber || 'N/A'}</span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">Administration Route:</span>
+                          <span className="info-value">{vaccine.administrationRoute || 'N/A'}</span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">Minimum Stock:</span>
+                          <span className="info-value">{vaccine.minimumStock} doses</span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">Cost per Dose:</span>
+                          <span className="info-value">₱{vaccine.costPerDose?.toFixed(2) || '0.00'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              );
+            })()}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderPrescriptionInventory = () => {
+    const { filteredMedications, totalMedications, totalUnits, lowStockCount, expiringSoonCount } = memoizedMedicationData;
+
+    return (
+      <div className="inventory-management">
+        {/* Inventory Summary Cards */}
+        <div className="inventory-summary">
+          <div className="summary-card">
+            <div className="summary-icon medicines">
+              <i className="bi bi-capsule"></i>
+            </div>
+            <div className="summary-content">
+              <div className="summary-value">{totalMedications}</div>
+              <div className="summary-label">Total Medicines</div>
+            </div>
+          </div>
+          
+          <div className="summary-card">
+            <div className="summary-icon available">
+              <i className="bi bi-check-circle"></i>
+            </div>
+            <div className="summary-content">
+              <div className="summary-value">{totalUnits}</div>
+              <div className="summary-label">Units Available</div>
+            </div>
+          </div>
+          
+          <div className="summary-card">
+            <div className="summary-icon warning">
+              <i className="bi bi-exclamation-triangle"></i>
+            </div>
+            <div className="summary-content">
+              <div className="summary-value">{lowStockCount}</div>
+              <div className="summary-label">Low Stock</div>
+            </div>
+          </div>
+          
+          <div className="summary-card">
+            <div className="summary-icon expiring">
+              <i className="bi bi-calendar-x"></i>
+            </div>
+            <div className="summary-content">
+              <div className="summary-value">{expiringSoonCount}</div>
+              <div className="summary-label">Expiring Soon</div>
+            </div>
+          </div>
+        </div>
+
+        <div className="management-header">
+          <h3 className="management-title">
+            <i className="bi bi-capsule me-2"></i>
+            Prescription Inventory
+          </h3>
+          <div className="management-actions">
+            <div className="search-and-pagination">
+              <div className="search-box">
+                <i className="bi bi-search search-icon"></i>
+                <input
+                  type="text"
+                  className="search-input"
+                  placeholder="Search medications..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setMedicationCurrentPage(1); // Reset to first page when searching
+                  }}
+                />
+              </div>
+              <div className="pagination-controls">
+                {(() => {
+                  const { totalPages } = medicationPageData;
+                  
+                  if (totalPages <= 1) return null;
+                  
+                  return (
+                    <div className="pagination-wrapper">
+                      <span className="page-info">Page:</span>
+                      <div className="page-numbers">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => (
+                          <button
+                            key={pageNum}
+                            className={`page-btn ${medicationCurrentPage === pageNum ? 'active' : ''}`}
+                            onClick={() => setMedicationCurrentPage(pageNum)}
+                          >
+                            {pageNum}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+            <div className="view-toggle-buttons">
+              <button 
+                className={`view-btn ${medicationViewMode === 'list' ? 'active' : ''}`}
+                onClick={() => setMedicationViewMode('list')}
+                title="List View"
+              >
+                <i className="bi bi-list-ul"></i>
+              </button>
+              <button 
+                className={`view-btn ${medicationViewMode === 'details' ? 'active' : ''}`}
+                onClick={() => setMedicationViewMode('details')}
+                title="Details View"
+              >
+                <i className="bi bi-card-text"></i>
+              </button>
+            </div>
+            <div className="action-buttons">
+              <button 
+                className="add-patient-btn"
+                onClick={() => setShowAddMedicationModal(true)}
+              >
+                <i className="bi bi-plus"></i>
+                Add New Medication
+              </button>
+              <button className="refresh-btn" onClick={() => window.location.reload()}>
+                <i className="bi bi-arrow-clockwise"></i>
+                Refresh
+              </button>
+            </div>
           </div>
         </div>
         
-        <div className="summary-card">
-          <div className="summary-icon warning">
-            <i className="bi bi-exclamation-triangle"></i>
+        {/* Loading and Error States */}
+        {loadingInventory && (
+          <div className="loading-container">
+            <div className="spinner-border text-primary" role="status">
+              <span className="visually-hidden">Loading medications...</span>
+            </div>
           </div>
-          <div className="summary-content">
-            <div className="summary-value">5</div>
-            <div className="summary-label">Low Stock</div>
+        )}
+
+        {inventoryError && (
+          <div className="alert alert-danger" role="alert">
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            {inventoryError}
           </div>
-        </div>
+        )}
         
-        <div className="summary-card">
-          <div className="summary-icon expiring">
-            <i className="bi bi-calendar-x"></i>
+        {/* List View */}
+        {medicationViewMode === 'list' && (
+          <div className="inventory-list">
+            {(() => {
+              const { filteredMedications } = memoizedMedicationData;
+              const { currentPageItems } = medicationPageData;
+              
+              if (filteredMedications.length === 0 && !loadingInventory) {
+                return (
+                  <div className="empty-state">
+                    <i className="bi bi-capsule"></i>
+                    <h4>No medications found</h4>
+                    <p>{searchTerm ? `No medications match "${searchTerm}"` : 'No medications in inventory yet'}</p>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={() => setShowAddMedicationModal(true)}
+                    >
+                      <i className="bi bi-plus me-2"></i>
+                      Add First Medication
+                    </button>
+                  </div>
+                );
+              }
+              
+              return (
+                <div className="list-container">
+                  <div className="list-header">
+                    <div className="list-col">Name</div>
+                    <div className="list-col">Category</div>
+                    <div className="list-col">Dosage</div>
+                    <div className="list-col">Stock</div>
+                    <div className="list-col">Status</div>
+                    <div className="list-col">Expiry</div>
+                    <div className="list-col">Actions</div>
+                  </div>
+                  {currentPageItems.map(medication => (
+                  <div key={medication.id} className="list-row">
+                    <div className="list-col">
+                      <div className="list-item-name">
+                        <i className="bi bi-capsule me-2"></i>
+                        <div>
+                          <div className="medication-name">{medication.name}</div>
+                          {medication.genericName && medication.genericName !== medication.name && (
+                            <div className="medication-generic">{medication.genericName}</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="list-col">{medication.category}</div>
+                    <div className="list-col">{medication.dosage}</div>
+                    <div className="list-col">
+                      <span className={`stock-badge ${
+                        medication.unitsInStock === 0 ? 'stock-empty' :
+                        medication.unitsInStock <= medication.minimumStock ? 'stock-low' :
+                        medication.unitsInStock <= medication.minimumStock * 2 ? 'stock-medium' : 'stock-high'
+                      }`}>
+                        {medication.unitsInStock} {medication.form?.toLowerCase()}s
+                      </span>
+                    </div>
+                    <div className="list-col">
+                      <span className={`status-badge ${(medication.status || '').toLowerCase().replace(' ', '-')}`}>
+                        {medication.status || 'Unknown'}
+                      </span>
+                    </div>
+                    <div className="list-col">
+                      <span className={`${
+                        new Date(medication.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) ? 'expiring-text' : ''
+                      }`}>
+                        {new Date(medication.expiryDate).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div className="list-col">
+                      <div className="list-actions">
+                        <button 
+                          className="action-btn-sm primary" 
+                          title="View Details"
+                          onClick={() => {
+                            setSelectedMedication(medication);
+                            setShowMedicationDetailsModal(true);
+                          }}
+                        >
+                          <i className="bi bi-eye"></i>
+                        </button>
+                        <button 
+                          className="action-btn-sm secondary" 
+                          title="Edit"
+                          onClick={() => {
+                            setSelectedMedication(medication);
+                            setShowEditMedicationModal(true);
+                          }}
+                        >
+                          <i className="bi bi-pencil"></i>
+                        </button>
+                        <button 
+                          className="action-btn-sm success" 
+                          title="Update Stock"
+                          onClick={() => openStockUpdateModal('medication', medication)}
+                        >
+                          <i className="bi bi-plus-lg"></i>
+                        </button>
+                        <button 
+                          className="action-btn-sm danger" 
+                          title="Delete"
+                        onClick={() => {
+                          if (window.confirm(`Are you sure you want to delete ${medication.name}?`)) {
+                            handleDeleteMedication(medication.id);
+                          }
+                        }}
+                        >
+                          <i className="bi bi-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                </div>
+              );
+            })()}
           </div>
-          <div className="summary-content">
-            <div className="summary-value">3</div>
-            <div className="summary-label">Expiring Soon</div>
+        )}        {/* Details View */}
+        {medicationViewMode === 'details' && (
+          <div className="inventory-details-view">
+            {(() => {
+              const { filteredMedications } = memoizedMedicationData;
+              const { currentPageItems } = medicationPageData;
+              
+              if (filteredMedications.length === 0 && !loadingInventory) {
+                return (
+                  <div className="empty-state">
+                    <i className="bi bi-capsule"></i>
+                    <h4>No medications found</h4>
+                    <p>{searchTerm ? `No medications match "${searchTerm}"` : 'No medications in inventory yet'}</p>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={() => setShowAddMedicationModal(true)}
+                    >
+                      <i className="bi bi-plus me-2"></i>
+                      Add First Medication
+                    </button>
+                  </div>
+                );
+              }
+              
+              return (
+              <div className="inventory-details-grid">
+                {currentPageItems.map(medication => (
+                  <div key={medication.id} className="inventory-detail-card medication-card">
+                    <div className="detail-card-header">
+                      <div className="detail-card-icon medicines">
+                        <i className="bi bi-capsule"></i>
+                      </div>
+                      <div className="detail-card-title">
+                        <h5 className="medication-name">{medication.name}</h5>
+                        {medication.genericName && medication.genericName !== medication.name && (
+                          <div className="medication-generic">{medication.genericName}</div>
+                        )}
+                        <span className={`status-badge ${(medication.status || '').toLowerCase().replace(' ', '-')}`}>
+                          {medication.status || 'Unknown'}
+                        </span>
+                      </div>
+                      <div className="detail-card-actions">
+                        <button 
+                          className="action-btn-detail primary" 
+                          title="View Full Details"
+                          onClick={() => {
+                            setSelectedMedication(medication);
+                            setShowMedicationDetailsModal(true);
+                          }}
+                        >
+                          <i className="bi bi-eye"></i>
+                        </button>
+                        <button 
+                          className="action-btn-detail secondary" 
+                          title="Edit"
+                          onClick={() => {
+                            setSelectedMedication(medication);
+                            setShowEditMedicationModal(true);
+                          }}
+                        >
+                          <i className="bi bi-pencil"></i>
+                        </button>
+                        <button 
+                          className="action-btn-detail danger" 
+                          title="Delete"
+                          onClick={() => {
+                            if (window.confirm(`Are you sure you want to delete ${medication.name}?`)) {
+                              handleDeleteMedication(medication.id);
+                            }
+                          }}
+                        >
+                          <i className="bi bi-trash"></i>
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="detail-card-body">
+                      <div className="detail-info-grid">
+                        <div className="detail-info-section">
+                          <h6 className="section-title">
+                            <i className="bi bi-calendar-date me-2"></i>
+                            Expiry Date
+                          </h6>
+                          <div className={`detail-value ${
+                            new Date(medication.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) ? 'expiring-text' : ''
+                          }`}>
+                            {new Date(medication.expiryDate).toLocaleDateString('en-US', {
+                              month: '2-digit',
+                              day: '2-digit', 
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              hour12: true
+                            })}
+                          </div>
+                        </div>
+                        
+                        <div className="detail-info-section">
+                          <h6 className="section-title">
+                            <i className="bi bi-tags me-2"></i>
+                            Type
+                          </h6>
+                          <div className="detail-value">{medication.form}</div>
+                        </div>
+                        
+                        <div className="detail-info-section">
+                          <h6 className="section-title">
+                            <i className="bi bi-boxes me-2"></i>
+                            Stock
+                          </h6>
+                          <div className={`detail-value stock-amount ${
+                            medication.unitsInStock === 0 ? 'stock-empty' :
+                            medication.unitsInStock <= medication.minimumStock ? 'stock-low' :
+                            medication.unitsInStock <= medication.minimumStock * 2 ? 'stock-medium' : 'stock-high'
+                          }`}>
+                            {medication.unitsInStock} {medication.form?.toLowerCase()}s
+                          </div>
+                        </div>
+                        
+                        <div className="detail-info-section">
+                          <h6 className="section-title">
+                            <i className="bi bi-building me-2"></i>
+                            Manufacturer
+                          </h6>
+                          <div className="detail-value">{medication.manufacturer || 'N/A'}</div>
+                        </div>
+                      </div>
+                      
+                      <div className="detail-additional-info">
+                        <div className="info-row">
+                          <span className="info-label">Category:</span>
+                          <span className="info-value">{medication.category}</span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">Dosage/Strength:</span>
+                          <span className="info-value">{medication.dosage}</span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">Batch Number:</span>
+                          <span className="info-value">{medication.batchNumber || 'N/A'}</span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">Minimum Stock:</span>
+                          <span className="info-value">{medication.minimumStock} {medication.form?.toLowerCase()}s</span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">Cost per Unit:</span>
+                          <span className="info-value">₱{medication.costPerUnit?.toFixed(2) || '0.00'}</span>
+                        </div>
+                        <div className="info-row">
+                          <span className="info-label">Prescription Required:</span>
+                          <span className={`info-value ${medication.isPrescriptionRequired ? 'text-warning' : 'text-success'}`}>
+                            {medication.isPrescriptionRequired ? 'Yes' : 'No (OTC)'}
+                          </span>
+                        </div>
+                        {medication.isControlledSubstance && (
+                          <div className="info-row">
+                            <span className="info-label">Controlled Substance:</span>
+                            <span className="info-value text-danger">Yes</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              );
+            })()}
           </div>
-        </div>
+        )}
       </div>
-
-      <div className="management-header">
-        <h3 className="management-title">
-          <i className="bi bi-capsule me-2"></i>
-          Prescription Inventory
-        </h3>
-        <div className="management-actions">
-          <div className="search-box">
-            <i className="bi bi-search search-icon"></i>
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search medicines..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="action-buttons">
-            <button className="add-patient-btn">
-              <i className="bi bi-plus"></i>
-              Add New Medicine
-            </button>
-            <button className="refresh-btn" onClick={() => window.location.reload()}>
-              <i className="bi bi-arrow-clockwise"></i>
-              Refresh
-            </button>
-          </div>
-        </div>
-      </div>
-      
-      {/* Modern Medicine Cards Grid */}
-      <div className="inventory-grid">
-        <div className="inventory-item">
-          <div className="item-header">
-            <div className="item-icon medicines">
-              <i className="bi bi-capsule"></i>
-            </div>
-            <div className="item-status available">Available</div>
-          </div>
-          <div className="item-content">
-            <h4 className="item-name">Paracetamol</h4>
-            <div className="item-subtitle">Acetaminophen</div>
-            <div className="item-details">
-              <div className="detail-row">
-                <span className="detail-label">Dosage:</span>
-                <span className="detail-value">500mg</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Category:</span>
-                <span className="detail-value">Analgesic</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Stock:</span>
-                <span className="detail-value stock-high">500 tablets</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Expiry:</span>
-                <span className="detail-value">Aug 15, 2025</span>
-              </div>
-            </div>
-          </div>
-          <div className="item-actions">
-            <button className="action-btn primary" title="View Details">
-              <i className="bi bi-eye"></i>
-            </button>
-            <button className="action-btn secondary" title="Edit">
-              <i className="bi bi-pencil"></i>
-            </button>
-            <button className="action-btn danger" title="Delete">
-              <i className="bi bi-trash"></i>
-            </button>
-          </div>
-        </div>
-
-        <div className="inventory-item">
-          <div className="item-header">
-            <div className="item-icon medicines">
-              <i className="bi bi-capsule"></i>
-            </div>
-            <div className="item-status available">Available</div>
-          </div>
-          <div className="item-content">
-            <h4 className="item-name">Amoxicillin</h4>
-            <div className="item-subtitle">Amoxicillin</div>
-            <div className="item-details">
-              <div className="detail-row">
-                <span className="detail-label">Dosage:</span>
-                <span className="detail-value">250mg</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Category:</span>
-                <span className="detail-value">Antibiotic</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Stock:</span>
-                <span className="detail-value stock-high">200 capsules</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Expiry:</span>
-                <span className="detail-value">Dec 20, 2024</span>
-              </div>
-            </div>
-          </div>
-          <div className="item-actions">
-            <button className="action-btn primary" title="View Details">
-              <i className="bi bi-eye"></i>
-            </button>
-            <button className="action-btn secondary" title="Edit">
-              <i className="bi bi-pencil"></i>
-            </button>
-            <button className="action-btn danger" title="Delete">
-              <i className="bi bi-trash"></i>
-            </button>
-          </div>
-        </div>
-
-        <div className="inventory-item">
-          <div className="item-header">
-            <div className="item-icon medicines">
-              <i className="bi bi-capsule"></i>
-            </div>
-            <div className="item-status low-stock">Low Stock</div>
-          </div>
-          <div className="item-content">
-            <h4 className="item-name">Cetirizine</h4>
-            <div className="item-subtitle">Cetirizine HCl</div>
-            <div className="item-details">
-              <div className="detail-row">
-                <span className="detail-label">Dosage:</span>
-                <span className="detail-value">10mg</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Category:</span>
-                <span className="detail-value">Antihistamine</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Stock:</span>
-                <span className="detail-value stock-low">50 tablets</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Expiry:</span>
-                <span className="detail-value">Mar 10, 2025</span>
-              </div>
-            </div>
-          </div>
-          <div className="item-actions">
-            <button className="action-btn primary" title="View Details">
-              <i className="bi bi-eye"></i>
-            </button>
-            <button className="action-btn secondary" title="Edit">
-              <i className="bi bi-pencil"></i>
-            </button>
-            <button className="action-btn danger" title="Delete">
-              <i className="bi bi-trash"></i>
-            </button>
-          </div>
-        </div>
-
-        <div className="inventory-item">
-          <div className="item-header">
-            <div className="item-icon medicines">
-              <i className="bi bi-capsule"></i>
-            </div>
-            <div className="item-status available">Available</div>
-          </div>
-          <div className="item-content">
-            <h4 className="item-name">Ibuprofen</h4>
-            <div className="item-subtitle">Ibuprofen</div>
-            <div className="item-details">
-              <div className="detail-row">
-                <span className="detail-label">Dosage:</span>
-                <span className="detail-value">400mg</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Category:</span>
-                <span className="detail-value">Anti-inflammatory</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Stock:</span>
-                <span className="detail-value stock-medium">150 tablets</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Expiry:</span>
-                <span className="detail-value">Jan 30, 2025</span>
-              </div>
-            </div>
-          </div>
-          <div className="item-actions">
-            <button className="action-btn primary" title="View Details">
-              <i className="bi bi-eye"></i>
-            </button>
-            <button className="action-btn secondary" title="Edit">
-              <i className="bi bi-pencil"></i>
-            </button>
-            <button className="action-btn danger" title="Delete">
-              <i className="bi bi-trash"></i>
-            </button>
-          </div>
-        </div>
-
-        <div className="inventory-item">
-          <div className="item-header">
-            <div className="item-icon medicines">
-              <i className="bi bi-capsule"></i>
-            </div>
-            <div className="item-status expiring">Expiring Soon</div>
-          </div>
-          <div className="item-content">
-            <h4 className="item-name">Metformin</h4>
-            <div className="item-subtitle">Metformin HCl</div>
-            <div className="item-details">
-              <div className="detail-row">
-                <span className="detail-label">Dosage:</span>
-                <span className="detail-value">500mg</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Category:</span>
-                <span className="detail-value">Antidiabetic</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Stock:</span>
-                <span className="detail-value stock-medium">120 tablets</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Expiry:</span>
-                <span className="detail-value expiring-text">Sep 05, 2024</span>
-              </div>
-            </div>
-          </div>
-          <div className="item-actions">
-            <button className="action-btn primary" title="View Details">
-              <i className="bi bi-eye"></i>
-            </button>
-            <button className="action-btn secondary" title="Edit">
-              <i className="bi bi-pencil"></i>
-            </button>
-            <button className="action-btn danger" title="Delete">
-              <i className="bi bi-trash"></i>
-            </button>
-          </div>
-        </div>
-
-        <div className="inventory-item">
-          <div className="item-header">
-            <div className="item-icon medicines">
-              <i className="bi bi-capsule"></i>
-            </div>
-            <div className="item-status available">Available</div>
-          </div>
-          <div className="item-content">
-            <h4 className="item-name">Omeprazole</h4>
-            <div className="item-subtitle">Omeprazole</div>
-            <div className="item-details">
-              <div className="detail-row">
-                <span className="detail-label">Dosage:</span>
-                <span className="detail-value">20mg</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Category:</span>
-                <span className="detail-value">Proton Pump Inhibitor</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Stock:</span>
-                <span className="detail-value stock-high">300 capsules</span>
-              </div>
-              <div className="detail-row">
-                <span className="detail-label">Expiry:</span>
-                <span className="detail-value">Nov 22, 2025</span>
-              </div>
-            </div>
-          </div>
-          <div className="item-actions">
-            <button className="action-btn primary" title="View Details">
-              <i className="bi bi-eye"></i>
-            </button>
-            <button className="action-btn secondary" title="Edit">
-              <i className="bi bi-pencil"></i>
-            </button>
-            <button className="action-btn danger" title="Delete">
-              <i className="bi bi-trash"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    );
+  };
 
   // User Management Functions
   const renderUserManagement = () => (
@@ -7287,15 +7935,276 @@ Report generated by Health Record System Management v2.0
     }
   };
 
+  // INVENTORY MANAGEMENT FUNCTIONS
+
+  // Optimized form handlers for better performance
+  const handleVaccineFormChange = useCallback((field, value) => {
+    setVaccineFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
+
+  const handleMedicationFormChange = useCallback((field, value) => {
+    setMedicationFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
+
+  const handleStockUpdateFormChange = useCallback((field, value) => {
+    setStockUpdateData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
+
+  // Handle Update Stock
+  const handleUpdateStock = useCallback(async (type, id, quantity, operation) => {
+    try {
+      const updatedItem = await inventoryService.updateStock(type, id, quantity, operation);
+      
+      if (type === 'vaccine') {
+        setVaccines(prev => prev.map(vaccine => 
+          vaccine.id === id ? updatedItem : vaccine
+        ));
+      } else if (type === 'medication') {
+        setMedications(prev => prev.map(medication => 
+          medication.id === id ? updatedItem : medication
+        ));
+      }
+      
+      // Refresh inventory summary
+      const summaryData = await inventoryService.getInventorySummary();
+      setInventorySummary(summaryData);
+      
+      alert(`Stock updated successfully for ${updatedItem.name}`);
+    } catch (error) {
+      console.error('Error updating stock:', error);
+      alert(`Error updating stock: ${error.message}`);
+    }
+  }, []);
+
+  // Open Stock Update Modal
+  const openStockUpdateModal = useCallback((type, item) => {
+    setStockUpdateData({
+      type: type,
+      id: item.id,
+      name: item.name,
+      currentStock: type === 'vaccine' ? item.dosesInStock : item.unitsInStock,
+      quantity: 0,
+      operation: 'add'
+    });
+    setShowStockUpdateModal(true);
+  }, []);
+
+  // Handle Stock Update from Modal
+  const handleStockUpdateFromModal = useCallback(async () => {
+    if (stockUpdateData.quantity <= 0) {
+      alert('Please enter a valid quantity greater than 0');
+      return;
+    }
+    
+    setStockUpdateLoading(true);
+    try {
+      await handleUpdateStock(
+        stockUpdateData.type, 
+        stockUpdateData.id, 
+        stockUpdateData.quantity, 
+        stockUpdateData.operation
+      );
+      setShowStockUpdateModal(false);
+      setStockUpdateData({
+        type: '',
+        id: null,
+        name: '',
+        currentStock: 0,
+        quantity: 0,
+        operation: 'add'
+      });
+    } catch (error) {
+      console.error('Error updating stock from modal:', error);
+    } finally {
+      setStockUpdateLoading(false);
+    }
+  }, [stockUpdateData, handleUpdateStock]);
+
+  // Handle Delete Vaccine
+  const handleDeleteVaccine = async (id) => {
+    try {
+      await inventoryService.deleteVaccine(id);
+      setVaccines(prev => prev.filter(vaccine => vaccine.id !== id));
+      
+      // Refresh inventory summary
+      const summaryData = await inventoryService.getInventorySummary();
+      setInventorySummary(summaryData);
+      
+      alert('Vaccine deleted successfully');
+    } catch (error) {
+      console.error('Error deleting vaccine:', error);
+      alert(`Error deleting vaccine: ${error.message}`);
+    }
+  };
+
+  // Handle Delete Medication
+  const handleDeleteMedication = async (id) => {
+    try {
+      await inventoryService.deleteMedication(id);
+      setMedications(prev => prev.filter(medication => medication.id !== id));
+      
+      // Refresh inventory summary
+      const summaryData = await inventoryService.getInventorySummary();
+      setInventorySummary(summaryData);
+      
+      alert('Medication deleted successfully');
+    } catch (error) {
+      console.error('Error deleting medication:', error);
+      alert(`Error deleting medication: ${error.message}`);
+    }
+  };
+
+  // Handle Add Vaccine
+  const handleAddVaccine = async (vaccineData) => {
+    setLoadingInventory(true);
+    try {
+      const newVaccine = await inventoryService.createVaccine(vaccineData);
+      setVaccines(prev => [...prev, newVaccine]);
+      
+      // Refresh inventory summary
+      const summaryData = await inventoryService.getInventorySummary();
+      setInventorySummary(summaryData);
+      
+      setShowAddVaccineModal(false);
+      
+      // Clear form data
+      setVaccineFormData({
+        name: '',
+        description: '',
+        manufacturer: '',
+        category: '',
+        batchNumber: '',
+        dosesInStock: '',
+        minimumStock: '',
+        unitCost: '',
+        expiryDate: '',
+        storageTemp: '',
+        administrationRoute: '',
+        ageGroups: [],
+        dosageSchedule: '',
+        sideEffects: '',
+        contraindications: ''
+      });
+      
+      alert('Vaccine added successfully');
+    } catch (error) {
+      console.error('Error adding vaccine:', error);
+      alert(`Error adding vaccine: ${error.message}`);
+    } finally {
+      setLoadingInventory(false);
+    }
+  };
+
+  // Handle Add Medication
+  const handleAddMedication = async (medicationData) => {
+    setLoadingInventory(true);
+    try {
+      const newMedication = await inventoryService.createMedication(medicationData);
+      setMedications(prev => [...prev, newMedication]);
+      
+      // Refresh inventory summary
+      const summaryData = await inventoryService.getInventorySummary();
+      setInventorySummary(summaryData);
+      
+      setShowAddMedicationModal(false);
+      
+      // Clear form data
+      setMedicationFormData({
+        name: '',
+        genericName: '',
+        brandName: '',
+        category: '',
+        dosage: '',
+        form: '',
+        strength: '',
+        manufacturer: '',
+        batchNumber: '',
+        unitsInStock: '',
+        minimumStock: '',
+        unitCost: '',
+        sellingPrice: '',
+        expiryDate: '',
+        storageConditions: '',
+        administrationRoute: '',
+        indication: '',
+        contraindications: '',
+        sideEffects: '',
+        instructions: '',
+        prescriptionRequired: false
+      });
+      
+      alert('Medication added successfully');
+    } catch (error) {
+      console.error('Error adding medication:', error);
+      alert(`Error adding medication: ${error.message}`);
+    } finally {
+      setLoadingInventory(false);
+    }
+  };
+
+  // Handle Edit Vaccine
+  const handleEditVaccine = async (id, vaccineData) => {
+    try {
+      const updatedVaccine = await inventoryService.updateVaccine(id, vaccineData);
+      setVaccines(prev => prev.map(vaccine => 
+        vaccine.id === id ? updatedVaccine : vaccine
+      ));
+      
+      // Refresh inventory summary
+      const summaryData = await inventoryService.getInventorySummary();
+      setInventorySummary(summaryData);
+      
+      setShowEditVaccineModal(false);
+      setSelectedVaccine(null);
+      alert('Vaccine updated successfully');
+    } catch (error) {
+      console.error('Error updating vaccine:', error);
+      alert(`Error updating vaccine: ${error.message}`);
+    }
+  };
+
+  // Handle Edit Medication
+  const handleEditMedication = async (id, medicationData) => {
+    try {
+      const updatedMedication = await inventoryService.updateMedication(id, medicationData);
+      setMedications(prev => prev.map(medication => 
+        medication.id === id ? updatedMedication : medication
+      ));
+      
+      // Refresh inventory summary
+      const summaryData = await inventoryService.getInventorySummary();
+      setInventorySummary(summaryData);
+      
+      setShowEditMedicationModal(false);
+      setSelectedMedication(null);
+      alert('Medication updated successfully');
+    } catch (error) {
+      console.error('Error updating medication:', error);
+      alert(`Error updating medication: ${error.message}`);
+    }
+  };
+
   return (
     <div className="admin-dashboard-wrapper">
       {/* Sidebar */}
       <div className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
-          <h3 className="brand">
-            <i className="bi bi-hospital"></i>
-            <span className="text">Maybunga Healthcare</span>
-          </h3>
+          <div className="admin-logo-section">
+            <img src={sealmainImage} alt="Health Center Seal" className="admin-seal-image" />
+            <h3 className="brand">
+              <i className="bi bi-hospital"></i>
+              <span className="text">Maybunga Healthcare</span>
+            </h3>
+          </div>
         </div>
         <div className="sidebar-menu">
           <ul>
@@ -11881,6 +12790,931 @@ Report generated by Health Record System Management v2.0
             restoreHistory={restoreHistory}
           />
         </Modal.Body>
+      </Modal>
+
+      {/* Add Vaccine Modal */}
+      <Modal show={showAddVaccineModal} onHide={() => setShowAddVaccineModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-shield-plus me-2"></i>
+            Add New Vaccine
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={(e) => {
+            e.preventDefault();
+            handleAddVaccine(vaccineFormData);
+          }}>
+            <Row>
+              <Col md={6}>
+                <h5 className="mb-3">
+                  <i className="bi bi-info-circle me-2"></i>
+                  Basic Information
+                </h5>
+                <Form.Group className="mb-3">
+                  <Form.Label>Vaccine Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="e.g., BCG Vaccine"
+                    value={vaccineFormData.name}
+                    onChange={(e) => handleVaccineFormChange('name', e.target.value)}
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Category *</Form.Label>
+                  <Form.Select 
+                    value={vaccineFormData.category}
+                    onChange={(e) => handleVaccineFormChange('category', e.target.value)}
+                    required
+                  >
+                    <option value="">Select Category</option>
+                    <option value="Routine Childhood">Routine Childhood</option>
+                    <option value="Adult">Adult</option>
+                    <option value="Travel">Travel</option>
+                    <option value="Occupational">Occupational</option>
+                    <option value="Emergency">Emergency</option>
+                  </Form.Select>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Manufacturer *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="e.g., Sanofi Pasteur"
+                    value={vaccineFormData.manufacturer}
+                    onChange={(e) => setVaccineFormData({...vaccineFormData, manufacturer: e.target.value})}
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Administration Route</Form.Label>
+                  <Form.Select
+                    value={vaccineFormData.administrationRoute}
+                    onChange={(e) => handleVaccineFormChange('administrationRoute', e.target.value)}
+                  >
+                    <option value="">Select Route</option>
+                    <option value="Intramuscular">Intramuscular (IM)</option>
+                    <option value="Subcutaneous">Subcutaneous (SC)</option>
+                    <option value="Oral">Oral</option>
+                    <option value="Intranasal">Intranasal</option>
+                    <option value="Intradermal">Intradermal</option>
+                  </Form.Select>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Description</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={3}
+                    placeholder="Brief description of the vaccine and its purpose"
+                    value={vaccineFormData.description}
+                    onChange={(e) => setVaccineFormData({...vaccineFormData, description: e.target.value})}
+                  />
+                </Form.Group>
+              </Col>
+
+              <Col md={6}>
+                <h5 className="mb-3">
+                  <i className="bi bi-box-seam me-2"></i>
+                  Stock & Storage Information
+                </h5>
+                
+                <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Initial Stock *</Form.Label>
+                      <InputGroup>
+                        <Form.Control
+                          type="number"
+                          min="0"
+                          placeholder="Enter initial stock"
+                          value={vaccineFormData.dosesInStock}
+                          onChange={(e) => setVaccineFormData({...vaccineFormData, dosesInStock: parseInt(e.target.value) || 0})}
+                          required
+                        />
+                        <InputGroup.Text>doses</InputGroup.Text>
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Minimum Stock Level *</Form.Label>
+                      <InputGroup>
+                        <Form.Control
+                          type="number"
+                          min="0"
+                          placeholder="Enter minimum stock"
+                          value={vaccineFormData.minimumStock}
+                          onChange={(e) => setVaccineFormData({...vaccineFormData, minimumStock: parseInt(e.target.value) || 0})}
+                          required
+                        />
+                        <InputGroup.Text>doses</InputGroup.Text>
+                      </InputGroup>
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Batch Number</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="e.g., VAC001-2024"
+                    value={vaccineFormData.batchNumber}
+                    onChange={(e) => setVaccineFormData({...vaccineFormData, batchNumber: e.target.value})}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Expiry Date *</Form.Label>
+                  <Form.Control
+                    type="date"
+                    value={vaccineFormData.expiryDate}
+                    onChange={(e) => setVaccineFormData({...vaccineFormData, expiryDate: e.target.value})}
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Storage Requirements</Form.Label>
+                  <Form.Select
+                    value={vaccineFormData.storageRequirements}
+                    onChange={(e) => setVaccineFormData({...vaccineFormData, storageRequirements: e.target.value})}
+                  >
+                    <option value="">Select Storage Type</option>
+                    <option value="2-8°C (Refrigerated)">2-8°C (Refrigerated)</option>
+                    <option value="-15 to -25°C (Frozen)">-15 to -25°C (Frozen)</option>
+                    <option value="Room Temperature">Room Temperature</option>
+                    <option value="Ultra-cold (-70°C)">Ultra-cold (-70°C)</option>
+                  </Form.Select>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Cost per Dose</Form.Label>
+                  <InputGroup>
+                    <InputGroup.Text>₱</InputGroup.Text>
+                    <Form.Control
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Enter cost per dose"
+                      value={vaccineFormData.costPerDose}
+                      onChange={(e) => setVaccineFormData({...vaccineFormData, costPerDose: parseFloat(e.target.value) || 0})}
+                    />
+                  </InputGroup>
+                </Form.Group>
+              </Col>
+            </Row>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => {
+            setShowAddVaccineModal(false);
+            setVaccineFormData({
+              name: '',
+              category: '',
+              manufacturer: '',
+              administrationRoute: '',
+              description: '',
+              dosesInStock: 0,
+              minimumStock: 0,
+              batchNumber: '',
+              expiryDate: '',
+              storageRequirements: '',
+              costPerDose: 0
+            });
+          }}>
+            Cancel
+          </Button>
+          <Button 
+            variant="success" 
+            onClick={() => handleAddVaccine(vaccineFormData)}
+            disabled={loadingInventory}
+          >
+            {loadingInventory ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Adding...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-plus me-2"></i>
+                Add Vaccine
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Add Medication Modal */}
+      <Modal show={showAddMedicationModal} onHide={() => setShowAddMedicationModal(false)} size="xl">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-capsule me-2"></i>
+            Add New Medication
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={(e) => {
+            e.preventDefault();
+            handleAddMedication(medicationFormData);
+          }}>
+            <Row>
+              <Col md={4}>
+                <h5 className="mb-3">
+                  <i className="bi bi-info-circle me-2"></i>
+                  Basic Information
+                </h5>
+                
+                <Form.Group className="mb-3">
+                  <Form.Label>Brand/Trade Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="e.g., Biogesic"
+                    value={medicationFormData.name}
+                    onChange={(e) => setMedicationFormData({...medicationFormData, name: e.target.value})}
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Generic Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="e.g., Paracetamol"
+                    value={medicationFormData.genericName}
+                    onChange={(e) => setMedicationFormData({...medicationFormData, genericName: e.target.value})}
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Category *</Form.Label>
+                  <Form.Select 
+                    value={medicationFormData.category}
+                    onChange={(e) => setMedicationFormData({...medicationFormData, category: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Category</option>
+                    <option value="Analgesics">Analgesics (Pain Relievers)</option>
+                    <option value="Antibiotics">Antibiotics</option>
+                    <option value="Antihistamines">Antihistamines</option>
+                    <option value="Antihypertensives">Antihypertensives</option>
+                    <option value="Antidiabetics">Antidiabetics</option>
+                    <option value="Cardiovascular">Cardiovascular</option>
+                    <option value="Respiratory">Respiratory</option>
+                    <option value="Gastrointestinal">Gastrointestinal</option>
+                    <option value="Vitamins">Vitamins & Supplements</option>
+                    <option value="Topical">Topical Medications</option>
+                    <option value="Other">Other</option>
+                  </Form.Select>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Form *</Form.Label>
+                  <Form.Select 
+                    value={medicationFormData.form}
+                    onChange={(e) => setMedicationFormData({...medicationFormData, form: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Form</option>
+                    <option value="Tablet">Tablet</option>
+                    <option value="Capsule">Capsule</option>
+                    <option value="Syrup">Syrup</option>
+                    <option value="Suspension">Suspension</option>
+                    <option value="Injection">Injection</option>
+                    <option value="Cream">Cream</option>
+                    <option value="Ointment">Ointment</option>
+                    <option value="Drops">Drops</option>
+                    <option value="Inhaler">Inhaler</option>
+                    <option value="Patch">Patch</option>
+                  </Form.Select>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Strength/Dosage *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="e.g., 500mg, 250mg/5ml"
+                    value={medicationFormData.dosage}
+                    onChange={(e) => setMedicationFormData({...medicationFormData, dosage: e.target.value})}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+
+              <Col md={4}>
+                <h5 className="mb-3">
+                  <i className="bi bi-box-seam me-2"></i>
+                  Stock Information
+                </h5>
+
+                <Row>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Initial Stock *</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        placeholder="Enter initial stock"
+                        value={medicationFormData.unitsInStock}
+                        onChange={(e) => setMedicationFormData({...medicationFormData, unitsInStock: parseInt(e.target.value) || 0})}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Minimum Stock *</Form.Label>
+                      <Form.Control
+                        type="number"
+                        min="0"
+                        placeholder="Enter minimum stock"
+                        value={medicationFormData.minimumStock}
+                        onChange={(e) => setMedicationFormData({...medicationFormData, minimumStock: parseInt(e.target.value) || 0})}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Manufacturer</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="e.g., Unilab"
+                    value={medicationFormData.manufacturer}
+                    onChange={(e) => setMedicationFormData({...medicationFormData, manufacturer: e.target.value})}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Batch Number</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="e.g., MED001-2024"
+                    value={medicationFormData.batchNumber}
+                    onChange={(e) => setMedicationFormData({...medicationFormData, batchNumber: e.target.value})}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Expiry Date *</Form.Label>
+                  <Form.Control
+                    type="date"
+                    value={medicationFormData.expiryDate}
+                    onChange={(e) => setMedicationFormData({...medicationFormData, expiryDate: e.target.value})}
+                    required
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Cost per Unit</Form.Label>
+                  <InputGroup>
+                    <InputGroup.Text>₱</InputGroup.Text>
+                    <Form.Control
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Enter cost per unit"
+                      value={medicationFormData.costPerUnit}
+                      onChange={(e) => setMedicationFormData({...medicationFormData, costPerUnit: parseFloat(e.target.value) || 0})}
+                    />
+                  </InputGroup>
+                </Form.Group>
+              </Col>
+
+              <Col md={4}>
+                <h5 className="mb-3">
+                  <i className="bi bi-shield-exclamation me-2"></i>
+                  Regulatory & Safety
+                </h5>
+
+                <Form.Group className="mb-3">
+                  <Form.Check
+                    type="checkbox"
+                    label="Prescription Required"
+                    id="prescriptionRequired"
+                    checked={medicationFormData.isPrescriptionRequired}
+                    onChange={(e) => setMedicationFormData({...medicationFormData, isPrescriptionRequired: e.target.checked})}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Check
+                    type="checkbox"
+                    label="Controlled Substance"
+                    id="controlledSubstance"
+                    checked={medicationFormData.isControlledSubstance}
+                    onChange={(e) => setMedicationFormData({...medicationFormData, isControlledSubstance: e.target.checked})}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Administration Instructions</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    placeholder="e.g., Take with food, twice daily"
+                    value={medicationFormData.administrationInstructions}
+                    onChange={(e) => setMedicationFormData({...medicationFormData, administrationInstructions: e.target.value})}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Common Side Effects</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    placeholder="List common side effects"
+                    value={medicationFormData.sideEffects}
+                    onChange={(e) => setMedicationFormData({...medicationFormData, sideEffects: e.target.value})}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Contraindications</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    placeholder="When not to use this medication"
+                    value={medicationFormData.contraindications}
+                    onChange={(e) => setMedicationFormData({...medicationFormData, contraindications: e.target.value})}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => {
+            setShowAddMedicationModal(false);
+            setMedicationFormData({
+              name: '',
+              genericName: '',
+              brandName: '',
+              category: '',
+              form: '',
+              dosage: '',
+              unitsInStock: 0,
+              minimumStock: 0,
+              manufacturer: '',
+              batchNumber: '',
+              expiryDate: '',
+              costPerUnit: 0,
+              isPrescriptionRequired: false,
+              isControlledSubstance: false,
+              administrationInstructions: '',
+              sideEffects: '',
+              contraindications: ''
+            });
+          }}>
+            Cancel
+          </Button>
+          <Button 
+            variant="success" 
+            onClick={() => handleAddMedication(medicationFormData)}
+            disabled={loadingInventory}
+          >
+            {loadingInventory ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Adding...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-plus me-2"></i>
+                Add Medication
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Vaccine Details Modal */}
+      <Modal show={showVaccineDetailsModal} onHide={() => setShowVaccineDetailsModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-shield-plus me-2"></i>
+            Vaccine Details
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedVaccine && (
+            <div className="vaccine-details">
+              <Row className="mb-4">
+                <Col md={8}>
+                  <h4 className="mb-3">{selectedVaccine.name}</h4>
+                  {selectedVaccine.description && (
+                    <p className="text-muted mb-3">{selectedVaccine.description}</p>
+                  )}
+                </Col>
+                <Col md={4} className="text-end">
+                  <span className={`badge badge-lg ${
+                    selectedVaccine.status === 'Available' ? 'bg-success' :
+                    selectedVaccine.status === 'Low Stock' ? 'bg-warning' :
+                    selectedVaccine.status === 'Out of Stock' ? 'bg-danger' :
+                    selectedVaccine.status === 'Expired' ? 'bg-dark' : 'bg-secondary'
+                  }`}>
+                    {selectedVaccine.status}
+                  </span>
+                </Col>
+              </Row>
+
+              <Row>
+                <Col md={6}>
+                  <h6 className="text-primary mb-3">
+                    <i className="bi bi-info-circle me-2"></i>
+                    Basic Information
+                  </h6>
+                  <table className="table table-borderless">
+                    <tbody>
+                      <tr>
+                        <td className="fw-bold text-muted">Category:</td>
+                        <td>{selectedVaccine.category || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-muted">Manufacturer:</td>
+                        <td>{selectedVaccine.manufacturer || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-muted">Administration Route:</td>
+                        <td>{selectedVaccine.administrationRoute || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-muted">Batch Number:</td>
+                        <td>{selectedVaccine.batchNumber || 'N/A'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </Col>
+                <Col md={6}>
+                  <h6 className="text-success mb-3">
+                    <i className="bi bi-box-seam me-2"></i>
+                    Stock Information
+                  </h6>
+                  <table className="table table-borderless">
+                    <tbody>
+                      <tr>
+                        <td className="fw-bold text-muted">Current Stock:</td>
+                        <td>
+                          <span className={`fw-bold ${
+                            selectedVaccine.dosesInStock === 0 ? 'text-danger' :
+                            selectedVaccine.dosesInStock <= selectedVaccine.minimumStock ? 'text-warning' :
+                            'text-success'
+                          }`}>
+                            {selectedVaccine.dosesInStock} doses
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-muted">Minimum Stock:</td>
+                        <td>{selectedVaccine.minimumStock} doses</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-muted">Expiry Date:</td>
+                        <td>
+                          <span className={
+                            new Date(selectedVaccine.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) ? 'text-warning fw-bold' : ''
+                          }>
+                            {new Date(selectedVaccine.expiryDate).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-muted">Cost per Dose:</td>
+                        <td>₱{selectedVaccine.costPerDose?.toFixed(2) || '0.00'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </Col>
+              </Row>
+
+              {selectedVaccine.storageRequirements && (
+                <Row className="mt-4">
+                  <Col>
+                    <h6 className="text-info mb-2">
+                      <i className="bi bi-thermometer-half me-2"></i>
+                      Storage Requirements
+                    </h6>
+                    <div className="bg-light p-3 rounded">
+                      {selectedVaccine.storageRequirements}
+                    </div>
+                  </Col>
+                </Row>
+              )}
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => {
+            setShowVaccineDetailsModal(false);
+            setSelectedVaccine(null);
+          }}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={() => {
+            setShowVaccineDetailsModal(false);
+            setShowEditVaccineModal(true);
+          }}>
+            <i className="bi bi-pencil me-2"></i>
+            Edit Vaccine
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Medication Details Modal */}
+      <Modal show={showMedicationDetailsModal} onHide={() => setShowMedicationDetailsModal(false)} size="xl">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-capsule me-2"></i>
+            Medication Details
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedMedication && (
+            <div className="medication-details">
+              <Row className="mb-4">
+                <Col md={8}>
+                  <h4 className="mb-1">{selectedMedication.name}</h4>
+                  {selectedMedication.genericName && selectedMedication.genericName !== selectedMedication.name && (
+                    <h6 className="text-muted mb-3">Generic: {selectedMedication.genericName}</h6>
+                  )}
+                  {selectedMedication.brandName && selectedMedication.brandName !== selectedMedication.name && (
+                    <p className="text-muted mb-3">Brand: {selectedMedication.brandName}</p>
+                  )}
+                </Col>
+                <Col md={4} className="text-end">
+                  <span className={`badge badge-lg ${
+                    selectedMedication.status === 'Available' ? 'bg-success' :
+                    selectedMedication.status === 'Low Stock' ? 'bg-warning' :
+                    selectedMedication.status === 'Out of Stock' ? 'bg-danger' :
+                    selectedMedication.status === 'Expired' ? 'bg-dark' : 'bg-secondary'
+                  }`}>
+                    {selectedMedication.status}
+                  </span>
+                  <div className="mt-2">
+                    {selectedMedication.isPrescriptionRequired && (
+                      <span className="badge bg-info me-1">Prescription Required</span>
+                    )}
+                    {selectedMedication.isControlledSubstance && (
+                      <span className="badge bg-warning">Controlled</span>
+                    )}
+                  </div>
+                </Col>
+              </Row>
+
+              <Row>
+                <Col md={4}>
+                  <h6 className="text-primary mb-3">
+                    <i className="bi bi-info-circle me-2"></i>
+                    Basic Information
+                  </h6>
+                  <table className="table table-borderless">
+                    <tbody>
+                      <tr>
+                        <td className="fw-bold text-muted">Category:</td>
+                        <td>{selectedMedication.category || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-muted">Form:</td>
+                        <td>{selectedMedication.form || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-muted">Strength:</td>
+                        <td>{selectedMedication.dosage || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-muted">Manufacturer:</td>
+                        <td>{selectedMedication.manufacturer || 'N/A'}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-muted">Batch Number:</td>
+                        <td>{selectedMedication.batchNumber || 'N/A'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </Col>
+                <Col md={4}>
+                  <h6 className="text-success mb-3">
+                    <i className="bi bi-box-seam me-2"></i>
+                    Stock Information
+                  </h6>
+                  <table className="table table-borderless">
+                    <tbody>
+                      <tr>
+                        <td className="fw-bold text-muted">Current Stock:</td>
+                        <td>
+                          <span className={`fw-bold ${
+                            selectedMedication.unitsInStock === 0 ? 'text-danger' :
+                            selectedMedication.unitsInStock <= selectedMedication.minimumStock ? 'text-warning' :
+                            'text-success'
+                          }`}>
+                            {selectedMedication.unitsInStock} {selectedMedication.form?.toLowerCase()}s
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-muted">Minimum Stock:</td>
+                        <td>{selectedMedication.minimumStock} {selectedMedication.form?.toLowerCase()}s</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-muted">Expiry Date:</td>
+                        <td>
+                          <span className={
+                            new Date(selectedMedication.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) ? 'text-warning fw-bold' : ''
+                          }>
+                            {new Date(selectedMedication.expiryDate).toLocaleDateString('en-US', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-muted">Cost per Unit:</td>
+                        <td>₱{selectedMedication.costPerUnit?.toFixed(2) || '0.00'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </Col>
+                <Col md={4}>
+                  <h6 className="text-warning mb-3">
+                    <i className="bi bi-shield-exclamation me-2"></i>
+                    Safety Information
+                  </h6>
+                  <table className="table table-borderless">
+                    <tbody>
+                      <tr>
+                        <td className="fw-bold text-muted">Prescription:</td>
+                        <td>{selectedMedication.isPrescriptionRequired ? 'Required' : 'Over-the-Counter'}</td>
+                      </tr>
+                      <tr>
+                        <td className="fw-bold text-muted">Controlled:</td>
+                        <td>{selectedMedication.isControlledSubstance ? 'Yes' : 'No'}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </Col>
+              </Row>
+
+              {(selectedMedication.administrationInstructions || selectedMedication.sideEffects || selectedMedication.contraindications) && (
+                <Row className="mt-4">
+                  {selectedMedication.administrationInstructions && (
+                    <Col md={4}>
+                      <h6 className="text-info mb-2">
+                        <i className="bi bi-clipboard-check me-2"></i>
+                        Administration Instructions
+                      </h6>
+                      <div className="bg-light p-3 rounded mb-3">
+                        {selectedMedication.administrationInstructions}
+                      </div>
+                    </Col>
+                  )}
+                  {selectedMedication.sideEffects && (
+                    <Col md={4}>
+                      <h6 className="text-warning mb-2">
+                        <i className="bi bi-exclamation-triangle me-2"></i>
+                        Side Effects
+                      </h6>
+                      <div className="bg-warning bg-opacity-10 p-3 rounded mb-3">
+                        {selectedMedication.sideEffects}
+                      </div>
+                    </Col>
+                  )}
+                  {selectedMedication.contraindications && (
+                    <Col md={4}>
+                      <h6 className="text-danger mb-2">
+                        <i className="bi bi-x-circle me-2"></i>
+                        Contraindications
+                      </h6>
+                      <div className="bg-danger bg-opacity-10 p-3 rounded mb-3">
+                        {selectedMedication.contraindications}
+                      </div>
+                    </Col>
+                  )}
+                </Row>
+              )}
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => {
+            setShowMedicationDetailsModal(false);
+            setSelectedMedication(null);
+          }}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={() => {
+            setShowMedicationDetailsModal(false);
+            setShowEditMedicationModal(true);
+          }}>
+            <i className="bi bi-pencil me-2"></i>
+            Edit Medication
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Stock Update Modal */}
+      <Modal show={showStockUpdateModal} onHide={() => setShowStockUpdateModal(false)} size="md">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-box-seam me-2"></i>
+            Update Stock - {stockUpdateData.name}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="stock-update-content">
+            <div className="current-stock-info mb-4">
+              <div className="row">
+                <div className="col-md-6">
+                  <label className="form-label fw-bold">Current Stock:</label>
+                  <div className="current-stock-display">
+                    <span className="stock-number">{stockUpdateData.currentStock}</span>
+                    <span className="stock-unit">
+                      {stockUpdateData.type === 'vaccine' ? ' doses' : ' units'}
+                    </span>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label fw-bold">Operation:</label>
+                  <Form.Select 
+                    value={stockUpdateData.operation}
+                    onChange={(e) => handleStockUpdateFormChange('operation', e.target.value)}
+                  >
+                    <option value="add">Add Stock</option>
+                    <option value="remove">Remove Stock</option>
+                  </Form.Select>
+                </div>
+              </div>
+            </div>
+            
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold">
+                {stockUpdateData.operation === 'add' ? 'Quantity to Add:' : 'Quantity to Remove:'}
+              </Form.Label>
+              <Form.Control
+                type="number"
+                min="1"
+                value={stockUpdateData.quantity}
+                onChange={(e) => handleStockUpdateFormChange('quantity', parseInt(e.target.value) || 0)}
+                placeholder={`Enter ${stockUpdateData.operation === 'add' ? 'quantity to add' : 'quantity to remove'}`}
+              />
+            </Form.Group>
+            
+            <div className="stock-preview">
+              <div className="alert alert-info">
+                <strong>Preview:</strong> {stockUpdateData.currentStock} 
+                {stockUpdateData.operation === 'add' ? ' + ' : ' - '}
+                {stockUpdateData.quantity} = 
+                <strong> {stockUpdateData.operation === 'add' 
+                  ? stockUpdateData.currentStock + stockUpdateData.quantity 
+                  : Math.max(0, stockUpdateData.currentStock - stockUpdateData.quantity)
+                }</strong>
+                {stockUpdateData.type === 'vaccine' ? ' doses' : ' units'}
+              </div>
+            </div>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => {
+            setShowStockUpdateModal(false);
+            setStockUpdateData({
+              type: '',
+              id: null,
+              name: '',
+              currentStock: 0,
+              quantity: 0,
+              operation: 'add'
+            });
+          }}>
+            Cancel
+          </Button>
+          <Button 
+            variant={stockUpdateData.operation === 'add' ? 'success' : 'warning'} 
+            onClick={handleStockUpdateFromModal}
+            disabled={stockUpdateData.quantity <= 0 || stockUpdateLoading}
+          >
+            {stockUpdateLoading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Updating...
+              </>
+            ) : (
+              <>
+                <i className={`bi ${stockUpdateData.operation === 'add' ? 'bi-plus-circle' : 'bi-dash-circle'} me-2`}></i>
+                {stockUpdateData.operation === 'add' ? 'Add' : 'Remove'} Stock
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
       </Modal>
     </div>
   );

@@ -146,62 +146,64 @@
   transition: width 0.3s ease-in-out;
 }
 
-/* Navbar styling (copied from AuthPage.css for consistency, adjust if needed) */
-.navbar.fixed-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem; /* Standard padding */
-  background-color: rgba(0, 15, 40, 0.9); /* Darker, slightly more opaque */
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  z-index: 1030; /* Ensure it\'s above other content */
+/* Navbar styling (updated for light theme - perfectly centered navigation) */
+/* New header layout */
+.site-header { position: relative; width:100%; z-index:1030; }
+.top-info-bar { 
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(90deg,#2E5984 0%, #3d6d9d 50%, #2E5984 100%);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid #1e4061;
+  padding: 6px 0; 
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  z-index: 1040;
 }
-
-.navbar.fixed-top .navbar-brand { /* Increased specificity */
-  font-size: 1.4rem; /* Slightly larger brand */
-  font-weight: 600;
-  color: #87CEFA; /* Light Sky Blue - Compliments dark blue */
-  text-decoration: none;
+.top-info-inner { 
+  max-width:1200px; 
+  margin:0 auto; 
+  display:flex; 
+  justify-content:space-between; 
+  align-items:center; 
+  padding:0 20px; 
+  font-size:0.8rem; 
+  font-weight:600; 
+  color:#ffffff; 
+  letter-spacing:0.5px; 
+  text-transform:uppercase;
 }
+.top-date { font-weight:600; color:#ffffff; }
+.top-time { font-family:'Courier New', monospace; font-weight:700; color:#b7dcf3; }
 
-.navbar-links {
-  display: flex;
-  gap: 25px; /* Slightly more gap */
+.main-navigation { 
+  position: fixed;
+  top: 40px; /* positioned right below the info bar */
+  left: 0;
+  width: 100%;
+  background: var(--white); 
+  padding: 8px 0; 
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+  border-bottom: 1px solid var(--border-light); 
+  z-index: 1035;
 }
+.main-navigation .nav-links { max-width:1200px; margin:0 auto; display:flex; justify-content:center; gap:35px; }
+.main-navigation .nav-links a { color:var(--text-primary); text-decoration:none; font-size:0.9rem; font-weight:500; padding:10px 4px; position:relative; letter-spacing:0.5px; transition: all .25s ease; }
+.main-navigation .nav-links a::after { content:''; position:absolute; left:0; bottom:-4px; width:100%; height:2px; background:var(--accent); transform:scaleX(0); transform-origin:center; transition:transform .25s ease; }
+.main-navigation .nav-links a:hover, .main-navigation .nav-links a.active { color:var(--accent); }
+.main-navigation .nav-links a:hover::after, .main-navigation .nav-links a.active::after { transform:scaleX(1); }
 
-.navbar-links a {
-  font-size: 0.95rem; /* Standard link size */
-  font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
-  text-decoration: none;
-  padding: 8px 0;
-  position: relative;
-  transition: color 0.25s ease;
+/* Adjust page top spacing where previous fixed nav height applied */
+.loginsignup-container { padding-top: 85px; }
+
+@media (max-width: 768px) {
+  .main-navigation .nav-links { gap:20px; }
+  .main-navigation { top: 38px; padding: 6px 0; }
 }
-
-.navbar-links a:hover,
-.navbar-links a.active {
-  color: #fff;
-}
-
-.navbar-links a::after {
-  content: '';
-  position: absolute;
-  width: 100%; /* Changed from 0 to 100% */
-  height: 2px;
-  bottom: 0;
-  left: 0; /* Changed from 50% */
-  transform: scaleX(0); /* Changed from translateX(-50%) */
-  transform-origin: center; /* Added */
-  background-color: #fff;
-  transition: transform 0.25s ease; /* Changed from width to transform */
-}
-
-.navbar-links a:hover::after,
-.navbar-links a.active::after {
-  transform: scaleX(1); /* Changed from width: 100% */
+@media (max-width: 576px) {
+  .main-navigation .nav-links { flex-wrap:wrap; gap:12px; }
+  .main-navigation { padding: 6px 0; }
 }
 
 /* Responsive adjustments */
@@ -216,14 +218,30 @@
   .navbar.fixed-top {
     padding: 0.8rem 1rem;
   }
-  .navbar-brand {
-    font-size: 1.2rem;
+  .navbar-links-centered {
+    gap: 25px;
+    justify-content: center;
   }
-  .navbar-links {
-    gap: 15px;
-  }
-  .navbar-links a {
+  .navbar-links-centered a {
     font-size: 0.85rem;
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 576px) {
+  .navbar.fixed-top {
+    padding: 0.6rem 0.5rem;
+  }
+  .navbar-links-centered {
+    gap: 15px;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+  }
+  .navbar-links-centered a {
+    font-size: 0.8rem;
+    padding: 8px 10px;
+    text-align: center;
   }
 }
 

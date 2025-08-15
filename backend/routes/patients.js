@@ -425,8 +425,10 @@ router.put('/:id/assign-family', auth, async (req, res) => {
 });
 
 // @route   POST api/patients/create-test-data
-// @desc    Create test patients for development
+// @desc    Create test patients for development (DISABLED IN PRODUCTION)
 // @access  Private (Admin only)
+// NOTE: This endpoint is commented out to prevent accidental test data creation
+/*
 router.post('/create-test-data', auth, async (req, res) => {
   try {
     // Create test patients
@@ -469,5 +471,6 @@ router.post('/create-test-data', auth, async (req, res) => {
     res.status(500).send('Server Error');
   }
 });
+*/
 
 module.exports = router;

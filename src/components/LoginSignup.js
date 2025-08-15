@@ -12,7 +12,6 @@ import { useData } from '../context/DataContext'; // Import the data context
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../styles/LoginSignup.css'; // New CSS file
-import homeImage from '../images/home.jpg'; // Background image
 
 const LoginSignup = () => {
   const [activeTab, setActiveTab] = useState('login'); // 'login' or 'register'
@@ -20,6 +19,8 @@ const LoginSignup = () => {
   const navigate = useNavigate(); // Initialize useNavigate
   const { login, logout, isAuthenticated, user } = useAuth(); // Use auth context
   const { addUnsortedMember } = useData(); // Use data context
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
+  const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(false);
 
   // ===== LOGIN STATE (Copied from AuthPage.js) =====
   const [emailOrPhone, setEmailOrPhone] = useState("");
@@ -102,6 +103,52 @@ const LoginSignup = () => {
   useEffect(() => {
     setRegPasswordStrength(checkPasswordStrength(formData.password));
   }, [formData.password]);
+
+  // Auto-login based on port (second instance and beyond)
+  useEffect(() => {
+    const currentPort = window.location.port;
+    
+    // Define auto-login mapping for different ports
+    const autoLoginConfig = {
+      '3001': { username: 'doctor', password: 'doctor123', role: 'doctor', dashboard: '/doctor/dashboard' },
+      '3002': { username: 'patient', password: 'patient123', role: 'patient', dashboard: '/patient/dashboard' },
+      // Future: '3003': { username: 'admin', password: 'admin123', role: 'admin', dashboard: '/admin/dashboard' }
+    };
+    
+    const config = autoLoginConfig[currentPort];
+    
+    // If running on a configured port and no user is authenticated and auto-login hasn't been attempted
+    if (config && !isAuthenticated && !autoLoginAttempted) {
+      setAutoLoginAttempted(true);
+      setIsAutoLoggingIn(true);
+      
+      // Auto-login based on port configuration
+      const autoLogin = async () => {
+        try {
+          console.log(`🔄 Auto-login detected for port ${currentPort} - logging in as ${config.role}...`);
+          
+          const response = await authService.login(config.username, config.password);
+          if (response && response.user) {
+            // Use auth context to store user data
+            login(response.user, response.token);
+            
+            // Navigate to appropriate dashboard
+            navigate(config.dashboard);
+            
+            console.log(`✅ Auto-login successful - redirected to ${config.role} dashboard`);
+          }
+        } catch (error) {
+          console.error('❌ Auto-login failed:', error);
+          // Don't show error to user, just log it and let them login manually
+        } finally {
+          setIsAutoLoggingIn(false);
+        }
+      };
+      
+      // Add a small delay to let the component mount properly
+      setTimeout(autoLogin, 1000);
+    }
+  }, [isAuthenticated, autoLoginAttempted, login, navigate]);
 
   // Don't automatically redirect - let users access login page even when authenticated
   // They might want to logout or switch accounts
@@ -660,14 +707,44 @@ const LoginSignup = () => {
     </div>
   );
 
+  // Render auto-login loading view
+  const renderAutoLoginView = () => {
+    const currentPort = window.location.port;
+    const roleMap = {
+      '3001': { role: 'Doctor', icon: '🩺', color: '#28a745' },
+      '3002': { role: 'Patient', icon: '👤', color: '#007bff' },
+      '3003': { role: 'Admin', icon: '⚙️', color: '#dc3545' }
+    };
+    
+    const config = roleMap[currentPort] || { role: 'User', icon: '🔄', color: '#6c757d' };
+    
+    return (
+      <div className="text-center py-4">
+        <div className="spinner-border text-primary mb-3" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+        <h5 style={{ color: config.color }}>
+          {config.icon} Auto-Login Mode Detected
+        </h5>
+        <p className="text-muted">Automatically logging in as {config.role}...</p>
+        <small className="text-secondary">Running on port {currentPort} - {config.role} dashboard mode</small>
+      </div>
+    );
+  };
+
   return (
     <>
       <div 
         className="loginsignup-container" 
-        style={{ backgroundImage: `linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), url(${homeImage})` }}
+        style={{ backgroundColor: '#9bc4e2' }}
       >
         <Card className="loginsignup-card">
-          {isAuthenticated && user ? (
+          {isAutoLoggingIn ? (
+            // Show auto-login loading view
+            <Card.Body>
+              {renderAutoLoginView()}
+            </Card.Body>
+          ) : isAuthenticated && user ? (
             // Show authenticated view
             <Card.Body>
               {renderAuthenticatedView()}

@@ -1,7 +1,7 @@
 @echo off
-echo Starting HRSM 2.0 Multiple Instance Testing
+echo Starting HRSM 2.0 Three Instance Testing
 echo.
-echo This will start ONE backend and TWO frontend instances
+echo This will start ONE backend and THREE frontend instances
 echo.
 echo Press any key to continue...
 pause >nul
@@ -16,7 +16,7 @@ timeout /t 8 >nul
 
 echo.
 echo ========================================
-echo  Step 2: Starting Frontend - Admin/Doctor (Port 3000)
+echo  Step 2: Starting Frontend - Manual Login (Port 3000)
 echo ========================================
 start "HRSM Frontend Main" cmd /k "cd /d %~dp0 && npm start"
 echo Main frontend starting... waiting 5 seconds
@@ -24,19 +24,28 @@ timeout /t 5 >nul
 
 echo.
 echo ========================================
-echo  Step 3: Starting Frontend - Patient Testing (Port 3001)
+echo  Step 3: Starting Frontend - Doctor Auto-Login (Port 3001)
 echo ========================================
-start "HRSM Frontend Patient" cmd /k "cd /d %~dp0 && set PORT=3001 && npm start"
+start "HRSM Frontend Doctor" cmd /k "cd /d %~dp0 && set PORT=3001 && npm start"
+echo Doctor frontend starting... waiting 5 seconds
+timeout /t 5 >nul
 
 echo.
 echo ========================================
-echo  HRSM 2.0 Multi-Instance Setup Complete!
+echo  Step 4: Starting Frontend - Patient Auto-Login (Port 3002)
+echo ========================================
+start "HRSM Frontend Patient" cmd /k "cd /d %~dp0 && set PORT=3002 && npm start"
+
+echo.
+echo ========================================
+echo  HRSM 2.0 Three-Instance Setup Complete!
 echo ========================================
 echo.
 echo 🔧 ARCHITECTURE:
 echo    ├── Backend (Port 5000) - ONE shared server
-echo    ├── Frontend 1 (Port 3000) - Admin/Manual testing
-echo    └── Frontend 2 (Port 3001) - Auto-login as Doctor
+echo    ├── Frontend 1 (Port 3000) - Manual login (all roles)
+echo    ├── Frontend 2 (Port 3001) - Auto-login as Doctor
+echo    └── Frontend 3 (Port 3002) - Auto-login as Patient
 echo.
 echo 🔑 LOGIN BEHAVIOR:
 echo.
@@ -46,11 +55,14 @@ echo    - Doctor: doctor / doctor123
 echo    - Patient: patient / patient123
 echo.
 echo 🔹 Port 3001 (Auto-Login):
-echo    - Automatically logs in as Doctor (doctor/doctor123)
-echo    - Perfect for testing doctor dashboard
+echo    - Automatically logs in as Doctor
 echo    - Shows "DOCTOR MODE" indicator in header
 echo.
-echo ⚠️  IMPORTANT: Both frontends connect to the SAME backend!
+echo 🔹 Port 3002 (Auto-Login):
+echo    - Automatically logs in as Patient
+echo    - Shows "PATIENT MODE" indicator in header
+echo.
+echo ⚠️  IMPORTANT: All frontends connect to the SAME backend!
 echo 🚀 If login fails, ensure backend is running (check first window)
 echo.
 echo Press any key to exit this window...

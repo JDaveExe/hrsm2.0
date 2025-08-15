@@ -516,3 +516,263 @@ Simulation Feature info:
    - Integrate simulation features with automated test suites
    - Create predefined simulation scenarios for regression testing
    - Schedule automated simulation runs for continuous integration
+
+VACCINATION INVENTORY (33 Available Vaccines)
+
+**Core/Routine Vaccines:**
+1. BCG (Bacillus Calmette-Guérin) - Birth tuberculosis prevention
+2. Hepatitis B Vaccine - Birth and series protection
+3. Pentavalent Vaccine (DTP-HepB-Hib) - 6, 10, 14 weeks
+4. Oral Polio Vaccine (OPV) - 6, 10, 14 weeks with boosters
+5. Inactivated Polio Vaccine (IPV) - 14 weeks and 9 months
+6. Pneumococcal Conjugate Vaccine (PCV) - 6, 10, 14 weeks + booster
+7. Measles, Mumps, and Rubella (MMR) - 9 months, 12-15 months, 4-6 years
+8. Japanese Encephalitis (JE) Vaccine - 12 months
+9. Influenza Vaccine - 6 months with annual boosters
+10. Rotavirus Vaccine - Starting at 6 weeks
+11. Rabies Vaccine - Recently included in routine schedule
+
+**Tetanus Series:**
+12. Tetanus Toxoid (TT) - Pregnant women and wound management
+13. Tetanus-Diphtheria (Td) - Adolescent/adult booster
+14. Tetanus-Diphtheria-Pertussis (Tdap) - Booster with pertussis
+
+**Additional Vaccines:**
+15. Varicella (Chickenpox) Vaccine - 12-15 months
+16. Hepatitis A Vaccine - Hepatitis A virus protection
+17. Meningococcal Vaccine - Meningococcal disease protection
+18. Human Papillomavirus (HPV) Vaccine - Adolescent cervical cancer prevention
+19. Yellow Fever Vaccine - Travel to endemic areas
+20. Typhoid Vaccine - Typhoid fever protection
+21. Cholera Vaccine - Oral cholera prevention
+22. Dengue Vaccine (Dengvaxia) - Endemic area prevention
+23. Pneumococcal Polysaccharide Vaccine (PPSV23) - Adults/high-risk
+24. Haemophilus influenzae type b (Hib) - Standalone when needed
+25. Anthrax Vaccine - High-risk occupational exposure
+26. Smallpox Vaccine - Emergency preparedness
+27. Shingles (Zoster) Vaccine - Older adults
+
+**COVID-19 Vaccines:**
+28. COVID-19 mRNA Vaccine (Pfizer) - SARS-CoV-2 protection
+29. COVID-19 mRNA Vaccine (Moderna) - SARS-CoV-2 protection
+30. COVID-19 Viral Vector Vaccine (AstraZeneca) - SARS-CoV-2 protection
+31. COVID-19 Viral Vector Vaccine (Johnson & Johnson) - Single-dose
+32. COVID-19 Protein Subunit Vaccine (Novavax) - SARS-CoV-2 protection
+33. Respiratory Syncytial Virus (RSV) Vaccine - Infants and elderly protection
+
+### 3. PRESCRIPTION/MEDICATION INVENTORY (150+ Medications)
+
+**Analgesics & Antipyretics:**
+- Paracetamol 500mg tablet, 250mg/5mL syrup, 100mg/mL drops
+- Ibuprofen 200mg/400mg tablet, 100mg/5mL syrup
+- Aspirin 80mg/325mg tablet
+- Mefenamic Acid 500mg tablet, 250mg capsule/5mL syrup
+- Tramadol 50mg tablet
+- Codeine 30mg tablet
+- Morphine 10mg/mL injection
+
+**Antibiotics:**
+- Amoxicillin 500mg/250mg capsule, suspensions
+- Amoxicillin + Clavulanic Acid 625mg tablet, 228mg/5mL suspension
+- Azithromycin 500mg tablet, 200mg/5mL suspension
+- Clarithromycin 500mg tablet
+- Erythromycin 500mg tablet, 250mg/5mL syrup
+- Cephalexin 500mg capsule, 250mg/5mL suspension
+- Ciprofloxacin 500mg tablet, 250mg/5mL suspension
+- Metronidazole 500mg/250mg tablet
+- Cotrimoxazole 960mg tablet, 240mg/5mL suspension
+- Clindamycin 300mg capsule
+- Doxycycline 100mg capsule
+- Tetracycline 500mg capsule
+- Ampicillin 500mg capsule
+- Gentamicin 80mg/2mL injection
+
+**Anti-inflammatory & Steroids:**
+- Prednisolone 5mg tablet, 15mg/5mL syrup
+- Hydrocortisone 1% cream, 100mg/mL injection
+- Dexamethasone 0.5mg/4mg tablet, 4mg/mL injection
+- Betamethasone 0.5mg tablet, cream
+- Methylprednisolone 4mg tablet
+- Triamcinolone 4mg tablet
+
+**Cardiovascular Medications:**
+- Amlodipine 5mg/10mg tablet
+- Losartan 50mg/100mg tablet
+- Metoprolol 50mg/100mg tablet
+- Atenolol 50mg/100mg tablet
+- Captopril 25mg tablet
+- Enalapril 5mg/10mg tablet
+- Simvastatin 20mg/40mg tablet
+- Atorvastatin 20mg/40mg tablet
+- Aspirin 80mg (cardio-protective)
+- Clopidogrel 75mg tablet
+- Digoxin 0.25mg tablet
+- Furosemide 40mg tablet
+- Carvedilol 25mg tablet
+- Nifedipine 10mg tablet
+- Spironolactone 25mg tablet
+
+**Respiratory Medications:**
+- Salbutamol 2mg tablet, 2mg/5mL syrup, 5mg/mL nebule, 100mcg inhaler
+- Beclomethasone inhaler 250mcg/dose
+- Montelukast 4mg/5mg/10mg tablet
+- Theophylline 200mg tablet
+- Ipratropium bromide nebule/inhaler
+- Ambroxol 30mg/5mL syrup, 30mg tablet
+- Carbocisteine 100mg/5mL syrup, 500mg capsule
+- Dextromethorphan syrup
+- Guaifenesin syrup
+- Bromhexine 8mg tablet
+- Budesonide inhaler
+- Fluticasone inhaler
+
+**Gastrointestinal Medications:**
+- Omeprazole 20mg/40mg capsule
+- Ranitidine 150mg tablet
+- Famotidine 20mg tablet
+- Lansoprazole 30mg capsule
+- Aluminum Magnesium (Antacid) 200mg/200mg/20mg per 5mL
+- Domperidone 10mg tablet
+- Metoclopramide 10mg tablet
+- Simethicone 40mg tablet
+- Loperamide 2mg capsule
+- Bismuth subsalicylate 262mg tablet
+- Sucralfate 1g tablet
+- Hyoscine butylbromide 10mg tablet
+- Oral Rehydration Salts (ORS)
+- Hydrite (ORS)
+
+**Antihistamines & Allergy:**
+- Cetirizine 10mg tablet, 5mg/5mL syrup
+- Loratadine 10mg tablet, 5mg/5mL syrup
+- Chlorphenamine maleate 4mg tablet, 2mg/5mL syrup
+- Diphenhydramine HCl 25mg capsule, 12.5mg/5mL syrup
+- Fexofenadine 60mg/120mg tablet
+- Desloratadine 5mg tablet
+
+**Dermatological:**
+- Betamethasone cream 0.1%
+- Hydrocortisone cream 1%
+- Clotrimazole cream 1%
+- Miconazole cream 2%
+- Ketoconazole shampoo/cream 2%
+- Selenium sulfide shampoo
+- Calamine lotion
+- Zinc oxide ointment
+- Mupirocin ointment 2%
+- Fusidic acid cream
+- Tretinoin cream 0.025%
+- Benzoyl peroxide gel 5%
+- Silver sulfadiazine 1% cream
+- Petroleum jelly
+
+**Endocrine & Diabetes:**
+- Metformin 500mg/850mg tablet, XR 1000mg tablet
+- Glibenclamide 5mg tablet
+- Gliclazide 80mg tablet
+- Insulin (Regular) 100 IU/mL
+- Insulin (NPH) 100 IU/mL
+- Levothyroxine 50mcg/100mcg tablet
+- Methimazole 5mg tablet
+- Propylthiouracil 50mg tablet
+
+**Neurological & Psychiatric:**
+- Phenytoin 100mg capsule
+- Carbamazepine 200mg tablet
+- Valproic acid 250mg tablet
+- Levetiracetam 500mg tablet
+- Diazepam 5mg tablet
+- Lorazepam 1mg tablet
+- Fluoxetine 20mg capsule
+- Sertraline 50mg tablet
+- Amitriptyline 25mg tablet
+- Haloperidol 5mg tablet
+- Risperidone 2mg tablet
+- Clonazepam 0.5mg tablet
+- Gabapentin 300mg capsule
+
+**Vitamins & Supplements:**
+- Folic Acid 5mg tablet
+- Iron + Folic Acid (IFA) tablet
+- Ferrous Sulfate 325mg tablet
+- Vitamin A 100,000/200,000 IU capsule
+- Vitamin B-Complex tablet
+- Vitamin B12 1000mcg injection
+- Vitamin C 100mg/500mg tablet
+- Vitamin D3 1000/2000/5000 IU capsule
+- Vitamin E 400 IU capsule
+- Multivitamins tablet
+- Calcium Carbonate 500mg tablet
+- Magnesium 250mg tablet
+- Zinc 10mg tablet
+
+**Herbal & Traditional:**
+- Lagundi 300mg/600mg tablet, 300mg/5mL syrup
+- Sambong capsule
+- Tsaang Gubat tablet
+- Banaba leaf extract
+- Ampalaya capsule
+- Ginger capsule
+- Turmeric capsule
+- Ginkgo biloba extract
+- Ginseng capsule
+- Yerba Buena capsule
+- Malunggay capsule
+
+**Ophthalmic:**
+- Artificial tears drops
+- Chloramphenicol eye drops
+- Tobramycin eye drops
+- Prednisolone eye drops
+- Timolol eye drops 0.5%
+- Pilocarpine eye drops
+
+**Otic (Ear):**
+- Ciprofloxacin ear drops
+- Polymyxin B ear drops
+- Cerumenex ear drops
+- Mineral oil ear drops
+- Neomycin + Polymyxin B ear drops
+
+**Emergency & Critical Care:**
+- Epinephrine 1mg/mL injection
+- Atropine 1mg/mL injection
+- Dextrose 50% injection
+- Normal Saline 0.9%
+- Lactated Ringer's solution
+- Dopamine injection
+- Nitroglycerin sublingual tablet
+- Naloxone 0.4mg/mL injection
+- Hydrocortisone 100mg injection
+- Diazepam 5mg/mL injection
+
+**Contraceptives:**
+- Ethinyl estradiol + Levonorgestrel tablet
+- Medroxyprogesterone injection
+- Levonorgestrel emergency contraceptive
+- Condoms
+
+**Anti-parasitic:**
+- Mebendazole 100mg tablet
+- Albendazole 400mg tablet
+- Metronidazole 250mg tablet
+
+### 4. SYSTEM SCHEDULING FEATURES
+
+**Appointment Processing:**
+- Daily automatic processing of scheduled appointments
+- Movement of today's appointments to active checkup list
+- Queue number assignment and status tracking
+- Service availability validation based on time slots
+
+**Service Requirements:**
+- Vital signs check required for most consultation services
+- Vaccination check required for immunization services
+- Purpose selection validation before session start
+- Real-time service availability based on current time
+
+**Analytics Tracking:**
+- Prescription usage tracking for inventory management
+- Vaccine administration tracking
+- Service utilization analytics
+- Daily, weekly, and monthly reporting capabilities
