@@ -78,13 +78,24 @@ A comprehensive, modern healthcare management system built with React and Node.j
 
 ### Quick Start
 
+> 📋 **New to the project?** Check out our [**Quick Clone & Setup Guide**](CLONE_AND_SETUP.md) for the fastest way to get started!
+
 1. **Clone the repository**
    ```bash
    git clone https://github.com/JDaveExe/hrsm2.0.git
    cd hrsm2.0
    ```
 
-2. **Install dependencies**
+2. **Automated setup** (Recommended)
+   ```bash
+   # Windows users
+   setup.bat
+   
+   # Linux/Mac users
+   chmod +x setup.sh && ./setup.sh
+   ```
+
+3. **Manual installation** (Alternative)
    ```bash
    # Install all dependencies
    npm install
