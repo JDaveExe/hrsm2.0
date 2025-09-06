@@ -11,11 +11,14 @@ const Homepage = () => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentDateTime(new Date());
-    }, 1000);
-
-    return () => clearInterval(timer);
+    // DISABLED timer to prevent reload issues (Quick workaround)
+    // const timer = setInterval(() => {
+    //   setCurrentDateTime(new Date());
+    // }, 1000);
+    // return () => clearInterval(timer);
+    
+    // Set time once only
+    setCurrentDateTime(new Date());
   }, []);
 
   const formatDate = (date) => {

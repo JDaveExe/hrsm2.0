@@ -1,240 +1,229 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useState, useContext, useMemo, useEffect, useRef, useCallback } from 'react';
 
-// Create the context
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
-// Action types
-const AUTH_ACTIONS = {
-  LOGIN_SUCCESS: 'LOGIN_SUCCESS',
-  LOGOUT: 'LOGOUT',
-  SET_LOADING: 'SET_LOADING',
-  SET_ERROR: 'SET_ERROR',
-  CLEAR_ERROR: 'CLEAR_ERROR',
-  UPDATE_USER: 'UPDATE_USER',
-};
+// Configuration constants
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes of inactivity
+const WARNING_TIME = 5 * 60 * 1000; // Show warning 5 minutes before logout
+const ACTIVITY_EVENTS = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
 
-// Initial state
-const initialState = {
-  user: null,
-  token: null,
-  isAuthenticated: false,
-  isLoading: true,
-  error: null,
-};
-
-// Reducer function
-const authReducer = (state, action) => {
-  switch (action.type) {
-    case AUTH_ACTIONS.LOGIN_SUCCESS:
-      return {
-        ...state,
-        user: action.payload.user,
-        token: action.payload.token,
-        isAuthenticated: true,
-        isLoading: false,
-        error: null,
-      };
-    case AUTH_ACTIONS.LOGOUT:
-      return {
-        ...state,
-        user: null,
-        token: null,
-        isAuthenticated: false,
-        isLoading: false,
-        error: null,
-      };
-    case AUTH_ACTIONS.SET_LOADING:
-      return {
-        ...state,
-        isLoading: action.payload,
-      };
-    case AUTH_ACTIONS.SET_ERROR:
-      return {
-        ...state,
-        error: action.payload,
-        isLoading: false,
-      };
-    case AUTH_ACTIONS.CLEAR_ERROR:
-      return {
-        ...state,
-        error: null,
-      };
-    case AUTH_ACTIONS.UPDATE_USER:
-      return {
-        ...state,
-        user: { ...state.user, ...action.payload },
-      };
-    default:
-      return state;
-  }
-};
-
-// Auth Provider Component
 export const AuthProvider = ({ children }) => {
-  const [state, dispatch] = useReducer(authReducer, initialState);
-
-  // Initialize authentication state from localStorage
-  useEffect(() => {
-    const initializeAuth = () => {
-      try {
-        const storedUser = localStorage.getItem('user');
-        const storedToken = localStorage.getItem('token');
+  // Initialize auth data from sessionStorage if available
+  const [authData, setAuthData] = useState(() => {
+    try {
+      const storedAuth = sessionStorage.getItem('authData');
+      const storedExpiry = sessionStorage.getItem('authExpiry');
+      
+      if (storedAuth && storedExpiry) {
+        const expiryTime = parseInt(storedExpiry);
+        const now = Date.now();
         
-        if (storedUser && storedToken) {
-          const userData = JSON.parse(storedUser);
-          dispatch({
-            type: AUTH_ACTIONS.LOGIN_SUCCESS,
-            payload: {
-              user: userData,
-              token: storedToken,
-            },
-          });
+        // Check if the session hasn't expired
+        if (now < expiryTime) {
+          return JSON.parse(storedAuth);
         } else {
-          dispatch({
-            type: AUTH_ACTIONS.SET_LOADING,
-            payload: false,
-          });
+          // Session expired, clear storage
+          sessionStorage.removeItem('authData');
+          sessionStorage.removeItem('authExpiry');
         }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-        // Clear corrupted data
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-        dispatch({
-          type: AUTH_ACTIONS.SET_LOADING,
-          payload: false,
-        });
       }
-    };
+    } catch (error) {
+      console.error('Error loading auth from sessionStorage:', error);
+      sessionStorage.removeItem('authData');
+      sessionStorage.removeItem('authExpiry');
+    }
+    return null;
+  });
+  
+  const [isLoading, setIsLoading] = useState(false); // Loading state for auth operations
+  const [showWarning, setShowWarning] = useState(false); // Show inactivity warning
+  const [warningTimeLeft, setWarningTimeLeft] = useState(0); // Time left in warning
+  
+  // Refs for timers
+  const inactivityTimer = useRef(null);
+  const warningTimer = useRef(null);
+  const warningCountdown = useRef(null);
+  const lastActivity = useRef(Date.now());
 
-    initializeAuth();
+  // Clear all timers
+  const clearTimers = useCallback(() => {
+    if (inactivityTimer.current) {
+      clearTimeout(inactivityTimer.current);
+      inactivityTimer.current = null;
+    }
+    if (warningTimer.current) {
+      clearTimeout(warningTimer.current);
+      warningTimer.current = null;
+    }
+    if (warningCountdown.current) {
+      clearInterval(warningCountdown.current);
+      warningCountdown.current = null;
+    }
   }, []);
 
-  // Login function
-  const login = (userData, token) => {
+  // Reset activity timers - DISABLED FOR QUICK WORKAROUND
+  const resetActivityTimer = useCallback(() => {
+    if (!authData?.token) return;
+
+    lastActivity.current = Date.now();
+    setShowWarning(false);
+    clearTimers();
+
+    // Update sessionStorage expiry time
     try {
-      // Store in localStorage
-      localStorage.setItem('user', JSON.stringify(userData));
-      localStorage.setItem('token', token);
-      
-      // Update context state
-      dispatch({
-        type: AUTH_ACTIONS.LOGIN_SUCCESS,
-        payload: {
-          user: userData,
-          token: token,
-        },
-      });
+      const newExpiryTime = Date.now() + INACTIVITY_TIMEOUT;
+      sessionStorage.setItem('authExpiry', newExpiryTime.toString());
     } catch (error) {
-      console.error('Error during login:', error);
-      dispatch({
-        type: AUTH_ACTIONS.SET_ERROR,
-        payload: 'Failed to save user data',
-      });
+      console.error('Error updating sessionStorage expiry:', error);
     }
-  };
 
-  // Logout function
-  const logout = () => {
-    try {
-      // Clear localStorage
-      localStorage.removeItem('user');
-      localStorage.removeItem('token');
-      
-      // Clear any other app-specific data
-      localStorage.removeItem('dashboardData');
-      localStorage.removeItem('appointmentsData');
-      localStorage.removeItem('patientsData');
-      localStorage.removeItem('inventoryData');
-      
-      // Update context state
-      dispatch({
-        type: AUTH_ACTIONS.LOGOUT,
-      });
-    } catch (error) {
-      console.error('Error during logout:', error);
-    }
-  };
+    // DISABLED: Set warning timer (causes rapid re-renders)
+    // warningTimer.current = setTimeout(() => {
+    //   setShowWarning(true);
+    //   setWarningTimeLeft(WARNING_TIME / 1000);
+    //   
+    //   // Start countdown
+    //   warningCountdown.current = setInterval(() => {
+    //     setWarningTimeLeft(prev => {
+    //       if (prev <= 1) {
+    //         logout();
+    //         return 0;
+    //       }
+    //       return prev - 1;
+    //     });
+    //   }, 1000);
+    // }, INACTIVITY_TIMEOUT - WARNING_TIME);
 
-  // Update user function
-  const updateUser = (updates) => {
-    try {
-      const updatedUser = { ...state.user, ...updates };
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-      
-      dispatch({
-        type: AUTH_ACTIONS.UPDATE_USER,
-        payload: updates,
-      });
-    } catch (error) {
-      console.error('Error updating user:', error);
-      dispatch({
-        type: AUTH_ACTIONS.SET_ERROR,
-        payload: 'Failed to update user data',
-      });
-    }
-  };
+    // DISABLED: Set logout timer (too aggressive)
+    // inactivityTimer.current = setTimeout(() => {
+    //   logout();
+    // }, INACTIVITY_TIMEOUT);
+  }, [authData?.token]);
 
-  // Clear error function
-  const clearError = () => {
-    dispatch({
-      type: AUTH_ACTIONS.CLEAR_ERROR,
-    });
-  };
-
-  // Set loading function
-  const setLoading = (loading) => {
-    dispatch({
-      type: AUTH_ACTIONS.SET_LOADING,
-      payload: loading,
-    });
-  };
-
-  // Get user role
-  const getUserRole = () => {
-    return state.user?.role || null;
-  };
-
-  // Check if user has specific role
-  const hasRole = (role) => {
-    return state.user?.role === role;
-  };
-
-  // Check if user is admin
-  const isAdmin = () => {
-    return state.user?.role === 'admin';
-  };
-
-  // Check if user is doctor
-  const isDoctor = () => {
-    return state.user?.role === 'doctor';
-  };
-
-  // Check if user is patient
-  const isPatient = () => {
-    return state.user?.role === 'patient';
-  };
-
-  const value = {
-    // State
-    user: state.user,
-    token: state.token,
-    isAuthenticated: state.isAuthenticated,
-    isLoading: state.isLoading,
-    error: state.error,
+  // Handle user activity
+  const handleActivity = useCallback(() => {
+    if (!authData?.token) return;
     
-    // Functions
+    const now = Date.now();
+    // Only reset timer if it's been at least 30 seconds since last activity
+    // This prevents excessive timer resets
+    if (now - lastActivity.current > 30000) {
+      resetActivityTimer();
+    }
+  }, [authData?.token, resetActivityTimer]);
+
+  // Extend session when user clicks "Stay Logged In"
+  const extendSession = useCallback(() => {
+    setShowWarning(false);
+    resetActivityTimer();
+  }, [resetActivityTimer]);
+
+  // The login function now accepts user data and stores it in state.
+  const login = useCallback((data) => {
+    setAuthData(data);
+    setIsLoading(false);
+    setShowWarning(false);
+    
+    // Store in sessionStorage with expiry time
+    try {
+      const expiryTime = Date.now() + INACTIVITY_TIMEOUT;
+      sessionStorage.setItem('authData', JSON.stringify(data));
+      sessionStorage.setItem('authExpiry', expiryTime.toString());
+    } catch (error) {
+      console.error('Error saving auth to sessionStorage:', error);
+    }
+    
+    // Set up global auth token for API interceptor
+    window.__authToken = data?.token;
+  }, []);
+
+  // The logout function clears the user data from state.
+  const logout = useCallback(() => {
+    // PREVENT LOOP: Only logout if there is a user session
+    if (!authData) {
+      return;
+    }
+
+    setAuthData(null);
+    setIsLoading(false);
+    setShowWarning(false);
+    clearTimers();
+    
+    // Clear sessionStorage
+    try {
+      sessionStorage.removeItem('authData');
+      sessionStorage.removeItem('authExpiry');
+    } catch (error) {
+      console.error('Error clearing sessionStorage:', error);
+    }
+    
+    // Clear global auth token
+    window.__authToken = null;
+    
+    console.log('User logged out due to inactivity or manual logout');
+  }, [authData, clearTimers]);
+
+  // Set up activity listeners
+  useEffect(() => {
+    if (!authData?.token) {
+      clearTimers();
+      return;
+    }
+
+    // Set up global logout function for API interceptor
+    window.__authLogout = logout;
+
+    // Add activity listeners
+    ACTIVITY_EVENTS.forEach(event => {
+      document.addEventListener(event, handleActivity, true);
+    });
+
+    // Start initial timer
+    resetActivityTimer();
+
+    // Cleanup
+    return () => {
+      ACTIVITY_EVENTS.forEach(event => {
+        document.removeEventListener(event, handleActivity, true);
+      });
+      clearTimers();
+    };
+  }, [authData?.token, handleActivity, resetActivityTimer, logout, clearTimers]);
+
+  // Initialize global auth token on mount/auth change
+  useEffect(() => {
+    if (authData?.token) {
+      window.__authToken = authData.token;
+      window.__authLogout = logout;
+    } else {
+      window.__authToken = null;
+      window.__authLogout = null;
+    }
+  }, [authData?.token, logout]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearTimers();
+      window.__authToken = null;
+      window.__authLogout = null;
+    };
+  }, [clearTimers]);
+
+  // Memoize the context value to prevent unnecessary re-renders of consumers.
+  const value = useMemo(() => ({
+    user: authData?.user, // The user object from state
+    token: authData?.token, // Convenience access to token
+    isLoading, // Loading state
+    showWarning, // Inactivity warning state
+    warningTimeLeft, // Time left before auto-logout
     login,
     logout,
-    updateUser,
-    clearError,
-    setLoading,
-    getUserRole,
-    hasRole,
-    isAdmin,
-    isDoctor,
-    isPatient,
-  };
+    extendSession, // Function to extend session
+    setIsLoading, // Expose setIsLoading for auth operations
+    // Check if the user is authenticated based on the presence of a token.
+    isAuthenticated: !!authData?.token,
+  }), [authData, isLoading, showWarning, warningTimeLeft, login, logout, extendSession]);
 
   return (
     <AuthContext.Provider value={value}>
@@ -243,13 +232,11 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Custom hook to use auth context
+// Custom hook to easily access the auth context.
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
-
-export default AuthContext;

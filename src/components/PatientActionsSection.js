@@ -1,14 +1,77 @@
-import React from 'react';
+import React, { useState } from 'react';
+import CheckupHistoryModal from './PatientActions/CheckupHistoryModal';
+import VitalSignsHistoryModal from './PatientActions/VitalSignsHistoryModal';
+import TreatmentRecordModal from './PatientActions/TreatmentRecordModal';
+import ImmunizationHistoryModal from './PatientActions/ImmunizationHistoryModal';
+import ReferralFormModal from './PatientActions/ReferralFormModal';
+import SMSNotificationModal from './PatientActions/SMSNotificationModal';
+import './PatientActionModals.css';
 
-const PatientActionsSection = ({ 
-  selectedPatient, 
-  handleCheckupHistory, 
-  handleVitalSignsHistory, 
-  handleTreatmentRecord, 
-  handleImmunizationHistory, 
-  handleReferralForm, 
-  handleSMSNotification 
-}) => {
+const PatientActionsSection = ({ selectedPatient }) => {
+  const [modals, setModals] = useState({
+    checkupHistory: false,
+    vitalSigns: false,
+    treatmentRecord: false,
+    immunization: false,
+    referral: false,
+    smsNotification: false
+  });
+
+  const openModal = (modalType) => {
+    setModals(prev => ({ ...prev, [modalType]: true }));
+  };
+
+  const closeModal = (modalType) => {
+    setModals(prev => ({ ...prev, [modalType]: false }));
+  };
+
+  const handleCheckupHistory = () => {
+    if (!selectedPatient) {
+      alert('Please select a patient first');
+      return;
+    }
+    openModal('checkupHistory');
+  };
+
+  const handleVitalSignsHistory = () => {
+    if (!selectedPatient) {
+      alert('Please select a patient first');
+      return;
+    }
+    openModal('vitalSigns');
+  };
+
+  const handleTreatmentRecord = () => {
+    if (!selectedPatient) {
+      alert('Please select a patient first');
+      return;
+    }
+    openModal('treatmentRecord');
+  };
+
+  const handleImmunizationHistory = () => {
+    if (!selectedPatient) {
+      alert('Please select a patient first');
+      return;
+    }
+    openModal('immunization');
+  };
+
+  const handleReferralForm = () => {
+    if (!selectedPatient) {
+      alert('Please select a patient first');
+      return;
+    }
+    openModal('referral');
+  };
+
+  const handleSMSNotification = () => {
+    if (!selectedPatient) {
+      alert('Please select a patient first');
+      return;
+    }
+    openModal('smsNotification');
+  };
   return (
     <div style={{
       background: 'var(--bg-secondary)',
@@ -40,7 +103,7 @@ const PatientActionsSection = ({
                 cursor: 'pointer',
                 transition: 'all 0.2s ease'
               }}
-              onClick={() => handleCheckupHistory(selectedPatient)}
+              onClick={() => handleCheckupHistory()}
               onMouseEnter={(e) => {
                 e.target.style.borderColor = 'var(--accent-primary)';
                 e.target.style.transform = 'translateY(-2px)';
@@ -74,7 +137,7 @@ const PatientActionsSection = ({
                 cursor: 'pointer',
                 transition: 'all 0.2s ease'
               }}
-              onClick={() => handleVitalSignsHistory(selectedPatient)}
+              onClick={() => handleVitalSignsHistory()}
               onMouseEnter={(e) => {
                 e.target.style.borderColor = 'var(--info)';
                 e.target.style.transform = 'translateY(-2px)';
@@ -108,7 +171,7 @@ const PatientActionsSection = ({
                 cursor: 'pointer',
                 transition: 'all 0.2s ease'
               }}
-              onClick={() => handleTreatmentRecord(selectedPatient)}
+              onClick={() => handleTreatmentRecord()}
               onMouseEnter={(e) => {
                 e.target.style.borderColor = 'var(--success)';
                 e.target.style.transform = 'translateY(-2px)';
@@ -142,7 +205,7 @@ const PatientActionsSection = ({
                 cursor: 'pointer',
                 transition: 'all 0.2s ease'
               }}
-              onClick={() => handleImmunizationHistory(selectedPatient)}
+              onClick={() => handleImmunizationHistory()}
               onMouseEnter={(e) => {
                 e.target.style.borderColor = 'var(--error)';
                 e.target.style.transform = 'translateY(-2px)';
@@ -176,7 +239,7 @@ const PatientActionsSection = ({
                 cursor: 'pointer',
                 transition: 'all 0.2s ease'
               }}
-              onClick={() => handleReferralForm(selectedPatient)}
+              onClick={() => handleReferralForm()}
               onMouseEnter={(e) => {
                 e.target.style.borderColor = 'var(--warning)';
                 e.target.style.transform = 'translateY(-2px)';
@@ -218,7 +281,7 @@ const PatientActionsSection = ({
                 e.target.style.borderColor = 'var(--border-secondary)';
                 e.target.style.transform = 'translateY(0)';
               }}
-              onClick={() => handleSMSNotification(selectedPatient)}
+              onClick={() => handleSMSNotification()}
             >
               <div className="me-3">
                 <i className="bi bi-chat-dots" style={{fontSize: '1.5rem', color: 'var(--accent-secondary)'}}></i>
@@ -234,13 +297,44 @@ const PatientActionsSection = ({
             </div>
           </div>
         </div>
-        
-        <div className="text-center mt-3">
-          <small style={{color: 'var(--text-secondary)', fontStyle: 'italic'}}>
-            Select an action to perform
-          </small>
-        </div>
       </div>
+
+      {/* Modal Components */}
+      <CheckupHistoryModal 
+        show={modals.checkupHistory}
+        onHide={() => closeModal('checkupHistory')}
+        selectedPatient={selectedPatient}
+      />
+      
+      <VitalSignsHistoryModal 
+        show={modals.vitalSigns}
+        onHide={() => closeModal('vitalSigns')}
+        selectedPatient={selectedPatient}
+      />
+      
+      <TreatmentRecordModal 
+        show={modals.treatmentRecord}
+        onHide={() => closeModal('treatmentRecord')}
+        selectedPatient={selectedPatient}
+      />
+      
+      <ImmunizationHistoryModal 
+        show={modals.immunization}
+        onHide={() => closeModal('immunization')}
+        selectedPatient={selectedPatient}
+      />
+      
+      <ReferralFormModal 
+        show={modals.referral}
+        onHide={() => closeModal('referral')}
+        selectedPatient={selectedPatient}
+      />
+      
+      <SMSNotificationModal 
+        show={modals.smsNotification}
+        onHide={() => closeModal('smsNotification')}
+        patient={selectedPatient}
+      />
     </div>
   );
 };

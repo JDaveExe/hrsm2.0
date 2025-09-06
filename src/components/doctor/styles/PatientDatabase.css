@@ -1,0 +1,638 @@
+/* PatientDatabase.css - Doctor's read-only patient database styles */
+
+.patient-database {
+  background-color: var(--bg-primary);
+  margin-bottom: 100px;
+}
+
+.management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.management-title {
+  color: var(--text-primary);
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.read-only-badge {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid #dee2e6;
+}
+
+.management-subtitle {
+  margin-top: 4px;
+  font-size: 0.9rem;
+}
+
+.management-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Centered search container */
+.search-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.search-input-centered {
+  max-width: 400px;
+  width: 100%;
+}
+
+.search-input-inline {
+  max-width: 300px;
+  width: 300px;
+  flex-shrink: 0;
+}
+
+.search-input-centered .form-control,
+.search-input-inline .form-control {
+  border-radius: 25px 0 0 25px;
+  border-right: none;
+  padding: 10px 20px;
+  font-size: 14px;
+  border: 2px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.search-input-centered .form-control:focus,
+.search-input-inline .form-control:focus {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+  border-right: none;
+}
+
+.search-input-centered .input-group-text,
+.search-input-inline .input-group-text {
+  border-radius: 0 25px 25px 0;
+  border-left: none;
+  border: 2px solid #e9ecef;
+  border-left: none;
+  background-color: #f8f9fa;
+  transition: all 0.3s ease;
+}
+
+.search-input-centered .form-control:focus + .input-group-text,
+.search-input-inline .form-control:focus + .input-group-text {
+  border-color: #28a745;
+}
+
+/* Green refresh button styling */
+.refresh-btn {
+  background-color: #28a745 !important;
+  border-color: #28a745 !important;
+  color: white !important;
+  font-weight: 500 !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 0.375rem !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+.refresh-btn:hover {
+  background-color: #218838 !important;
+  border-color: #1e7e34 !important;
+  color: white !important;
+  transform: translateY(-1px) !important;
+}
+
+.refresh-btn:focus {
+  background-color: #218838 !important;
+  border-color: #1e7e34 !important;
+  color: white !important;
+  box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.25) !important;
+}
+
+.refresh-btn:disabled {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  opacity: 0.65 !important;
+  transform: none !important;
+}
+
+/* Tabs and Pagination Container */
+.tabs-pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 2px solid #dee2e6;
+  padding-bottom: 1rem;
+}
+
+.database-tabs {
+  flex: 1;
+  margin-bottom: 0 !important;
+}
+
+.database-tabs .nav-tabs {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.pagination-beside-tabs {
+  flex-shrink: 0;
+  margin-left: 2rem;
+}
+
+.pagination-beside-tabs .pagination {
+  margin-bottom: 0;
+}
+
+.tab-content-area {
+  margin-top: 0;
+}
+
+/* Remove old pagination container styles */
+.pagination-container {
+  display: none;
+}
+
+/* Pagination styling */
+.pagination-container {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+/* Tabs with info layout */
+.tabs-with-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  border-bottom: 1px solid #dee2e6;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.tabs-container {
+  flex: 1;
+}
+
+.tab-info-pagination {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.pagination-info-inline {
+  font-size: 0.875rem;
+  color: #6c757d;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.tab-content-area {
+  margin-top: 0;
+}
+
+.pagination {
+  margin-bottom: 0.5rem;
+}
+
+.pagination .page-link {
+  color: #28a745;
+  border-color: #dee2e6;
+  transition: all 0.15s ease-in-out;
+}
+
+.pagination .page-link:hover {
+  color: #1e7e34;
+  background-color: #e9f7ef;
+  border-color: #28a745;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: #28a745;
+  border-color: #28a745;
+  color: white;
+}
+
+.pagination .page-item.disabled .page-link {
+  color: #6c757d;
+  background-color: #fff;
+  border-color: #dee2e6;
+}
+
+.pagination-info {
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+/* Override CheckupManager button styles for management actions */
+.management-actions .btn {
+  padding: 0.375rem 0.75rem !important;
+  margin: 0 !important;
+  border-radius: 0.375rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  vertical-align: middle !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  border: 1px solid transparent !important;
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+  display: inline-block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.management-actions .btn-outline-secondary {
+  color: #6c757d !important;
+  background-color: transparent !important;
+  border-color: #6c757d !important;
+}
+
+.management-actions .btn-outline-secondary:hover {
+  color: #fff !important;
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+}
+
+.management-actions .btn:disabled {
+  opacity: 0.65 !important;
+  cursor: not-allowed !important;
+}
+
+.management-actions .btn i {
+  margin-right: 0.25rem !important;
+}
+
+/* Bootstrap spacing overrides for management actions */
+.management-actions .ms-2 {
+  margin-left: 0.5rem !important;
+}
+
+.management-actions .me-1 {
+  margin-right: 0.25rem !important;
+}
+
+/* Ensure proper button spacing and layout */
+.management-actions > * {
+  flex-shrink: 0;
+}
+
+/* Make sure buttons are always visible */
+.management-actions .btn {
+  min-width: auto !important;
+  min-height: auto !important;
+  white-space: nowrap !important;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  color: #6c757d;
+  z-index: 2;
+}
+
+.search-input {
+  max-width: 300px;
+}
+
+.search-input .form-control {
+  padding: 8px 8px 8px 35px;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+  font-size: 14px;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.search-input .form-control:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.data-table {
+  margin-bottom: 0;
+  background-color: white;
+}
+
+.data-table thead th {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+  color: #495057;
+  padding: 12px 8px;
+  vertical-align: middle;
+}
+
+.data-table tbody td {
+  padding: 12px 8px;
+  vertical-align: middle;
+  border-top: 1px solid #dee2e6;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.action-cell {
+  white-space: nowrap;
+}
+
+.action-cell .btn {
+  margin: 0 2px;
+}
+
+/* Form styling improvements */
+.form-control:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-select:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Loading animation for refresh button */
+.rotate {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Statistics section */
+.stat-item {
+  padding: 0.5rem;
+}
+
+.stat-item h4 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.stat-item small {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Status badges */
+.badge {
+  font-size: 0.75rem;
+  padding: 0.375rem 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.badge.bg-success {
+  background-color: #198754 !important;
+}
+
+.badge.bg-secondary {
+  background-color: #6c757d !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .management-header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+    gap: 1rem;
+  }
+  
+  .management-actions {
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  
+  .search-input-inline {
+    max-width: 100%;
+    width: 100%;
+    order: 1;
+  }
+  
+  .refresh-btn {
+    order: 2;
+    align-self: center;
+  }
+  
+  .search-container {
+    margin-top: 1rem;
+  }
+  
+  .search-input-centered {
+    max-width: 100%;
+  }
+
+  /* Responsive tabs with info layout */
+  .tabs-with-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .tab-info-pagination {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .pagination-info-inline {
+    font-size: 0.8rem;
+  }
+
+  /* Mobile layout for tabs and pagination */
+  .tabs-pagination-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .pagination-beside-tabs {
+    margin-left: 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  .database-tabs .nav-tabs {
+    justify-content: center;
+  }
+  
+  .action-cell .d-flex {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .action-cell .btn {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+
+  .pagination {
+    justify-content: center !important;
+  }
+
+  .pagination .page-item {
+    display: none;
+  }
+
+  .pagination .page-item:first-child,
+  .pagination .page-item:last-child,
+  .pagination .page-item:nth-child(2),
+  .pagination .page-item:nth-last-child(2),
+  .pagination .page-item.active {
+    display: block;
+  }
+}
+
+/* Tab styling */
+.nav-tabs {
+  border-bottom: 2px solid #dee2e6;
+}
+
+.nav-tabs .nav-item .nav-link {
+  border: none;
+  color: #6c757d;
+  font-weight: 500;
+  padding: 12px 20px;
+  transition: all 0.15s ease-in-out;
+}
+
+.nav-tabs .nav-item .nav-link:hover {
+  color: #0056b3;
+  background-color: #f8f9fa;
+}
+
+.nav-tabs .nav-item .nav-link.active {
+  color: #0056b3;
+  background-color: transparent;
+  border-bottom: 2px solid #0056b3;
+  font-weight: 600;
+}
+
+/* Alert styling */
+.alert {
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Card styling */
+.management-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: none;
+}
+
+.management-header-card {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  border-radius: 8px 8px 0 0 !important;
+}
+
+.management-title-section {
+  flex: 1;
+}
+
+/* Button improvements */
+.btn {
+  border-radius: 5px;
+  font-weight: 500;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  transform: none;
+}
+
+/* Table responsiveness */
+@media (max-width: 992px) {
+  .table-container {
+    overflow-x: scroll;
+  }
+  
+  .data-table {
+    min-width: 800px;
+  }
+}
+
+/* Management card responsive */
+@media (max-width: 576px) {
+  .patient-database {
+    padding: 10px;
+  }
+  
+  .management-header {
+    gap: 10px;
+  }
+  
+  .management-title {
+    font-size: 1.25rem;
+  }
+
+  .management-actions {
+    gap: 0.75rem;
+  }
+  
+  .search-input-inline {
+    max-width: 100%;
+  }
+
+  /* Small screen tabs with info layout */
+  .tab-info-pagination {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .tabs-with-info {
+    gap: 0.5rem;
+  }
+}
+
+/* Statistics section responsive */
+@media (max-width: 768px) {
+  .row.text-center > .col-md-3 {
+    margin-bottom: 1rem;
+  }
+  
+  .stat-item h4 {
+    font-size: 1.25rem;
+  }
+}

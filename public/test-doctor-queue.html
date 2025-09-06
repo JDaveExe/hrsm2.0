@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Doctor Queue Test</title>
+</head>
+<body>
+    <h1>Doctor Queue Frontend Test</h1>
+    <div id="status">Loading...</div>
+    <div id="results"></div>
+    
+    <script>
+        async function testDoctorLogin() {
+            const statusDiv = document.getElementById('status');
+            const resultsDiv = document.getElementById('results');
+            
+            try {
+                statusDiv.innerHTML = 'Step 1: Attempting to login as doctor...';
+                
+                // Login as doctor
+                const loginResponse = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        login: 'doctor',
+                        password: 'doctor123'
+                    })
+                });
+                
+                if (!loginResponse.ok) {
+                    throw new Error(`Login failed: ${loginResponse.status}`);
+                }
+                
+                const loginData = await loginResponse.json();
+                statusDiv.innerHTML = `Step 1: Login successful! User: ${loginData.user.username}, Role: ${loginData.user.role}`;
+                
+                // Set auth token like the frontend does
+                window.__authToken = loginData.token;
+                localStorage.setItem('auth', JSON.stringify({
+                    token: loginData.token,
+                    user: loginData.user
+                }));
+                
+                statusDiv.innerHTML += '<br>Step 2: Testing doctor queue access...';
+                
+                // Test doctor queue endpoint
+                const queueResponse = await fetch('/api/doctor/queue', {
+                    headers: {
+                        'Authorization': `Bearer ${loginData.token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (!queueResponse.ok) {
+                    throw new Error(`Queue access failed: ${queueResponse.status}`);
+                }
+                
+                const queueData = await queueResponse.json();
+                
+                statusDiv.innerHTML += `<br>Step 2: Queue data received! Found ${queueData.length} patients`;
+                
+                resultsDiv.innerHTML = `
+                    <h2>Queue Data:</h2>
+                    <pre>${JSON.stringify(queueData, null, 2)}</pre>
+                `;
+                
+                // Test if window.__authToken is accessible
+                statusDiv.innerHTML += `<br>Step 3: Auth token check - Token available: ${!!window.__authToken}`;
+                
+            } catch (error) {
+                statusDiv.innerHTML = `❌ Error: ${error.message}`;
+                console.error('Test failed:', error);
+            }
+        }
+        
+        // Run test when page loads
+        window.onload = testDoctorLogin;
+    </script>
+</body>
+</html>

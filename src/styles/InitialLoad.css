@@ -1,0 +1,50 @@
+/* src/styles/InitialLoad.css */
+
+/*
+  This stylesheet is intended to prevent Flash of Unstyled Content (FOUC)
+  by hiding components that are known to render incorrectly before
+  all CSS is loaded.
+*/
+
+/*
+  Hide the main content area initially.
+  The 'styles-loaded' class will be added to the body by a script
+  once it's safe to show the content.
+*/
+body:not(.styles-loaded) .main-content {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+}
+
+/*
+  Specifically target the authenticated view in the LoginSignup component,
+  which can flash on auto-login redirects.
+*/
+body:not(.styles-loaded) .authenticated-view {
+    visibility: hidden;
+}
+
+/*
+  Target the admin sidebar icons, which can be invisible on refresh.
+  This hides the navigation links until styles are confirmed.
+*/
+body:not(.styles-loaded) .admin-sidebar .nav-link .nav-icon {
+    display: none;
+}
+
+/*
+  Target the admin header icons.
+*/
+body:not(.styles-loaded) .admin-header .icon-link,
+body:not(.styles-loaded) .admin-header .user-profile .dropdown-toggle::after {
+    visibility: hidden;
+}
+
+/*
+  When styles are loaded, make the content visible again.
+*/
+body.styles-loaded .main-content {
+    visibility: visible;
+    opacity: 1;
+}

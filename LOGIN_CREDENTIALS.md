@@ -5,7 +5,7 @@
 The system comes with pre-configured default user accounts for immediate testing and setup.
 
 ### Admin Account
-- **Username:** `admin` or `admin@maybunga.health`
+- **Username:** `admin` or `admin@brgymaybunga.health`
 - **Password:** `admin123`
 - **Access Level:** Full system administration
 - **Capabilities:**
@@ -16,7 +16,7 @@ The system comes with pre-configured default user accounts for immediate testing
   - All system features
 
 ### Doctor Account
-- **Username:** `doctor` or `doctor@maybunga.health`
+- **Username:** `doctor` or `doctor@brgymaybunga.health`
 - **Password:** `doctor123`
 - **Access Level:** Clinical operations
 - **Capabilities:**
@@ -26,7 +26,7 @@ The system comes with pre-configured default user accounts for immediate testing
   - Clinical data entry
 
 ### Patient Account
-- **Username:** `patient` or `patient@maybunga.health`
+- **Username:** `patient` or `patient@brgymaybunga.health`
 - **Password:** `patient123`
 - **Access Level:** Patient portal
 - **Capabilities:**
@@ -37,9 +37,10 @@ The system comes with pre-configured default user accounts for immediate testing
 
 ### Custom Created Accounts
 When you create new admin or doctor accounts through the system:
-- **Username format:** `[initials]@maybunga.health`
+- **Username format:** `[initials]@brgymaybunga.health`
 - **Login requirement:** Must use the full email address for login
-- **Example:** If you create a user with initials "jdoe", you must login with `jdoe@maybunga.health`
+- **Example:** If you create a user with initials "jdoe", you must login with `jdoe@brgymaybunga.health`
+- **Password requirements:** 6-10 characters with letters, numbers, and symbols
 
 ## Login Instructions
 

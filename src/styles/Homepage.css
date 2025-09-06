@@ -224,11 +224,7 @@
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
-.cta-button.primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-  background: var(--neutral-bg);
-}
+
 
 .cta-button.secondary {
   background: transparent;
@@ -236,11 +232,7 @@
   border: 2px solid var(--white);
 }
 
-.cta-button.secondary:hover {
-  background: var(--white);
-  color: var(--accent);
-  transform: translateY(-2px);
-}
+
 
 /* Container for sections */
 .container {
@@ -293,11 +285,7 @@
   box-shadow: 0 5px 15px var(--shadow-light);
 }
 
-.service-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 15px 35px var(--shadow-medium);
-  border-color: var(--primary-color);
-}
+
 
 .service-icon {
   font-size: 3rem;

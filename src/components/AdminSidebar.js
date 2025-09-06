@@ -52,18 +52,13 @@ const AdminSidebar = ({ sidebarOpen, toggleSidebar, handleNavigation, currentPat
             <li><Link to="#" className="link_name" onClick={() => handleNavigation('Dashboard')}>Dashboard</Link></li>
           </ul>
         </li>
-        <li className={activeDropdown === 'checkup' ? 'active' : ''}>
-          <div className="iocn-link" onClick={() => handleDropdownToggle('checkup')}>
-            <Link to="#">
-              <i className="bi bi-clipboard2-pulse"></i>
-              <span className="link_name">Checkup</span>
-            </Link>
-            <i className={`bi bi-chevron-down arrow ${activeDropdown === 'checkup' ? 'open' : ''}`}></i>
-          </div>
-          <ul className={`sub-menu ${activeDropdown === 'checkup' ? 'show' : ''}`}>
-            <li><Link className="link_name" to="#">Checkup</Link></li>
-            <li><Link to="#" onClick={() => handleNavigation("Today's Checkup")}>Today's Checkup</Link></li>
-            <li><Link to="#" onClick={() => handleNavigation('Patient Database')}>Patient Database</Link></li>
+        <li>
+          <Link to="#" onClick={() => handleNavigation('Checkup')} className={currentPath === 'Checkup' ? 'active' : ''}>
+            <i className="bi bi-clipboard2-pulse"></i>
+            <span className="link_name">Checkup</span>
+          </Link>
+          <ul className="sub-menu blank">
+            <li><Link to="#" className="link_name" onClick={() => handleNavigation('Checkup')}>Checkup</Link></li>
           </ul>
         </li>
         <li className={activeDropdown === 'reports' ? 'active' : ''}>

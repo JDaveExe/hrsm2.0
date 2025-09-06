@@ -1,0 +1,805 @@
+/* ReportsManager.css - Reports management styling */
+
+.reports-manager {
+  max-width: 100%;
+  margin: 0;
+  padding: 1rem 1.5rem;
+  background-color: var(--bg-primary);
+  min-height: calc(100vh - 70px);
+}
+
+/* Simulation Badge Container */
+.simulation-badge-container {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 1.5rem;
+}
+
+.simulation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 193, 7, 0.1);
+  color: #f59e0b;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+}
+
+/* Reports Tabs Container with Actions */
+.reports-tabs-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.reports-tabs {
+  flex: 1;
+  margin-top: 0.25rem;
+}
+
+.reports-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1px; /* Align with tab bottom */
+}
+
+.reports-header-actions .btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border: none;
+}
+
+.reports-header-actions .btn-primary {
+  background: #0056b3;
+  color: white;
+  border: 1px solid #0056b3;
+}
+
+.reports-header-actions .btn-primary:hover {
+  background: #0056b3;
+  border-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+.reports-header-actions .btn-success {
+  background: #10b981;
+  color: white;
+  border: 1px solid #10b981;
+}
+
+.reports-header-actions .btn-success:hover {
+  background: #059669;
+  border-color: #059669;
+  transform: translateY(-1px);
+}
+
+/* Reports Tabs Styling */
+.reports-tabs .nav-link {
+  border: none;
+  border-radius: 8px 8px 0 0;
+  padding: 12px 20px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  margin-right: 4px;
+  transition: all 0.3s ease;
+}
+
+.reports-tabs .nav-link:hover {
+  color: var(--accent-primary);
+  background: rgba(155, 196, 226, 0.1);
+}
+
+.reports-tabs .nav-link.active {
+  color: #fff;
+  background: #0056b3;
+  border-color: #0056b3;
+}
+
+/* Tab Content Wrapper */
+.tab-content-wrapper {
+  border: 1px solid var(--border-primary);
+  border-radius: 0 8px 8px 8px;
+  background: var(--bg-secondary);
+  padding: 1.5rem;
+  min-height: 500px;
+}
+
+/* Reports Header */
+.reports-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.reports-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Reports Grid */
+.reports-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 25px;
+  margin-bottom: 30px;
+}
+
+/* Report Cards */
+.report-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  padding: 25px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  min-height: 450px;
+}
+
+.report-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+  border-color: var(--accent-primary);
+}
+
+.report-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.report-icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: white;
+  background: #0056b3;
+}
+
+.report-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.report-info p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* Report Content */
+.report-content {
+  margin-top: 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.report-preview {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  flex: 1;
+}
+
+/* Statistics Preview */
+.preview-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.stat-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Chart Mini */
+.chart-mini {
+  margin-bottom: 15px;
+}
+
+/* Trend Summary */
+.trend-summary,
+.demo-summary,
+.prescription-summary,
+.vaccination-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* Appointment Stats */
+.appointment-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.appt-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.appt-type {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.appt-count {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+/* Report Actions */
+.report-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+  grid-template-columns: 1fr 1fr;
+}
+
+/* When there are 3 buttons (has-modify class), arrange in 2x2 grid with modify button spanning full width */
+.report-actions.has-modify {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.report-actions.has-modify .btn-generate.modify {
+  grid-column: 1 / -1;
+}
+
+.btn-generate {
+  min-width: 120px;
+  padding: 10px 15px;
+  border: none;
+  border-radius: 6px;
+  background: #0056b3;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.btn-generate:hover {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+.btn-generate.excel {
+  background: #10b981;
+}
+
+.btn-generate.excel:hover {
+  background: #059669;
+}
+
+.btn-generate.modify {
+  background: #8b5cf6;
+}
+
+.btn-generate.modify:hover {
+  background: #7c3aed;
+}
+
+/* Reports History */
+.reports-history-content {
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.history-placeholder {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.placeholder-icon {
+  font-size: 4rem;
+  color: #0056b3;
+  margin-bottom: 1rem;
+}
+
+.history-placeholder h4 {
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.history-placeholder p {
+  margin-bottom: 0.5rem;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+}
+
+.reports-manager .modal-content {
+  background: #ffffff;
+  color: #333333;
+  border-radius: 12px;
+  max-width: 400px;
+  width: 30%;
+  min-width: 350px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  border: 1px solid #e9ecef;
+}
+
+.report-center-modal {
+  max-width: 900px;
+}
+
+.reports-manager .modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-primary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  color: #333333;
+  border-radius: 12px 12px 0 0;
+}
+
+.reports-manager .modal-header h4 {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.close-btn:hover {
+  opacity: 1;
+}
+
+.reports-manager .modal-body {
+  padding: 2rem;
+  background: #ffffff;
+  color: #333333;
+}
+
+.reports-manager .modal-footer {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-primary);
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  background: var(--bg-primary);
+  border-radius: 0 0 12px 12px;
+}
+
+/* Report Options */
+.report-option-group {
+  margin-bottom: 2rem;
+}
+
+.option-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+}
+
+.option-header i {
+  color: #0056b3;
+  font-size: 1.2rem;
+}
+
+.form-select {
+  padding: 0.75rem 1rem;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #333333;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+  width: 100%;
+}
+
+.form-select:focus {
+  border-color: #0056b3;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(155, 196, 226, 0.1);
+}
+
+/* Checkbox Styling */
+.checkbox-group {
+  margin-top: 0.75rem;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.5rem 0;
+  font-size: 1rem;
+}
+
+.checkbox-item input[type="checkbox"] {
+  display: none;
+}
+
+.checkmark {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e9ecef;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  background: #ffffff;
+}
+
+.checkbox-item input[type="checkbox"]:checked + .checkmark {
+  background: #0056b3;
+  border-color: #0056b3;
+}
+
+.checkbox-item input[type="checkbox"]:checked + .checkmark::after {
+  content: "✓";
+  color: white;
+  font-weight: bold;
+  font-size: 14px;
+}
+
+/* Report Sections */
+.report-sections {
+  margin-top: 2rem;
+}
+
+.report-sections h6 {
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.sections-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.section-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #ffffff;
+  color: #333333;
+}
+
+.section-item:hover {
+  border-color: #9bc4e2;
+  background: rgba(155, 196, 226, 0.05);
+}
+
+.section-item input[type="checkbox"]:checked + .checkmark + i + span {
+  color: #0056b3;
+  font-weight: 600;
+}
+
+.section-item i {
+  color: #0056b3;
+  font-size: 1.2rem;
+  width: 20px;
+  text-align: center;
+}
+
+.section-item span:last-child {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .reports-grid {
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .reports-manager {
+    padding: 0.5rem;
+  }
+  
+  .reports-tabs-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  
+  .reports-header-actions {
+    align-self: stretch;
+    justify-content: center;
+    margin-bottom: 0;
+  }
+  
+  .reports-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .report-card {
+    padding: 20px;
+    min-height: auto;
+  }
+  
+  .reports-tabs .nav-link {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+  }
+  
+  .preview-stats,
+  .appointment-stats {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  
+  .report-actions {
+    flex-direction: column;
+  }
+  
+  .reports-manager .modal-content {
+    width: 95%;
+    margin: 1rem;
+  }
+  
+  .reports-manager .modal-body {
+    padding: 1.5rem;
+  }
+  
+  .sections-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-footer {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+/* Modify Modal Styles */
+.modify-modal {
+  max-width: 500px;
+  width: 90%;
+}
+
+.chart-selection {
+  margin-bottom: 1.5rem;
+}
+
+.chart-selection h6 {
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.chart-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.chart-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: #ffffff;
+}
+
+.chart-option:hover {
+  border-color: #0056b3;
+  background: rgba(155, 196, 226, 0.05);
+}
+
+.chart-option input[type="radio"] {
+  margin-top: 0.25rem;
+  accent-color: #0056b3;
+}
+
+.chart-option input[type="radio"]:checked + .option-content {
+  color: var(--text-primary);
+}
+
+.option-content {
+  flex: 1;
+}
+
+.option-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.option-header i {
+  color: #0056b3;
+  font-size: 1.2rem;
+}
+
+.option-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.option-description {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.chart-option:has(input:checked) {
+  border-color: #0056b3;
+  background: rgba(155, 196, 226, 0.1);
+}
+
+.chart-option:has(input:checked) .option-header i {
+  color: #0056b3;
+}
+
+@media (max-width: 768px) {
+  .modify-modal {
+    width: 95%;
+    max-width: none;
+  }
+  
+  .chart-option {
+    padding: 0.75rem;
+  }
+}
+
+/* Chart Display Modal */
+.chart-display-modal {
+  max-width: 900px;
+  width: 80%;
+  min-width: 600px;
+}
+
+.chart-display {
+  text-align: center;
+}
+
+.chart-display .chart-container {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.chart-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.chart-actions .btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chart-actions .btn-success {
+  background: #10b981;
+  color: white;
+}
+
+.chart-actions .btn-success:hover {
+  background: #059669;
+}
+
+.chart-actions .btn-primary {
+  background: #0056b3;
+  color: white;
+}
+
+.chart-actions .btn-primary:hover {
+  background: #0056b3;
+}
+
+@media (max-width: 768px) {
+  .chart-display-modal {
+    width: 95%;
+    min-width: 300px;
+  }
+  
+  .chart-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+}

@@ -1,0 +1,121 @@
+/* ActionModals.css */
+
+/* High specificity selectors to override conflicting styles */
+.modal .modal-dialog.action-modal-wide,
+.modal.show .modal-dialog.action-modal-wide,
+div.modal .modal-dialog.action-modal-wide {
+  max-width: 1000px !important;
+  width: 85vw !important;
+  margin: 1.75rem auto !important;
+  height: 80vh;
+}
+
+.modal .modal-dialog.action-modal-wide .modal-content,
+.modal.show .modal-dialog.action-modal-wide .modal-content,
+div.modal .modal-dialog.action-modal-wide .modal-content {
+  border-radius: 12px !important;
+  max-width: 1200px !important;
+  width: 100% !important;
+  height: 80vh;
+  border: none !important;
+  background-color: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  margin-left: 120px;
+}
+
+.modal .modal-dialog.action-modal-wide .modal-header,
+.modal.show .modal-dialog.action-modal-wide .modal-header {
+  background-color: var(--sidebar-bg) !important;
+  color: white !important;
+  border-bottom: none !important;
+  border-top-left-radius: 12px !important;
+  border-top-right-radius: 12px !important;
+  padding: 1rem 1.5rem !important;
+}
+
+.modal .modal-dialog.action-modal-wide .modal-title,
+.modal.show .modal-dialog.action-modal-wide .modal-title {
+  font-weight: 600 !important;
+  font-size: 1.25rem !important;
+}
+
+.modal .modal-dialog.action-modal-wide .modal-body,
+.modal.show .modal-dialog.action-modal-wide .modal-body {
+  padding: 1.5rem !important;
+  max-height: 65vh !important;
+  overflow-y: auto !important;
+}
+
+.modal .modal-dialog.action-modal-wide .modal-footer,
+.modal.show .modal-dialog.action-modal-wide .modal-footer {
+  background-color: var(--bg-secondary) !important;
+  border-top: 1px solid var(--border-primary) !important;
+  border-bottom-left-radius: 12px !important;
+  border-bottom-right-radius: 12px !important;
+}
+
+/* SMS Modal - Different sizing and styling */
+.modal .modal-dialog.sms-modal-medium,
+.modal.show .modal-dialog.sms-modal-medium,
+div.modal .modal-dialog.sms-modal-medium {
+  max-width: 680px !important;
+  width: 85% !important;
+  height: 85vh !important;
+  margin: auto !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.modal .modal-dialog.sms-modal-medium .modal-content,
+.modal.show .modal-dialog.sms-modal-medium .modal-content,
+div.modal .modal-dialog.sms-modal-medium .modal-content {
+  border-radius: 12px !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  min-width: unset !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+  border: 1px solid #e3e6ea !important;
+  background-color: #ffffff !important;
+  color: #2c3e50 !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.modal .modal-dialog.sms-modal-medium .modal-body,
+.modal.show .modal-dialog.sms-modal-medium .modal-body {
+  flex: 1 !important;
+  height: calc(85vh - 140px) !important;
+  padding: 25px !important;
+  overflow-y: auto !important;
+}
+
+/* SMS Modal specific form styling */
+.sms-notification-modal .form-control,
+.sms-notification-modal textarea.form-control,
+.modal .modal-dialog.sms-modal-medium .form-control,
+.modal .modal-dialog.sms-modal-medium textarea.form-control {
+  background-color: #ffffff !important;
+  color: #2c3e50 !important;
+  border: 1px solid #dee2e6 !important;
+  border-radius: 6px !important;
+}
+
+.sms-notification-modal .form-control:focus,
+.sms-notification-modal textarea.form-control:focus,
+.modal .modal-dialog.sms-modal-medium .form-control:focus,
+.modal .modal-dialog.sms-modal-medium textarea.form-control:focus {
+  background-color: #ffffff !important;
+  color: #2c3e50 !important;
+  border-color: #0d6efd !important;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
+}
+
+.sms-notification-modal .form-control::placeholder,
+.sms-notification-modal textarea.form-control::placeholder,
+.modal .modal-dialog.sms-modal-medium .form-control::placeholder,
+.modal .modal-dialog.sms-modal-medium textarea.form-control::placeholder {
+  color: #6c757d !important;
+  opacity: 1 !important;
+}
+

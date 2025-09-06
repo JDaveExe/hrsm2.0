@@ -1,0 +1,248 @@
+/* PatientDatabaseModals.css - Dedicated styles for Patient Database modals */
+
+/* Bootstrap Modal Z-Index Fixes */
+.modal {
+  z-index: 10005 !important;
+}
+
+.modal-backdrop {
+  z-index: 10004 !important;
+}
+
+.modal.show {
+  z-index: 10005 !important;
+}
+
+.modal-backdrop.show {
+  z-index: 10004 !important;
+}
+
+/* Family Members Modal - Optimized for Family Data Display */
+.family-members-modal-wide .modal-dialog {
+  max-width: 1000px !important;
+  width: 85vw !important;
+  margin: 1.75rem auto !important; /* Bootstrap default centering */
+}
+
+/* Family Members Modal Content */
+.family-members-modal-wide .modal-content {
+  border-radius: 8px;
+  height: auto;
+  max-height: 85vh;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  border: none;
+}
+
+/* Patient Details Modal - Extended Width & Centered */
+.patient-details-modal-wider .modal-dialog {
+  max-width: 1400px !important;
+  width: 90% !important;
+  height: 90vh;
+  margin-left: 200px;
+}
+
+/* Patient Details Modal Content */
+.patient-details-modal-wider .modal-content {
+  border-radius: 8px;
+  max-width: 1400px !important;
+  width: 90% !important;
+  height: 90vh;
+  margin-left: 100px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  border: none;
+}
+
+/* Family Members Modal Header */
+.family-members-modal-wide .modal-content {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  max-width: 1000px !important;
+  width: 90%;
+  height: 80vh;
+  margin-left: 100px;
+  padding: 1rem 1.5rem;
+}
+
+.family-members-modal-wide .modal-title {
+  color: #495057;
+  font-weight: 600;
+  font-size: 1.4rem;
+}
+
+/* Patient Details Modal Header */
+.patient-details-modal-wider .modal-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
+}
+
+.patient-details-modal-wider .modal-title {
+  color: #495057;
+  font-weight: 600;
+  font-size: 1.5rem;
+}
+
+/* Family Members Modal Body */
+.family-members-modal-wide .modal-body {
+  padding: 1.5rem;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+
+/* Patient Details Modal Body */
+.patient-details-modal-wider .modal-body {
+  padding: 1.5rem;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+/* Family Members Modal Footer */
+.family-members-modal-wide .modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+}
+
+/* Patient Details Modal Footer */
+.patient-details-modal-wider .modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+}
+
+/* Family Members Modal Table */
+.family-members-modal-wide .table {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+}
+
+.family-members-modal-wide .table th,
+.family-members-modal-wide .table td {
+  padding: 0.75rem 0.5rem;
+  vertical-align: middle;
+}
+
+.family-members-modal-wide .action-cell {
+  min-width: 140px;
+  white-space: nowrap;
+}
+
+/* Patient Details Modal Table */
+.patient-details-modal-wider .table {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+}
+
+.patient-details-modal-wider .table th,
+.patient-details-modal-wider .table td {
+  padding: 0.75rem 0.5rem;
+  vertical-align: middle;
+}
+
+.patient-details-modal-wider .action-cell {
+  min-width: 140px;
+  white-space: nowrap;
+}
+
+/* Patient info cards spacing in wider modal */
+.patient-details-modal-wider .patient-info-cards {
+  gap: 20px;
+}
+
+/* Family Members Modal - Responsive Design */
+@media (max-width: 1400px) {
+  .family-members-modal-wide .modal-dialog {
+    max-width: 900px !important;
+    width: 85vw !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .family-members-modal-wide .modal-dialog {
+    max-width: 90vw !important;
+    width: 90vw !important;
+    margin: 1rem auto !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .family-members-modal-wide .modal-dialog {
+    max-width: 95vw !important;
+    width: 95vw !important;
+    margin: 0.5rem auto !important;
+  }
+  
+  .family-members-modal-wide .modal-body {
+    padding: 1rem;
+    max-height: 60vh;
+  }
+  
+  .family-members-modal-wide .table th,
+  .family-members-modal-wide .table td {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .family-members-modal-wide .modal-dialog {
+    margin: 0.25rem auto !important;
+  }
+  
+  .family-members-modal-wide .modal-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .family-members-modal-wide .modal-title {
+    font-size: 1.2rem;
+  }
+}
+
+/* Patient Details Modal - Responsive Design */
+@media (max-width: 1400px) {
+  .patient-details-modal-wider .modal-dialog {
+    max-width: 1200px !important;
+    width: 90vw !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .patient-details-modal-wider .modal-dialog {
+    max-width: 95vw !important;
+    width: 95vw !important;
+    margin: 1rem auto !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .patient-details-modal-wider .modal-dialog {
+    max-width: 100vw !important;
+    width: 100vw !important;
+    margin: 0.5rem auto !important;
+  }
+  
+  .patient-details-modal-wider .modal-body {
+    padding: 1rem;
+    max-height: 70vh;
+  }
+  
+  .patient-details-modal-wider .table th,
+  .patient-details-modal-wider .table td {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .patient-details-modal-wider .modal-dialog {
+    margin: 0.25rem auto !important;
+  }
+  
+  .patient-details-modal-wider .modal-header {
+    padding: 0.75rem 1rem;
+  }
+  
+  .patient-details-modal-wider .modal-title {
+    font-size: 1.25rem;
+  }
+}

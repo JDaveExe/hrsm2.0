@@ -1,0 +1,364 @@
+/* PatientSidebar.css */
+
+.sidebar {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100vh;
+  width: 260px;
+  background: #be0032;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.5s ease;
+  z-index: 100;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar.closed {
+  width: 78px;
+}
+
+/* Header Section */
+.sidebar-header {
+  padding: 20px 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+}
+
+.patient-logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.patient-seal-image {
+  width: 50px;
+  height: 50px;
+  object-fit: contain;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 8px;
+}
+
+.sidebar.closed .patient-seal-image {
+  width: 40px;
+  height: 40px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.sidebar.closed .brand .text {
+  display: none;
+}
+
+.sidebar.closed .brand i {
+  font-size: 1.5rem;
+}
+
+/* Menu Section */
+.sidebar-menu {
+  flex: 1;
+  padding: 20px 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-menu ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-menu ul li {
+  position: relative;
+  margin-bottom: 2px;
+}
+
+.sidebar-menu ul li a {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  margin-right: 0;
+  position: relative;
+  transition: all 0.3s ease;
+  font-weight: 600;
+}
+
+.sidebar-menu ul li a:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-weight: 700;
+}
+
+.sidebar-menu ul li.active > a {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-weight: 700;
+}
+
+.sidebar-menu ul li a i {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+  font-size: 1.1rem;
+  transition: all 0.3s ease;
+}
+
+.sidebar.closed .sidebar-menu ul li a {
+  padding: 12px 15px;
+  justify-content: center;
+}
+
+.sidebar.closed .sidebar-menu ul li a span {
+  display: none;
+}
+
+.sidebar.closed .sidebar-menu ul li a i {
+  margin-right: 0;
+  font-size: 1.3rem;
+}
+
+/* Dropdown Styles */
+.dropdown > a .dropdown-icon {
+  margin-left: auto;
+  transition: transform 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.dropdown.active > a .dropdown-icon {
+  transform: rotate(90deg);
+}
+
+.sidebar.closed .dropdown > a .dropdown-icon {
+  display: none;
+}
+
+.dropdown-menu {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease-in-out;
+  background: #bd3357;
+  margin: 0;
+  margin-right: 0;
+  padding-left: 0;
+  position: relative;
+  top: 0;
+}
+
+.dropdown-menu.show {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.dropdown-menu li {
+  margin-bottom: 0;
+}
+
+.dropdown-menu li a {
+  padding: 12px 20px 12px 45px;
+  font-size: 0.9rem;
+  margin-right: 0;
+  color: white;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.dropdown-menu li a:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  font-weight: 700;
+}
+
+.sidebar.closed .dropdown-menu {
+  display: none;
+}
+
+/* Notification Badge */
+.notification-badge {
+  background: #ff4757;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: auto;
+  min-width: 18px;
+  text-align: center;
+  line-height: 1;
+}
+
+.sidebar.closed .notification-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  margin-left: 0;
+}
+
+/* Footer Section */
+.sidebar-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: transparent;
+  padding: 15px 0;
+}
+
+.sidebar-footer > div {
+  margin-bottom: 8px;
+}
+
+.sidebar-footer > div:last-child {
+  margin-bottom: 0;
+}
+
+.sidebar-toggle-btn,
+.fps-toggle-btn,
+.logout-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.8);
+  padding: 10px 20px;
+  text-align: center;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+}
+
+.sidebar-toggle-btn:hover,
+.fps-toggle-btn:hover,
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.fps-toggle-btn.active {
+  background: rgba(255, 255, 255, 0.15);
+  color: #4CAF50;
+}
+
+.logout-btn:hover {
+  background: rgba(220, 53, 69, 0.2);
+  color: #ff6b7a;
+}
+
+.sidebar.closed .sidebar-toggle-btn,
+.sidebar.closed .fps-toggle-btn,
+.sidebar.closed .logout-btn {
+  padding: 10px 15px;
+  justify-content: center;
+}
+
+.sidebar.closed .sidebar-toggle-btn span,
+.sidebar.closed .fps-toggle-btn span,
+.sidebar.closed .logout-btn span {
+  display: none;
+}
+
+.sidebar.closed .sidebar-toggle-btn i,
+.sidebar.closed .fps-toggle-btn i,
+.sidebar.closed .logout-btn i {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+/* Scrollbar Styling */
+.sidebar-menu::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+}
+
+/* Accessibility */
+.sidebar a:focus {
+  outline: none;
+}
+
+.sidebar button:focus {
+  outline: none;
+}
+
+/* Animation for smooth transitions */
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Loading state for dynamic content */
+.sidebar .loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Hover effects enhancement */
+.sidebar-menu ul li a::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0px;
+  background: transparent;
+  transform: scaleY(0);
+  transition: transform 0.3s ease;
+}
+
+.sidebar-menu ul li.active > a::before,
+.sidebar-menu ul li a:hover::before {
+  transform: scaleY(0);
+}
+
+/* Performance optimizations */
+.sidebar * {
+  will-change: transform;
+}
+
+.sidebar-menu ul li a {
+  backface-visibility: hidden;
+}
+

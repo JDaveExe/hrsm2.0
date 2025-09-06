@@ -1,0 +1,497 @@
+/* Optimized Inventory Management Performance Styles */
+
+/* Use transform and will-change for GPU acceleration */
+.inventory-management {
+  will-change: scroll-position;
+  transform: translateZ(0); /* Force hardware acceleration */
+}
+
+/* Optimize card animations with CSS transforms */
+.vaccine-card, .medication-card {
+  will-change: transform;
+  transform: translateZ(0);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  backface-visibility: hidden; /* Prevent flickering */
+}
+
+.vaccine-card:hover, .medication-card:hover {
+  transform: translateY(-2px) translateZ(0);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Virtual scrolling container optimization */
+.virtual-list-container {
+  overflow: auto;
+  will-change: scroll-position;
+  -webkit-overflow-scrolling: touch; /* Smooth scrolling on mobile */
+  scrollbar-width: thin;
+}
+
+.virtual-list-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.virtual-list-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.virtual-list-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.virtual-list-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Optimize table rendering */
+.inventory-table {
+  table-layout: fixed; /* Improve table rendering performance */
+  contain: layout style; /* CSS containment for better performance */
+}
+
+.inventory-table th,
+.inventory-table td {
+  contain: layout style paint;
+}
+
+/* Reduce reflows with fixed dimensions */
+.summary-card {
+  min-height: 80px;
+  contain: layout style;
+}
+
+.summary-card .card-body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+/* Optimize badge rendering */
+.stock-status-badge {
+  display: inline-flex;
+  align-items: center;
+  min-width: 80px;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+/* Grid layout optimization */
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  contain: layout style;
+}
+
+.inventory-grid-item {
+  contain: layout style paint;
+  will-change: transform;
+}
+
+/* Loading state optimization */
+.inventory-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  contain: layout style;
+}
+
+/* Search input optimization */
+.inventory-search {
+  will-change: contents;
+  contain: layout style;
+}
+
+/* Button group optimization */
+.inventory-actions {
+  display: flex;
+  gap: 0.5rem;
+  contain: layout;
+}
+
+.inventory-actions .btn {
+  flex-shrink: 0;
+  contain: layout style;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Pagination optimization */
+.inventory-pagination {
+  contain: layout style;
+}
+
+.inventory-pagination .page-link {
+  will-change: background-color;
+  transition: background-color 0.15s ease;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+.inventory-pagination .page-item {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: list-item !important;
+}
+
+.inventory-pagination .page-item.active .page-link {
+  background-color: #007bff !important;
+  border-color: #007bff !important;
+  color: white !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Fix view mode buttons */
+.btn-outline-secondary,
+.btn-primary,
+.btn-outline-primary,
+.btn-outline-info,
+.btn-outline-success {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure all inventory buttons remain visible */
+.inventory-management .btn,
+.inventory-management .page-link,
+.inventory-management button {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  min-width: 32px;
+}
+
+/* Dark mode optimizations */
+.dark-mode .vaccine-card,
+.dark-mode .medication-card {
+  background-color: #2d3748;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.dark-mode .summary-card {
+  background-color: #2d3748;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.dark-mode .virtual-list-container::-webkit-scrollbar-track {
+  background: #4a5568;
+}
+
+.dark-mode .virtual-list-container::-webkit-scrollbar-thumb {
+  background: #718096;
+}
+
+/* Responsive optimizations */
+@media (max-width: 768px) {
+  .inventory-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .inventory-management {
+    padding: 0.5rem;
+  }
+  
+  .summary-card {
+    min-height: 100px;
+  }
+  
+  .vaccine-card, .medication-card {
+    margin-bottom: 1rem;
+  }
+}
+
+/* Performance monitoring indicator */
+.performance-indicator {
+  display: none;
+  background: rgba(0, 123, 255, 0.8);
+  color: #fff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  margin-left: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.performance-indicator.show {
+  display: block;
+}
+
+/* Virtualization badges */
+.virtualization-badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  background: linear-gradient(45deg, #007bff, #0056b3);
+  border: none;
+}
+
+/* Smooth state transitions */
+.inventory-transition {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.inventory-transition.loading {
+  opacity: 0.7;
+  transform: scale(0.98);
+}
+
+/* Memory-efficient animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) translateZ(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) translateZ(0);
+  }
+}
+
+.inventory-item-enter {
+  animation: fadeInUp 0.3s ease forwards;
+}
+
+/* Reduce paint and layout thrashing */
+.inventory-card-body {
+  contain: layout style paint;
+}
+
+.inventory-card-header {
+  contain: layout style;
+}
+
+/* Optimize button interactions */
+.inventory-action-btn {
+  contain: layout style;
+  will-change: background-color, transform;
+  transition: all 0.15s ease;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.inventory-action-btn:hover {
+  transform: translateZ(0) scale(1.05);
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.inventory-action-btn:active {
+  transform: translateZ(0) scale(0.95);
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.inventory-action-btn:focus {
+  opacity: 1 !important;
+  visibility: visible !important;
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Critical performance styles */
+.critical-performance {
+  contain: strict; /* Strongest containment */
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Fix Bootstrap button overrides */
+.inventory-management .btn:not(:disabled):not(.disabled) {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.inventory-management .btn.active,
+.inventory-management .btn:active {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: none !important;
+}
+
+/* Grid/Table view toggle buttons */
+.inventory-management .btn-outline-secondary,
+.inventory-management .btn-primary {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0.375rem 0.75rem;
+  background-color: inherit;
+  border: 1px solid;
+  color: inherit;
+}
+
+.inventory-management .btn-primary {
+  background-color: #007bff !important;
+  border-color: #007bff !important;
+  color: white !important;
+}
+
+.inventory-management .btn-outline-secondary {
+  background-color: transparent !important;
+  border-color: #6c757d !important;
+  color: #6c757d !important;
+}
+
+/* Pagination specific fixes */
+.inventory-management .pagination {
+  display: flex !important;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.inventory-management .pagination .page-item {
+  display: block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.inventory-management .pagination .page-link {
+  display: block !important;
+  padding: 0.5rem 0.75rem;
+  margin-left: -1px;
+  color: #007bff !important;
+  text-decoration: none;
+  background-color: #fff !important;
+  border: 1px solid #dee2e6 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.inventory-management .pagination .page-item.active .page-link {
+  background-color: #007bff !important;
+  border-color: #007bff !important;
+  color: #fff !important;
+  z-index: 3;
+}
+
+.inventory-management .pagination .page-link:hover {
+  color: #0056b3 !important;
+  background-color: #e9ecef !important;
+  border-color: #dee2e6 !important;
+}
+
+/* Dark mode pagination fixes */
+.dark-mode .inventory-management .pagination .page-link {
+  background-color: #2d3748 !important;
+  border-color: #4a5568 !important;
+  color: #e2e8f0 !important;
+}
+
+.dark-mode .inventory-management .pagination .page-item.active .page-link {
+  background-color: #007bff !important;
+  border-color: #007bff !important;
+  color: #fff !important;
+}
+
+.dark-mode .inventory-management .pagination .page-link:hover {
+  background-color: #4a5568 !important;
+  border-color: #718096 !important;
+}
+
+/* Comprehensive Button Visibility Override - Ultimate Fix */
+.inventory-management button,
+.inventory-management .btn,
+.inventory-management .btn-sm,
+.inventory-management .btn-primary,
+.inventory-management .btn-outline-secondary,
+.inventory-management .btn-outline-primary {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
+  pointer-events: all !important;
+  position: relative !important;
+  z-index: 10 !important;
+  min-height: 31px !important;
+  background: var(--bs-btn-bg, inherit) !important;
+  border: var(--bs-btn-border-width, 1px) solid var(--bs-btn-border-color, #dee2e6) !important;
+  color: var(--bs-btn-color, inherit) !important;
+}
+
+/* Force specific button types to be visible */
+.inventory-management .btn-primary {
+  background-color: #007bff !important;
+  border-color: #007bff !important;
+  color: #fff !important;
+}
+
+.inventory-management .btn-outline-secondary {
+  background-color: transparent !important;
+  border-color: #6c757d !important;
+  color: #6c757d !important;
+}
+
+/* Pagination container and navigation buttons */
+.inventory-management .d-flex.align-items-center,
+.inventory-management .d-flex.gap-2,
+.inventory-management .d-flex.gap-3 {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: flex !important;
+}
+
+/* Bootstrap icons in buttons */
+.inventory-management .btn .bi,
+.inventory-management button .bi {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-block !important;
+}
+
+/* Hover states remain visible */
+.inventory-management .btn:hover,
+.inventory-management button:hover {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Active/focus states remain visible */
+.inventory-management .btn:active,
+.inventory-management .btn:focus,
+.inventory-management .btn.active,
+.inventory-management button:active,
+.inventory-management button:focus {
+  opacity: 1 !important;
+  visibility: visible !important;
+  outline: none !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+
+/* Disabled buttons should still be visible but greyed out */
+.inventory-management .btn:disabled,
+.inventory-management .btn.disabled,
+.inventory-management button:disabled {
+  opacity: 0.65 !important;
+  visibility: visible !important;
+  pointer-events: none !important;
+}

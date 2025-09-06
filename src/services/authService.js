@@ -1,4 +1,4 @@
-import axios from './axiosConfig';
+import axios from 'axios'; // Use direct axios instead of configured instance
 
 const API_URL = '/api/auth/';
 
@@ -13,7 +13,17 @@ const login = async (emailOrPhone, password) => {
 };
 
 const register = async (userData) => {
-  const response = await axios.post(API_URL + 'register', userData);
+  // Use direct axios call to avoid auth interceptors
+  const response = await axios.post(
+    (process.env.REACT_APP_API_URL || 'http://localhost:5000') + API_URL + 'register', 
+    userData,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        // No Authorization header
+      }
+    }
+  );
   return response.data;
 };
 

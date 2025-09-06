@@ -1,0 +1,154 @@
+.vital-signs-modal .modal-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.vital-signs-modal .patient-info {
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+.vital-signs-modal .normal-range {
+  font-size: 0.8rem;
+  color: #6c757d;
+  font-weight: normal;
+}
+
+.vital-signs-modal .form-label {
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.3rem;
+}
+
+.vital-signs-modal .form-label i {
+  color: #0d6efd;
+}
+
+.vital-signs-modal .input-group {
+  margin-bottom: 0.5rem;
+}
+
+.vital-signs-modal .form-text {
+  font-size: 0.75rem;
+}
+
+.vital-signs-modal hr {
+  margin: 1rem 0;
+  opacity: 0.15;
+}
+
+/* Modal footer styling */
+.vital-signs-modal .modal-footer {
+  border-top-color: #dee2e6;
+  background-color: #f8f9fa;
+}
+
+/* Make sure buttons align properly in footer */
+.vital-signs-modal .modal-footer .btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+/* Pre-filled field styling */
+.vital-signs-modal .prefilled-field {
+  background-color: #e7f3ff !important;
+  border-color: #b3d9ff !important;
+}
+
+.vital-signs-modal .prefilled-field:focus {
+  background-color: #ffffff !important;
+  border-color: #0d6efd !important;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
+}
+
+/* Blood pressure input styling - both fields equal size */
+.vital-signs-modal .input-group .form-control[name="systolicBP"],
+.vital-signs-modal .input-group .form-control[name="diastolicBP"] {
+  flex: 1 1 0%; /* Equal size for both fields */
+  min-width: 0;
+  max-width: none;
+}
+
+/* Height input field for better ft/inches format support */
+.vital-signs-modal .form-control[name="height"] {
+  font-family: 'Courier New', monospace;
+}
+
+.vital-signs-history-modal .badge {
+  font-size: 0.9em;
+  padding: 0.4em 0.7em;
+  background-color: #007bff;
+}
+
+/* Vital Signs History Modal Styling */
+.vital-signs-history-modal {
+  color: #333333 !important;
+}
+
+.vital-signs-history-modal .modal-content {
+  background-color: #ffffff !important;
+  color: #333333 !important;
+}
+
+.vital-signs-history-modal .modal-header {
+  background-color: #f8f9fa !important;
+  color: #333333 !important;
+  border-bottom: 1px solid #dee2e6 !important;
+}
+
+.vital-signs-history-modal .modal-header h4,
+.vital-signs-history-modal .modal-header .modal-title {
+  color: #333333 !important;
+  margin: 0;
+}
+
+.vital-signs-history-modal .modal-header .text-info {
+  color: #17a2b8 !important;
+}
+
+.vital-signs-history-modal .modal-header .text-muted,
+.vital-signs-history-modal .patient-info .text-muted {
+  color: #6c757d !important;
+}
+
+.vital-signs-history-modal .modal-body {
+  background-color: #ffffff !important;
+  color: #333333 !important;
+}
+
+.vital-signs-history-modal table {
+  color: #333333 !important;
+}
+
+.vital-signs-history-modal th {
+  background-color: #f8f9fa !important;
+  color: #495057 !important;
+  border-bottom: 2px solid #dee2e6 !important;
+  font-weight: 600;
+}
+
+.vital-signs-history-modal td {
+  color: #333333 !important;
+  border-bottom: 1px solid #dee2e6 !important;
+}
+
+.vital-signs-history-modal .close-btn,
+.vital-signs-history-modal .btn-close {
+  color: #333333 !important;
+}
+
+.vital-signs-history-modal .text-center h5 {
+  color: #6c757d !important;
+}
+
+.vital-signs-history-modal .text-center p {
+  color: #6c757d !important;
+}
+
+.vitals-readonly {
+  border-color: #007bff !important;
+  background-color: #f0f8ff !important;
+  color: #495057 !important;
+}

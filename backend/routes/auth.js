@@ -5,7 +5,8 @@ const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const User = require('../models/User');
 const Patient = require('../models/Patient');
-const auth = require('../middleware/auth');
+const { authenticateToken: auth } = require('../middleware/auth');
+const { smartIdAllocation } = require('../middleware/smartIdAllocation');
 
 const router = express.Router();
 
@@ -98,7 +99,6 @@ router.post(
         lastName,
         suffix,
         dateOfBirth,
-        age,
         gender,
         civilStatus,
         houseNo,
@@ -107,7 +107,6 @@ router.post(
         city,
         region,
         philHealthNumber,
-        membershipStatus,
         familyId: null, // Ensures the patient is unsorted
         qrCode: qrCode
       });
@@ -160,12 +159,14 @@ router.post(
   '/create-staff',
   [
     auth, // Add authentication middleware
+    smartIdAllocation(), // Smart ID allocation will detect role from req.body.accessLevel
     body('firstName', 'First name is required').not().isEmpty(),
     body('lastName', 'Last name is required').not().isEmpty(),
     body('emailInitials', 'Email initials are required').not().isEmpty(),
-    body('password', 'Password must be 8 or more characters').isLength({
-      min: 8,
-    }),
+    body('password', 'Password must be 6-10 characters with letters, numbers and symbols').isLength({
+      min: 6,
+      max: 10
+    }).matches(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{6,10}$/),
     body('accessLevel', 'Access level is required').isIn(['Administrator', 'Doctor']),
     body('position', 'Position is required').not().isEmpty(),
   ],
@@ -191,7 +192,7 @@ router.post(
     } = req.body;
 
     try {
-      const email = `${emailInitials}@maybunga.health`;
+      const email = `${emailInitials}@brgymaybunga.health`;
       const role = accessLevel === 'Administrator' ? 'admin' : 'doctor';
 
       // Check if user already exists
@@ -262,11 +263,26 @@ router.post(
     try {
         let user;
 
-        // For admin/doctor login, require @maybunga.health email format for database users
-        // Check if login looks like an email for admin/doctor accounts
+        // For admin/doctor login, require @brgymaybunga.health email format for database users
+        // But allow any email format for patient accounts
         const isEmailFormat = login.includes('@');
-        if (isEmailFormat && !login.endsWith('@maybunga.health')) {
-          return res.status(400).json({ msg: 'Invalid credentials' });
+        if (isEmailFormat && !login.endsWith('@brgymaybunga.health')) {
+          // Check if this might be a patient account - if so, allow it through
+          const potentialPatient = await User.findOne({
+            where: {
+              [Op.or]: [
+                { username: login },
+                { email: login }
+              ],
+              role: 'patient',
+              isActive: true
+            }
+          });
+          
+          // If no patient found with this email, reject (admin/doctor must use @brgymaybunga.health)
+          if (!potentialPatient) {
+            return res.status(400).json({ msg: 'Invalid credentials' });
+          }
         }
 
         // First check database for created users
@@ -291,11 +307,21 @@ router.post(
           if (!isMatch) {
             return res.status(400).json({ msg: 'Invalid credentials' });
           }
+          
+          // For patient users, fetch the associated Patient record to get patientId
+          if (user.role === 'patient') {
+            const patient = await Patient.findOne({
+              where: { userId: user.id }
+            });
+            if (patient) {
+              user.patientId = patient.id;
+            }
+          }
         } else {
           // Fallback to hardcoded bypass logic for development
           if (login === 'admin' && password === 'admin123') {
               user = {
-                  id: 1,
+                  id: 100001, // Use very high ID to avoid conflicts
                   username: 'admin',
                   email: 'admin@maybunga.healthcare',
                   role: 'admin',
@@ -305,7 +331,7 @@ router.post(
               };
           } else if (login === 'doctor' && password === 'doctor123') {
               user = {
-                  id: 2,
+                  id: 100002, // Use very high ID to avoid conflicts
                   username: 'doctor',
                   email: 'doctor@maybunga.healthcare',
                   role: 'doctor',
@@ -315,13 +341,14 @@ router.post(
               };
           } else if (login === 'patient' && password === 'patient123') {
               user = {
-                  id: 3,
+                  id: 100003, // Use very high ID to avoid conflicts
                   username: 'patient',
                   email: 'patient@maybunga.healthcare',
                   role: 'patient',
                   firstName: 'Maria',
                   lastName: 'Santos',
-                  accessLevel: 'Patient'
+                  accessLevel: 'Patient',
+                  patientId: 100003 // Add patientId for test account
               };
           } else {
               // For any other login, act as if credentials are invalid
@@ -354,7 +381,8 @@ router.post(
                     role: user.role,
                     firstName: user.firstName,
                     lastName: user.lastName,
-                    accessLevel: user.accessLevel || (user.role === 'admin' ? 'Administrator' : 'Doctor')
+                    accessLevel: user.accessLevel || (user.role === 'admin' ? 'Administrator' : 'Doctor'),
+                    patientId: user.patientId // Include patientId for patient users
                   }
                 });
             }

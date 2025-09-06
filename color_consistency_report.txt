@@ -1,0 +1,104 @@
+CSS Color Consistency Report
+
+=============================
+Occurrences of "Pale Cerulean"
+=============================
+
+#9bc4e2 (used in AdminDashboard and SimulationMode)
+- c:\Users\dolfo\hrsm2.0\src\styles\AdminDashboard.css:165:   background-color: #9bc4e2 !important; /* FORCE: Pale Cerulean background */
+- c:\Users\dolfo\hrsm2.0\src\styles\AdminDashboard.css:177:   background-color: #9bc4e2 !important; /* ULTRA FORCE: Pale Cerulean - ALL states */
+- c:\Users\dolfo\hrsm2.0\src\components\admin\components\SimulationMode.css:37: /* Custom Pale Cerulean Button Variants */
+change it to - #0056b3, check the color if complimented
+
+#9BC4CB (used in DocDashboard)
+- c:\Users\dolfo\hrsm2.0\src\styles\DocDashboard.css:2464:   background: #9BC4CB; /* Pale Cerulean */
+change it to - #0056b3, check the color if complimented
+================
+Button Colors
+================
+
+This section lists colors found in CSS rules for buttons (.btn, button).
+
+---
+File: c:\Users\dolfo\hrsm2.0\src\styles\AdminDashboard.css
+---
+- .refresh-btn { background: #9bc4e2; }
+- .refresh-btn:hover { background: #6BA3D3; }
+- .add-patient-btn { background: #27ae60; }
+- .add-patient-btn:hover { background: #219a52; }
+- .action-button.view { color: #9bc4e2; }
+- .action-button.edit { color: #f39c12; }
+- .action-button.delete { color: #e74c3c; }
+- .settings-accordion .btn { background: #f3f4f6; color: #222; border: 1px solid #e5e7eb; }
+- .settings-accordion .btn:hover { background: #e0e7ef; color: #2563eb; }
+- .save-vital-btn { background: #2ecc71; border-color: #2ecc71; }
+- .save-vital-btn:hover { background: #27ae60; border-color: #27ae60; }
+- .btn-generate { background: #9bc4e2; border-color: #9bc4e2; color: white; }
+- .btn-generate.excel { background: #28a745; border-color: #28a745; }
+- .btn-generate-all { background: #9bc4e2; color: white; }
+- .action-btn.download { background: #9bc4e2; color: white; }
+- .action-btn.view { background: #6c757d; color: white; }
+- .action-btn.share { background: #28a745; color: white; }
+- .action-btn.cancel { background: #dc3545; color: white; }
+- .btn-schedule { background: #9bc4e2; color: white; }
+- .quick-schedule-btn { background: #9bc4e2; color: white; }
+- .card-action-btn:hover { background: #9bc4e2; border-color: #9bc4e2; color: white; }
+- .btn-schedule-primary { background: #9bc4e2; color: white; }
+- .btn-cancel { background: #ef4444; color: white; }
+- .btn-primary { background: #9bc4e2; color: white; }
+
+---
+File: c:\Users\dolfo\hrsm2.0\src\styles\DocDashboard.css
+---
+- .refresh-btn { background: #007bff; }
+- .add-patient-btn { background: #28a745; }
+- .emergency-start-btn { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); }
+
+---
+File: c:\Users\dolfo\hrsm2.0\src\components\admin\components\SimulationMode.css
+---
+- .btn-pale-cerulean { background-color: #9BC4E2; }
+- .btn-outline-pale-cerulean { color: #9BC4E2; border-color: #9BC4E2; }
+
+---
+File: c:\Users\dolfo\hrsm2.0\src\styles\LoginSignup.css
+---
+- .btn-primary { background-color: #007bff; border-color: #007bff; }
+- .btn-primary:hover { background-color: #0056b3; border-color: #0056b3; }
+- .btn-secondary { background-color: #6c757d; border-color: #6c757d; }
+- .btn-secondary:hover { background-color: #5a6268; border-color: #545b62; }
+
+---
+File: c:\Users\dolfo\hrsm2.0\src\styles\Homepage.css
+---
+- .btn-primary { background-color: #007bff; border-color: #007bff; }
+- .btn-primary:hover { background-color: #0056b3; }
+- .btn-secondary { background-color: #6c757d; border-color: #6c757d; }
+- .btn-secondary:hover { background-color: #5a6268; }
+
+---
+File: c:\Users\dolfo\hrsm2.0\src\styles\Appointments.css
+---
+- .btn-primary { background-color: #007bff; border-color: #007bff; }
+- .btn-primary:hover { background-color: #0056b3; }
+- .btn-danger { background-color: #dc3545; border-color: #dc3545; }
+- .btn-danger:hover { background-color: #c82333; }
+- .btn-info { background-color: #17a2b8; border-color: #17a2b8; }
+- .btn-info:hover { background-color: #138496; }
+- .btn-success { background-color: #28a745; border-color: #28a745; }
+- .btn-success:hover { background-color: #218838; }
+- .btn-warning { background-color: #ffc107; border-color: #ffc107; }
+- .btn-warning:hover { background-color: #e0a800; }
+- .btn-light { background-color: #f8f9fa; border-color: #f8f9fa; }
+- .btn-light:hover { background-color: #e2e6ea; }
+- .btn-dark { background-color: #343a40; border-color: #343a40; }
+- .btn-dark:hover { background-color: #23272b; }
+- .btn-link { color: #007bff; }
+- .btn-link:hover { color: #0056b3; }
+
+
+changes:
+all hovering will be removed.
+all refresh button to - #0056b3
+all 'adding' buttons to - #0056b3
+

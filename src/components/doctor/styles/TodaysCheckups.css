@@ -1,0 +1,823 @@
+/* TodaysCheckups.css */
+
+.todays-checkups-container {
+  padding: 0;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* Today's Checkups Header */
+.todays-checkups-header {
+  padding: 25px;
+  background: linear-gradient(135deg, #28a745 0%, #87CEEB 100%);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.header-info h2 {
+  margin: 0 0 5px 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-info h2 i {
+  font-size: 1.6rem;
+}
+
+.checkups-subtitle {
+  margin: 0;
+  opacity: 0.9;
+  font-size: 1rem;
+}
+
+.checkups-stats {
+  display: flex;
+  gap: 15px;
+}
+
+.stat-card {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  padding: 15px;
+  text-align: center;
+  min-width: 80px;
+  backdrop-filter: blur(10px);
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+  color: white;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  margin-top: 5px;
+}
+
+/* Checkups Filters */
+.checkups-filters {
+  padding: 20px 25px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 8px 16px;
+  border: 2px solid #dee2e6;
+  background: white;
+  border-radius: 25px;
+  color: #495057;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+  border-color: #17a2b8;
+  color: #17a2b8;
+}
+
+.filter-btn.active {
+  background: #17a2b8;
+  border-color: #17a2b8;
+  color: white;
+}
+
+.read-only-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.read-only-notice i {
+  color: #17a2b8;
+}
+
+/* Checkups Content */
+.checkups-content {
+  padding: 25px;
+}
+
+.empty-checkups {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6c757d;
+}
+
+.empty-checkups i {
+  font-size: 4rem;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-checkups h3 {
+  margin: 0 0 10px 0;
+  color: #495057;
+}
+
+.empty-checkups p {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+/* Checkups Grid */
+.checkups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.checkup-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.checkup-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+}
+
+.checkup-card.scheduled {
+  border-left: 4px solid #17a2b8;
+}
+
+.checkup-card.in-progress {
+  border-left: 4px solid #ffc107;
+}
+
+.checkup-card.completed {
+  border-left: 4px solid #28a745;
+}
+
+.checkup-card.cancelled {
+  border-left: 4px solid #dc3545;
+  opacity: 0.7;
+}
+
+/* Card Header */
+.card-header {
+  padding: 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.patient-info h4 {
+  margin: 0 0 5px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #212529;
+}
+
+.patient-id {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6c757d;
+}
+
+/* Status Badge */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 15px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.status-badge.status-info {
+  background: #cce5ff;
+  color: #004085;
+  border: 1px solid #99d3ff;
+}
+
+.status-badge.status-warning {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.status-badge.status-success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.status-badge.status-danger {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Card Body */
+.card-body {
+  padding: 20px;
+}
+
+.checkup-details {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.95rem;
+}
+
+.detail-item i {
+  color: #17a2b8;
+  width: 16px;
+  text-align: center;
+}
+
+.detail-item span {
+  color: #495057;
+}
+
+/* Card Actions */
+.card-actions {
+  padding: 15px 20px;
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  flex: 1;
+  justify-content: center;
+  min-width: fit-content;
+}
+
+.btn-outline {
+  background: transparent;
+  color: #17a2b8;
+  border: 1px solid #17a2b8;
+}
+
+.btn-outline:hover {
+  background: #17a2b8;
+  color: white;
+}
+
+.btn-info {
+  background: #17a2b8;
+  color: white;
+}
+
+.btn-info:hover {
+  background: #138496;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: slideIn 0.3s ease;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #212529;
+}
+
+.close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: #e9ecef;
+  color: #212529;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.checkup-details-modal {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.detail-section {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 20px;
+  background: #f8f9fa;
+}
+
+.detail-section h4 {
+  margin: 0 0 15px 0;
+  color: #495057;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-bottom: 2px solid #17a2b8;
+  padding-bottom: 8px;
+}
+
+.detail-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+  flex-wrap: wrap;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-row strong {
+  color: #495057;
+  min-width: 120px;
+}
+
+.notes-content,
+.results-content {
+  background: white;
+  padding: 15px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  line-height: 1.6;
+  color: #495057;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px;
+  border-top: 1px solid #e9ecef;
+  background: #f8f9fa;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #5a6268;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+  .checkups-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 15px;
+  }
+  
+  .todays-checkups-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .checkups-stats {
+    align-self: stretch;
+    justify-content: space-between;
+  }
+  
+  .checkups-filters {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .todays-checkups-container {
+    border-radius: 8px;
+  }
+  
+  .todays-checkups-header {
+    padding: 20px;
+  }
+  
+  .checkups-content {
+    padding: 20px;
+  }
+  
+  .checkups-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .card-actions {
+    flex-direction: column;
+  }
+  
+  .btn {
+    flex: none;
+  }
+  
+  .modal-content {
+    margin: 20px;
+    max-width: none;
+    width: calc(100% - 40px);
+  }
+  
+  .detail-section {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 576px) {
+  .todays-checkups-header {
+    padding: 15px;
+  }
+  
+  .checkups-content {
+    padding: 15px;
+  }
+  
+  .checkups-filters {
+    padding: 15px;
+  }
+  
+  .header-info h2 {
+    font-size: 1.5rem;
+  }
+  
+  .stat-card {
+    padding: 12px;
+    min-width: 70px;
+  }
+  
+  .stat-number {
+    font-size: 1.5rem;
+  }
+  
+  .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .detail-row strong {
+    min-width: auto;
+  }
+}
+
+/* =================================
+   TABLE FIXES - PREVENT OVER-EXTENSION
+   ================================= */
+
+.todays-checkups-container .table-responsive {
+  overflow-x: auto !important;
+  max-width: 100% !important;
+}
+
+.todays-checkups-container .checkup-table {
+  table-layout: fixed !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  border-collapse: collapse !important;
+  display: table !important;
+}
+
+.todays-checkups-container .checkup-table th,
+.todays-checkups-container .checkup-table td {
+  word-wrap: break-word !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  padding: 8px 6px !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+  writing-mode: initial !important;
+  text-orientation: initial !important;
+  direction: ltr !important;
+  unicode-bidi: normal !important;
+  font-size: 14px !important;
+  line-height: 1.2 !important;
+}
+
+/* Specific column width controls */
+.todays-checkups-container .checkup-table th:nth-child(1),
+.todays-checkups-container .checkup-table td:nth-child(1) {
+  width: 40px !important;
+  max-width: 40px !important;
+  text-align: center !important;
+}
+
+.todays-checkups-container .checkup-table th:nth-child(2),
+.todays-checkups-container .checkup-table td:nth-child(2) {
+  width: 50px !important;
+  max-width: 50px !important;
+  text-align: center !important;
+}
+
+.todays-checkups-container .checkup-table th:nth-child(3),
+.todays-checkups-container .checkup-table td:nth-child(3) {
+  width: 80px !important;
+  max-width: 80px !important;
+  text-align: center !important;
+}
+
+.todays-checkups-container .checkup-table th:nth-child(4),
+.todays-checkups-container .checkup-table td:nth-child(4) {
+  width: 180px !important;
+  max-width: 180px !important;
+  white-space: normal !important;
+  text-align: left !important;
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
+  writing-mode: initial !important;
+  text-orientation: initial !important;
+}
+
+.todays-checkups-container .checkup-table th:nth-child(5),
+.todays-checkups-container .checkup-table td:nth-child(5) {
+  width: 100px !important;
+  max-width: 100px !important;
+  text-align: center !important;
+}
+
+.todays-checkups-container .checkup-table th:nth-child(6),
+.todays-checkups-container .checkup-table td:nth-child(6) {
+  width: 120px !important;
+  max-width: 120px !important;
+  text-align: center !important;
+}
+
+.todays-checkups-container .checkup-table th:nth-child(7),
+.todays-checkups-container .checkup-table td:nth-child(7) {
+  width: 140px !important;
+  max-width: 140px !important;
+  text-align: center !important;
+}
+
+.todays-checkups-container .checkup-table th:nth-child(8),
+.todays-checkups-container .checkup-table td:nth-child(8) {
+  width: 80px !important;
+  max-width: 80px !important;
+  text-align: center !important;
+}
+
+.todays-checkups-container .checkup-table th:nth-child(9),
+.todays-checkups-container .checkup-table td:nth-child(9) {
+  width: 90px !important;
+  max-width: 90px !important;
+  text-align: center !important;
+}
+
+.todays-checkups-container .checkup-table th:nth-child(10),
+.todays-checkups-container .checkup-table td:nth-child(10) {
+  width: 120px !important;
+  max-width: 120px !important;
+  text-align: center !important;
+}
+
+/* Patient name cell - allow wrapping for long names */
+.todays-checkups-container .checkup-table .patient-name {
+  white-space: normal !important;
+  line-height: 1.2 !important;
+}
+
+.todays-checkups-container .checkup-table .patient-name strong {
+  display: block !important;
+  font-size: 13px !important;
+}
+
+.todays-checkups-container .checkup-table .patient-name small {
+  font-size: 11px !important;
+}
+
+/* Info buttons column */
+.todays-checkups-container .info-buttons {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  align-items: center !important;
+}
+
+.todays-checkups-container .info-buttons .btn {
+  font-size: 10px !important;
+  padding: 3px 6px !important;
+  min-width: auto !important;
+}
+
+/* Responsive table adjustments */
+@media (max-width: 1200px) {
+  .todays-checkups-container .checkup-table th:nth-child(4),
+  .todays-checkups-container .checkup-table td:nth-child(4) {
+    width: 120px !important;
+    max-width: 120px !important;
+  }
+  
+  .todays-checkups-container .checkup-table th:nth-child(7),
+  .todays-checkups-container .checkup-table td:nth-child(7) {
+    width: 100px !important;
+    max-width: 100px !important;
+  }
+}
+
+/* Additional fixes for text display issues */
+.todays-checkups-container .checkup-table td,
+.todays-checkups-container .checkup-table th {
+  display: table-cell !important;
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+  direction: ltr !important;
+  unicode-bidi: normal !important;
+}
+
+/* Force horizontal text for all table content */
+.todays-checkups-container .checkup-table * {
+  writing-mode: horizontal-tb !important;
+  text-orientation: mixed !important;
+  direction: ltr !important;
+}
+
+/* Specific fixes for table row and cell display */
+.todays-checkups-container .checkup-row {
+  display: table-row !important;
+}
+
+.todays-checkups-container .checkup-row td {
+  display: table-cell !important;
+  text-align: left !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Patient name column specific fixes */
+.todays-checkups-container .patient-name {
+  white-space: normal !important;
+  text-align: left !important;
+}
+
+.todays-checkups-container .patient-name div {
+  display: block !important;
+  text-align: left !important;
+  writing-mode: horizontal-tb !important;
+}
+
+.todays-checkups-container .patient-name strong {
+  display: inline !important;
+  writing-mode: horizontal-tb !important;
+}
+
+.todays-checkups-container .patient-name small {
+  display: block !important;
+  writing-mode: horizontal-tb !important;
+}
+
+/* Reset any inherited transform or rotation */
+.todays-checkups-container .checkup-table,
+.todays-checkups-container .checkup-table * {
+  transform: none !important;
+  rotate: none !important;
+}
+
+/* Override Bootstrap table styles completely */
+.todays-checkups-container .table-responsive {
+  display: block !important;
+  width: 100% !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+}
+
+.todays-checkups-container .table {
+  display: table !important;
+  border-collapse: collapse !important;
+}
+
+.todays-checkups-container .table thead {
+  display: table-header-group !important;
+}
+
+.todays-checkups-container .table tbody {
+  display: table-row-group !important;
+}
+
+.todays-checkups-container .table tr {
+  display: table-row !important;
+}
+
+.todays-checkups-container .table th,
+.todays-checkups-container .table td {
+  display: table-cell !important;
+  text-align: left !important;
+  vertical-align: middle !important;
+  padding: 0.5rem !important;
+  border-top: 1px solid #dee2e6 !important;
+}
+
+@media (max-width: 992px) {
+  .todays-checkups-container .checkup-table {
+    font-size: 12px !important;
+  }
+  
+  .todays-checkups-container .checkup-table th,
+  .todays-checkups-container .checkup-table td {
+    padding: 6px 4px !important;
+  }
+}

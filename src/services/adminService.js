@@ -1,16 +1,34 @@
 import axios from '../services/axiosConfig';
 
-// Function to get the authorization token from localStorage
+// Function to get the authorization token from sessionStorage (consistent with AuthContext)
 const getAuthToken = () => {
-  const authData = JSON.parse(localStorage.getItem('auth'));
-  return authData ? authData.token : null;
+  try {
+    // First try to get from window global (set by AuthContext)
+    if (window.__authToken) {
+      return window.__authToken;
+    }
+    
+    // Fallback to sessionStorage (used by AuthContext)
+    const authData = sessionStorage.getItem('authData');
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      return parsed ? parsed.token : null;
+    }
+    
+    // Final fallback to localStorage
+    const localAuthData = JSON.parse(localStorage.getItem('auth') || 'null');
+    return localAuthData ? localAuthData.token : null;
+  } catch (error) {
+    console.error('Error getting auth token:', error);
+    return null;
+  }
 };
 
 // Function to create the authorization header
 const getAuthHeader = () => {
   const token = getAuthToken();
   if (token) {
-    return { 'x-auth-token': token };
+    return { 'Authorization': `Bearer ${token}` };
   }
   return {};
 };
@@ -170,6 +188,24 @@ const createPatient = async (patientData) => {
 };
 
 /**
+ * Updates an existing patient in the system
+ * @param {number} patientId - The ID of the patient to update
+ * @param {Object} patientData - Updated patient information
+ * @returns {Promise<Object>} A promise that resolves to the updated patient
+ */
+const updatePatient = async (patientId, patientData) => {
+  try {
+    const response = await axios.put(`/api/patients/${patientId}`, patientData, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating patient:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
  * Creates a new admin or doctor user.
  * @param {Object} userData - The user data.
  * @returns {Promise<Object>} A promise that resolves to the created user.
@@ -182,6 +218,94 @@ const createStaffUser = async (userData) => {
     return response.data;
   } catch (error) {
     console.error('Error creating staff user:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Fetches all admin and doctor users.
+ * @returns {Promise<Array>} A promise that resolves to an array of users.
+ */
+const getUserList = async () => {
+  try {
+    const response = await axios.get(`/api/admin/users`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching user list:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Updates an existing user.
+ * @param {number} userId - The user ID.
+ * @param {Object} userData - The updated user data.
+ * @returns {Promise<Object>} A promise that resolves to the updated user.
+ */
+const updateUser = async (userId, userData) => {
+  try {
+    const response = await axios.put(`/api/admin/users/${userId}`, userData, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating user:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Deletes a user account.
+ * @param {number} userId - The user ID.
+ * @returns {Promise<Object>} A promise that resolves to the delete confirmation.
+ */
+const deleteUser = async (userId) => {
+  try {
+    const response = await axios.delete(`/api/admin/users/${userId}`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting user:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Resets a user's password.
+ * @param {number} userId - The user ID.
+ * @param {string} newPassword - The new password.
+ * @returns {Promise<Object>} A promise that resolves to the reset confirmation.
+ */
+const resetUserPassword = async (userId, newPassword) => {
+  try {
+    const response = await axios.put(`/api/admin/users/${userId}/reset-password`, 
+      { newPassword }, 
+      {
+        headers: getAuthHeader(),
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error resetting user password:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Cleans up user data - removes all users except current admin.
+ * @returns {Promise<Object>} A promise that resolves to the cleanup confirmation.
+ */
+const cleanupUserData = async () => {
+  try {
+    const response = await axios.delete(`/api/admin/users/cleanup`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error cleaning up user data:', error.response ? error.response.data : error.message);
     throw error;
   }
 };
@@ -235,6 +359,158 @@ const getVitalSignsHistory = async (patientId) => {
   }
 };
 
+/**
+ * Fetches today's checkups.
+ * @returns {Promise<Array>} A promise that resolves to an array of today's checkups.
+ */
+const getTodaysCheckups = async () => {
+  try {
+    const response = await axios.get(`/api/checkups/today`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching today\'s checkups:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Records vital signs for a patient's checkup session.
+ * @param {number} sessionId - The ID of the check-in session.
+ * @param {Object} vitalSigns - The vital signs data to record.
+ * @returns {Promise<Object>} A promise that resolves to the updated session.
+ */
+const recordVitalSigns = async (sessionId, vitalSigns) => {
+  try {
+    const response = await axios.post(`/api/checkups/${sessionId}/vital-signs`, vitalSigns, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error recording vital signs:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Notifies the doctor about a patient's checkup.
+ * @param {number} sessionId - The ID of the check-in session.
+ * @returns {Promise<Object>} A promise that resolves to the notification result.
+ */
+const notifyDoctor = async (sessionId) => {
+  try {
+    const response = await axios.post(`/api/checkups/${sessionId}/notify-doctor`, {}, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error notifying doctor:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Creates a new check-in session for a patient.
+ * @param {Object} checkInData - The check-in data.
+ * @returns {Promise<Object>} A promise that resolves to the created session.
+ */
+const createCheckInSession = async (checkInData) => {
+  try {
+    const response = await axios.post(`/api/checkups/check-in`, checkInData, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error creating check-in session:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Updates the status of a checkup session.
+ * @param {number} sessionId - The ID of the check-in session.
+ * @param {string} status - The new status.
+ * @param {string} notes - Optional notes.
+ * @returns {Promise<Object>} A promise that resolves to the updated session.
+ */
+const updateCheckupStatus = async (sessionId, status, notes = '') => {
+  try {
+    const response = await axios.put(`/api/checkups/${sessionId}/status`, { status, notes }, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating checkup status:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Remove a patient from today's checkups
+ * @param {string} patientId - The ID of the patient to remove
+ * @returns {Promise<Object>} A promise that resolves to the response data
+ */
+const removeFromTodaysCheckups = async (patientId) => {
+  try {
+    const response = await axios.delete(`/api/checkups/today/${patientId}`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error removing patient from today\'s checkups:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Fetches checkup statistics for today.
+ * @returns {Promise<Object>} A promise that resolves to the statistics.
+ */
+const getTodaysCheckupStats = async () => {
+  try {
+    const response = await axios.get(`/api/checkups/stats/today`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching checkup stats:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Fetches medicine usage analytics data for charts
+ * @returns {Promise<Array>} A promise that resolves to medicine usage data
+ */
+const getMedicineUsage = async () => {
+  try {
+    const response = await axios.get(`/api/dashboard/medicine-usage`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching medicine usage:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
+ * Fetches vaccine usage analytics data for charts
+ * @returns {Promise<Array>} A promise that resolves to vaccine usage data
+ */
+const getVaccineUsage = async () => {
+  try {
+    const response = await axios.get(`/api/dashboard/vaccine-usage`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching vaccine usage:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
 const adminService = {
   getUnsortedMembers,
   getAllPatients,
@@ -245,9 +521,24 @@ const adminService = {
   autosortPatients,
   createFamiliesForPatients,
   createPatient,
+  updatePatient,
   createStaffUser,
+  getUserList,
+  updateUser,
+  deleteUser,
+  resetUserPassword,
+  cleanupUserData,
   createVitalSigns,
   getVitalSignsHistory,
+  getTodaysCheckups,
+  recordVitalSigns,
+  notifyDoctor,
+  createCheckInSession,
+  updateCheckupStatus,
+  getTodaysCheckupStats,
+  removeFromTodaysCheckups,
+  getMedicineUsage,
+  getVaccineUsage,
 };
 
 export default adminService;

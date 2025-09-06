@@ -1,15 +1,22 @@
 import React, { useState, useEffect, useMemo, memo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import '../styles/LoginSignup.css'; // Navbar & auth shared styles
 
 const Header = memo(() => {
   const location = useLocation();
+  const { isAuthenticated, user } = useAuth();
   const visiblePaths = ['/', '/auth', '/appointments', '/services', '/contact'];
 
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   
   useEffect(() => {
-    const timer = setInterval(() => setCurrentDateTime(new Date()), 1000);
+    // DISABLED rapid timer to prevent startup crashes (Quick workaround)
+    // const timer = setInterval(() => setCurrentDateTime(new Date()), 1000);
+    // return () => clearInterval(timer);
+    
+    // Update time every minute instead
+    const timer = setInterval(() => setCurrentDateTime(new Date()), 60000);
     return () => clearInterval(timer);
   }, []);
 

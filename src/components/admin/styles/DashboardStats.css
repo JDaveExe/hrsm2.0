@@ -1,0 +1,433 @@
+/* DashboardStats.css - Dashboard statistics styling */
+
+.dashboard-stats {
+  max-width: 100%;
+  margin: 0;
+  padding: 1rem 1.5rem;
+  background-color: var(--bg-primary);
+  min-height: calc(100vh - 70px);
+}
+
+/* Simulation Badge Container */
+.simulation-badge-container {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 1.5rem;
+}
+
+.simulation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 193, 7, 0.1);
+  color: #f59e0b;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  font-weight: 600;
+  font-size: 0.9rem;
+  box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+}
+
+.dashboard-header {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 0.75rem;
+  color: white;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.welcome-section h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.current-time {
+  margin: 0 0 1rem 0;
+  opacity: 0.9;
+  font-size: 1.1rem;
+}
+
+.simulation-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 193, 7, 0.2);
+  color: #ffd700;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  font-weight: 600;
+}
+
+/* Statistics Cards */
+.stats-cards {
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  border: none;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  overflow: hidden;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card .card-body {
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.stat-content {
+  text-align: left;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-primary, #333333);
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+.stat-icon {
+  font-size: 2.5rem;
+  padding: 1rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Specific card colors */
+.stat-card.patients .stat-icon { background-color: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.stat-card.appointments .stat-icon { background-color: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.stat-card.staff .stat-icon { background-color: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+.stat-card.revenue .stat-icon { background-color: rgba(16, 185, 129, 0.1); color: #10b981; }
+
+/* Charts Section */
+.charts-section {
+  margin-top: 2rem;
+}
+
+.chart-card {
+  border: none;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  height: 100%; /* Ensure card takes full height of the column */
+}
+
+.chart-card .card-header {
+  background-color: #fff;
+  border-bottom: 1px solid #e9ecef;
+  padding: 1rem 1.5rem;
+}
+
+.chart-card .card-header h5 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.chart-card .card-header small {
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+
+.chart-card .card-body {
+  padding: 1.5rem;
+  display: flex; /* Make card body a flex container */
+  flex-direction: column; /* Stack content vertically */
+  flex-grow: 1; /* Allow body to grow to fill card */
+}
+
+.chart-container {
+  position: relative;
+  flex-grow: 1; /* This makes the chart container take up available space */
+  min-height: 250px; /* Give a minimum height to prevent collapse */
+}
+
+.age-distribution-chart {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chart-stats-summary .stat-mini {
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 0.5rem;
+}
+
+.chart-stats-summary .stat-number {
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.chart-stats-summary .stat-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: #6c757d;
+}
+
+/* Chart.js text visibility fixes */
+.chart-container canvas {
+  color: #333 !important;
+}
+
+/* Force chart text colors */
+.chart-container * {
+  color: #333 !important;
+}
+
+/* Tabs Styling */
+.dashboard-tabs {
+  margin-top: 0.25rem;
+}
+
+.dashboard-tabs .nav-link {
+  border: none;
+  border-radius: 8px 8px 0 0;
+  padding: 12px 20px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  margin-right: 4px;
+  transition: all 0.3s ease;
+}
+
+.dashboard-tabs .nav-link:hover {
+  color: var(--accent-primary);
+  background: rgba(155, 196, 226, 0.1);
+}
+
+.dashboard-tabs .nav-link.active {
+  color: #fff;
+  background: #9bc4e2;
+  border-color: #9bc4e2;
+}
+
+.dashboard-tabs .tab-content {
+  border: 1px solid var(--border-primary);
+  border-radius: 0 8px 8px 8px;
+  background: var(--bg-secondary);
+  padding: 0;
+}
+
+/* Forecasting Styles */
+.forecasting-content {
+  padding: 1.5rem;
+}
+
+.forecast-card {
+  border: none;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+}
+
+.forecast-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.forecast-card .card-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 0.75rem 0.75rem 0 0;
+  padding: 1rem 1.25rem;
+}
+
+.forecast-card .card-header h5 {
+  margin: 0;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.forecast-card .card-header small {
+  opacity: 0.9;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+.forecast-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.forecast-metric {
+  padding: 1rem;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 0.5rem;
+  border-left: 4px solid #9bc4e2;
+}
+
+.metric-label {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+}
+
+.metric-value small {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.metric-trend {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.forecast-up {
+  color: #28a745;
+}
+
+.forecast-down {
+  color: #dc3545;
+}
+
+.forecast-stable {
+  color: #17a2b8;
+}
+
+.forecast-chart-card {
+  border: none;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.forecast-chart-card .card-header {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  color: white;
+  border: none;
+  border-radius: 0.75rem 0.75rem 0 0;
+  padding: 1rem 1.25rem;
+}
+
+.forecast-chart-placeholder {
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.05) 0%, rgba(32, 201, 151, 0.05) 100%);
+  border-radius: 0.5rem;
+  border: 2px dashed rgba(40, 167, 69, 0.2);
+}
+
+.placeholder-content {
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.placeholder-icon {
+  font-size: 3rem;
+  color: #28a745;
+  margin-bottom: 1rem;
+}
+
+.placeholder-content h6 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.placeholder-content p {
+  margin-bottom: 0.5rem;
+}
+
+.insight-card {
+  border: none;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease;
+  height: 100%;
+}
+
+.insight-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.insight-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.insight-header i {
+  font-size: 1.5rem;
+}
+
+.insight-header h6 {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.insight-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 576px) {
+  .dashboard-stats {
+    padding: 0.5rem;
+  }
+  
+  .chart-card .card-body {
+    height: 200px;
+    padding: 0.5rem;
+  }
+  
+  .forecasting-content {
+    padding: 1rem;
+  }
+  
+  .forecast-metrics {
+    gap: 0.75rem;
+  }
+  
+  .metric-value {
+    font-size: 1.25rem;
+  }
+  
+  .dashboard-tabs .nav-link {
+    padding: 8px 12px;
+    font-size: 0.9rem;
+  }
+}

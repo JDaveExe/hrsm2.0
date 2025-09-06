@@ -443,6 +443,46 @@ class InventoryService {
 
     return csvLines.join('\n');
   }
+
+  // STOCK MANAGEMENT METHODS
+  
+  async addVaccineStock(vaccineId, stockData) {
+    try {
+      // For now, we'll update the vaccine's stock by adding to the existing stock
+      const vaccine = await this.getVaccineById(vaccineId);
+      const updatedVaccine = {
+        ...vaccine,
+        dosesInStock: vaccine.dosesInStock + parseInt(stockData.amount),
+        batchNumber: stockData.batchNumber || vaccine.batchNumber,
+        expiryDate: stockData.expiryDate || vaccine.expiryDate
+      };
+      
+      const response = await this.updateVaccine(vaccineId, updatedVaccine);
+      return response;
+    } catch (error) {
+      console.error('Error adding vaccine stock:', error);
+      throw error;
+    }
+  }
+
+  async addMedicationStock(medicationId, stockData) {
+    try {
+      // For now, we'll update the medication's stock by adding to the existing stock
+      const medication = await this.getMedicationById(medicationId);
+      const updatedMedication = {
+        ...medication,
+        unitsInStock: medication.unitsInStock + parseInt(stockData.amount),
+        batchNumber: stockData.batchNumber || medication.batchNumber,
+        expiryDate: stockData.expiryDate || medication.expiryDate
+      };
+      
+      const response = await this.updateMedication(medicationId, updatedMedication);
+      return response;
+    } catch (error) {
+      console.error('Error adding medication stock:', error);
+      throw error;
+    }
+  }
 }
 
 export default new InventoryService();

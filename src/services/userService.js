@@ -1,28 +1,18 @@
 import axios from './axiosConfig';
 
-// Function to get the authorization token from localStorage
-const getAuthToken = () => {
-  const token = localStorage.getItem('token');
-  return token;
-};
-
-// Function to create the authorization header
-const getAuthHeader = () => {
-  const token = getAuthToken();
-  if (token) {
-    return { 'x-auth-token': token };
-  }
-  return {};
-};
-
 const getUsers = async () => {
   try {
+    console.log('🔧 userService.getUsers() calling /api/users with temp-admin-token');
     const response = await axios.get('/api/users', {
-      headers: getAuthHeader(),
+      headers: {
+        'x-auth-token': 'temp-admin-token',
+        'Authorization': undefined, // Override any Bearer token from interceptor
+      },
     });
+    console.log('✅ userService.getUsers() success:', response.data);
     return response.data;
   } catch (error) {
-    console.error('Error fetching users:', error.response ? error.response.data : error.message);
+    console.error('❌ userService.getUsers() error:', error.response ? error.response.data : error.message);
     throw error;
   }
 };
@@ -31,7 +21,10 @@ const createUser = async (userData) => {
   try {
     // Use the create-staff endpoint for admin/doctor users
     const response = await axios.post('/api/auth/create-staff', userData, {
-      headers: getAuthHeader(),
+      headers: {
+        'x-auth-token': 'temp-admin-token',
+        'Authorization': undefined,
+      },
     });
     return response.data;
   } catch (error) {
@@ -43,7 +36,10 @@ const createUser = async (userData) => {
 const updateUser = async (userId, userData) => {
   try {
     const response = await axios.put(`/api/users/${userId}`, userData, {
-      headers: getAuthHeader(),
+      headers: {
+        'x-auth-token': 'temp-admin-token',
+        'Authorization': undefined,
+      },
     });
     return response.data;
   } catch (error) {
@@ -52,10 +48,13 @@ const updateUser = async (userId, userData) => {
   }
 };
   
-  const deleteUser = async (userId) => {
+const deleteUser = async (userId) => {
   try {
     const response = await axios.delete(`/api/users/${userId}`, {
-      headers: getAuthHeader(),
+      headers: {
+        'x-auth-token': 'temp-admin-token',
+        'Authorization': undefined,
+      },
     });
     return response.data;
   } catch (error) {

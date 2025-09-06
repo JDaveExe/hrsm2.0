@@ -1,9 +1,12 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
+const bcrypt = require('bcryptjs');
+const { Op } = require('sequelize');
 const Patient = require('../models/Patient');
 const User = require('../models/User');
 const Family = require('../models/Family');
-const auth = require('../middleware/auth');
+const { authenticateToken: auth } = require('../middleware/auth');
+const { smartIdAllocation } = require('../middleware/smartIdAllocation');
 
 const router = express.Router();
 
@@ -15,6 +18,7 @@ router.post(
   [
     // Temporarily commented out auth for testing
     // auth, 
+    smartIdAllocation('patient'), // Smart ID allocation for patients
     [
       body('firstName', 'First name is required').not().isEmpty(),
     body('lastName', 'Last name is required').not().isEmpty(),
@@ -25,7 +29,8 @@ router.post(
       .isIn(['Single', 'Married', 'Divorced', 'Widowed'])
       .withMessage('Civil status must be Single, Married, Divorced, or Widowed'),
     body('contactNumber')
-      .optional({ checkFalsy: true })
+      .notEmpty()
+      .withMessage('Contact number is required')
       .isLength({ min: 11, max: 11 })
       .withMessage('Contact number must be exactly 11 digits')
       .isNumeric()
@@ -64,8 +69,8 @@ router.post(
       // Clean up empty strings by converting them to null
       const patientData = { ...req.body };
       
-      // Convert empty strings and "N/A" to null for optional fields
-      const fieldsToClean = ['email', 'contactNumber', 'philHealthNumber', 'middleName', 'suffix', 'civilStatus', 'houseNo', 'street', 'barangay', 'city', 'region'];
+      // Convert empty strings and "N/A" to null for optional fields (email only, contact number is required)
+      const fieldsToClean = ['email', 'philHealthNumber', 'middleName', 'suffix', 'civilStatus', 'houseNo', 'street', 'barangay', 'city', 'region'];
       
       fieldsToClean.forEach(field => {
         if (patientData[field] === '' || 
@@ -75,12 +80,93 @@ router.post(
         }
       });
 
+      // Generate password from date of birth (dd-mm-yyyy format)
+      const dateOfBirth = new Date(patientData.dateOfBirth);
+      const day = String(dateOfBirth.getDate()).padStart(2, '0');
+      const month = String(dateOfBirth.getMonth() + 1).padStart(2, '0');
+      const year = dateOfBirth.getFullYear();
+      const generatedPassword = `${day}-${month}-${year}`;
+
       // Generate QR code for the patient
       const qrCode = `PAT-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
       patientData.qrCode = qrCode;
 
-      const patient = await Patient.create(patientData);
-      res.status(201).json(patient);
+      // Use database transaction to ensure atomic operation
+      const { sequelize } = require('../config/database');
+      const transaction = await sequelize.transaction();
+
+      try {
+        let user = null;
+        
+        // Create User account first if email or contact number provided
+        if (patientData.email || patientData.contactNumber) {
+          const username = patientData.email || patientData.contactNumber;
+          
+          // Check for existing user first to give better error message
+          const whereConditions = [];
+          
+          if (patientData.email) {
+            whereConditions.push({ email: patientData.email });
+          }
+          
+          if (patientData.contactNumber) {
+            whereConditions.push({ contactNumber: patientData.contactNumber });
+          }
+          
+          // Only check for duplicates if we have actual values to check
+          if (whereConditions.length > 0) {
+            const existingUser = await User.findOne({
+              where: {
+                [Op.or]: whereConditions
+              },
+              transaction
+            });
+
+            if (existingUser) {
+              await transaction.rollback();
+              if (existingUser.email === patientData.email) {
+                return res.status(400).json({ msg: 'This email is already registered' });
+              }
+              if (existingUser.contactNumber === patientData.contactNumber) {
+                return res.status(400).json({ msg: 'This contact number is already registered' });
+              }
+            }
+          }
+          
+          // Let the User model hook handle password hashing
+          user = await User.create({
+            username: username,
+            email: patientData.email || null,
+            contactNumber: patientData.contactNumber || null,
+            password: generatedPassword, // Use plain password, hook will hash it
+            role: 'patient',
+            firstName: patientData.firstName,
+            lastName: patientData.lastName,
+            middleName: patientData.middleName
+          }, { transaction });
+
+          // Add userId to patient data
+          patientData.userId = user.id;
+        }
+
+        // Create the patient record
+        const patient = await Patient.create(patientData, { transaction });
+        
+        // Commit the transaction
+        await transaction.commit();
+        
+        // Return patient data with generated password info
+        res.status(201).json({
+          ...patient.toJSON(),
+          generatedPassword: generatedPassword, // Include password in response for admin to show user
+          hasUserAccount: !!user
+        });
+        
+      } catch (transactionError) {
+        // Rollback the transaction on any error
+        await transaction.rollback();
+        throw transactionError; // Re-throw to be caught by outer catch
+      }
     } catch (err) {
       console.error(err.message);
       // Handle unique constraint violation

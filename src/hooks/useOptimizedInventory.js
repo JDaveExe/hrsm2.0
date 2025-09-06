@@ -106,25 +106,25 @@ export const usePagination = (items, itemsPerPage = 10, currentPage = 1) => {
 
 // Optimized form handlers
 export const useOptimizedFormHandlers = () => {
-  const createFormHandler = useCallback((setFormData) => {
-    return useCallback((field, value) => {
+  const createFormHandler = React.useCallback((setFormData) => {
+    return (field, value) => {
       setFormData(prev => ({
         ...prev,
         [field]: value
       }));
-    }, [setFormData]);
+    };
   }, []);
 
-  const createResetHandler = useCallback((setFormData, initialData) => {
-    return useCallback(() => {
+  const createResetHandler = React.useCallback((setFormData, initialData) => {
+    return () => {
       setFormData(initialData);
-    }, [setFormData, initialData]);
+    };
   }, []);
 
   return { createFormHandler, createResetHandler };
 };
 
-// Debounced search hook
+// Debounced search hook with immediate reset capability
 export const useDebouncedSearch = (searchTerm, delay = 300) => {
   const [debouncedTerm, setDebouncedTerm] = React.useState(searchTerm);
 
@@ -138,7 +138,41 @@ export const useDebouncedSearch = (searchTerm, delay = 300) => {
     };
   }, [searchTerm, delay]);
 
-  return debouncedTerm;
+  // Immediate update function for clearing searches
+  const setImmediateTerm = React.useCallback((term) => {
+    setDebouncedTerm(term);
+  }, []);
+
+  return [debouncedTerm, setImmediateTerm];
+};
+
+// Virtual list optimization hook
+export const useVirtualListOptimization = (items, itemHeight = 200, containerHeight = 600) => {
+  return React.useMemo(() => {
+    const totalHeight = items.length * itemHeight;
+    const visibleItems = Math.ceil(containerHeight / itemHeight);
+    const overscan = 5; // Render extra items for smoother scrolling
+    
+    return {
+      totalHeight,
+      visibleItems,
+      overscan,
+      shouldVirtualize: items.length > 50, // Auto-enable for large lists
+      estimatedItemSize: itemHeight
+    };
+  }, [items.length, itemHeight, containerHeight]);
+};
+
+// Memoized item renderer factory
+export const createMemoizedItemRenderer = (Component) => {
+  return React.memo(({ index, style, data }) => {
+    const item = data.items[index];
+    return (
+      <div style={style}>
+        <Component item={item} {...data.componentProps} />
+      </div>
+    );
+  });
 };
 
 // Optimized sort function

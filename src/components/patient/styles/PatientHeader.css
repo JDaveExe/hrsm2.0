@@ -1,0 +1,328 @@
+/* PatientHeader.css */
+
+.patient-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 80px;
+  background: #ffffff;
+  border-bottom: 1px solid #e9ecef;
+  padding: 0 30px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+/* Header Left Section */
+.header-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-title i {
+  font-size: 1.8rem;
+  color: #007bff;
+  background: rgba(0, 123, 255, 0.1);
+  padding: 8px;
+  border-radius: 8px;
+}
+
+.page-title h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+  text-transform: capitalize;
+}
+
+/* Header Center Section */
+.header-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.datetime-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f8f9fa;
+  padding: 8px 16px;
+  border-radius: 20px;
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: 1px solid #e9ecef;
+}
+
+.datetime-display i {
+  color: #007bff;
+  font-size: 1rem;
+}
+
+/* Header Right Section */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+/* Refresh Button */
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #0056b3;
+  transform: translateY(-1px);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.refresh-btn.loading i {
+  animation: spin 1s linear infinite;
+}
+
+.refresh-btn i {
+  font-size: 1rem;
+}
+
+/* User Info Section */
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 25px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.user-info:hover {
+  background: #e9ecef;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  border-radius: 50%;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.user-details {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.user-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #2c3e50;
+  line-height: 1;
+}
+
+.user-role {
+  font-size: 0.75rem;
+  color: #6c757d;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+/* Animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .patient-header {
+    padding: 0 20px;
+  }
+  
+  .header-center {
+    flex: 0.8;
+  }
+  
+  .datetime-display {
+    font-size: 0.8rem;
+    padding: 6px 12px;
+  }
+}
+
+@media (max-width: 768px) {
+  .patient-header {
+    padding: 0 15px;
+    height: 70px;
+  }
+  
+  .page-title h1 {
+    font-size: 1.3rem;
+  }
+  
+  .page-title i {
+    font-size: 1.5rem;
+    padding: 6px;
+  }
+  
+  .header-center {
+    display: none; /* Hide datetime on mobile */
+  }
+  
+  .refresh-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+  
+  .user-info {
+    padding: 6px 10px;
+  }
+  
+  .user-avatar {
+    width: 35px;
+    height: 35px;
+    font-size: 1.1rem;
+  }
+  
+  .user-name {
+    font-size: 0.8rem;
+  }
+  
+  .user-role {
+    font-size: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .patient-header {
+    padding: 0 10px;
+    height: 60px;
+  }
+  
+  .page-title h1 {
+    font-size: 1.1rem;
+  }
+  
+  .page-title i {
+    font-size: 1.3rem;
+    padding: 4px;
+  }
+  
+  .refresh-btn span {
+    display: none; /* Hide text on very small screens */
+  }
+  
+  .refresh-btn {
+    padding: 8px;
+  }
+  
+  .user-details {
+    display: none; /* Hide user details on very small screens */
+  }
+  
+  .user-info {
+    padding: 6px;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .patient-header {
+    border-bottom-width: 0.5px;
+  }
+}
+
+/* Focus states for accessibility */
+.refresh-btn:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Performance optimizations */
+.patient-header {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.user-info {
+  will-change: transform;
+}
+
+/* Loading states */
+.patient-header.loading {
+  opacity: 0.8;
+}
+
+.patient-header.loading .refresh-btn {
+  pointer-events: none;
+}
+
+/* Theme variations (if needed later) */
+.patient-header.dark-theme {
+  background: #2c3e50;
+  border-bottom-color: #34495e;
+  color: white;
+}
+
+.patient-header.dark-theme .page-title h1 {
+  color: white;
+}
+
+.patient-header.dark-theme .datetime-display {
+  background: #34495e;
+  border-color: #4a5f7a;
+  color: #bdc3c7;
+}
+
+.patient-header.dark-theme .user-info {
+  background: #34495e;
+  border-color: #4a5f7a;
+}
+
+.patient-header.dark-theme .user-name {
+  color: white;
+}
+
+.patient-header.dark-theme .user-role {
+  color: #bdc3c7;
+}

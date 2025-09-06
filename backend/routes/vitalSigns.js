@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { VitalSigns, Patient } = require('../models');
-const auth = require('../middleware/auth');
+const { authenticateToken: auth } = require('../middleware/auth');
 
 // @route   POST /api/vital-signs
 // @desc    Create new vital signs record

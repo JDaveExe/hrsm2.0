@@ -4,13 +4,17 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "clear-appointments": "node scripts/clear-all-appointments.js",
+    "quick-clear": "node scripts/quick-clear-appointments.js",
+    "add-sample-appointments": "node scripts/add-sample-appointments.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "archiver": "^7.0.1",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
@@ -19,9 +23,11 @@
     "express-validator": "^7.2.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
     "mysql2": "^3.14.2",
     "nodemailer": "^7.0.5",
     "sequelize": "^6.37.7",
-    "twilio": "^5.8.0"
+    "twilio": "^5.8.0",
+    "unzipper": "^0.12.3"
   }
 }

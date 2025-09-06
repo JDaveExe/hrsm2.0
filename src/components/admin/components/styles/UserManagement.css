@@ -1,0 +1,1089 @@
+/* UserManagement.css */
+
+.user-management {
+  padding: 0;
+  background-color: var(--bg-primary);
+}
+
+.content-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.content-header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.manage-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  padding: 0.75rem 1.5rem !important;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  color: white !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  opacity: 1 !important; /* Ensure full opacity */
+}
+
+.manage-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(155, 196, 226, 0.4) !important;
+  opacity: 1 !important; /* Maintain full opacity on hover */
+}
+
+.manage-btn:focus,
+.manage-btn:active {
+  opacity: 1 !important; /* Maintain full opacity when focused/active */
+  box-shadow: 0 4px 12px rgba(155, 196, 226, 0.6) !important;
+}
+
+/* Manage Dropdown Styling */
+.user-management .dropdown-menu {
+  border-radius: 8px !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+  padding: 0.5rem 0 !important;
+  margin-top: 0.5rem !important;
+  min-width: 180px !important;
+}
+
+.user-management .dropdown-item {
+  padding: 0.75rem 1rem !important;
+  color: #495057 !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+  border: none !important;
+  background: transparent !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.user-management .dropdown-item:hover {
+  background-color: #f8f9fa !important;
+  color: #0d6efd !important;
+  transform: translateX(3px) !important;
+}
+
+.user-management .dropdown-item:active {
+  background-color: #e9ecef !important;
+  color: #0d6efd !important;
+}
+
+.user-management .dropdown-item i {
+  width: 20px !important;
+  text-align: center !important;
+}
+
+/* AGGRESSIVE Button fixes - Override CheckupManager global conflicts with ultra-high specificity */
+.user-management .btn,
+.user-management .modal .btn,
+.user-management .modal-footer .btn,
+.user-management .modal-body .btn,
+.user-management .dropdown .btn,
+.user-management .header-actions .btn,
+.user-management .header-actions .manage-btn,
+.user-management .dropdown .manage-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 8px 16px !important;
+  margin: 2px !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  transition: all 0.2s ease-in-out !important;
+  cursor: pointer !important;
+  opacity: 1 !important; /* Force full opacity for all buttons */
+  visibility: visible !important;
+  border-radius: 6px !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  border: 1px solid transparent !important;
+  transition: all 0.15s ease-in-out !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: relative !important;
+  z-index: 1 !important;
+  background-clip: padding-box !important;
+  min-height: auto !important;
+  line-height: 1.5 !important;
+}
+
+.user-management .btn:hover,
+.user-management .modal .btn:hover {
+  transform: translateY(-1px) !important;
+  transition: all 0.15s ease-in-out !important;
+}
+
+/* Override CheckupManager's .btn-primary global style */
+.user-management .btn-primary,
+.user-management .modal .btn-primary,
+.user-management .modal-footer .btn-primary {
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  color: #ffffff !important;
+}
+
+.user-management .btn-primary:hover,
+.user-management .modal .btn-primary:hover {
+  background-color: #0b5ed7 !important;
+  border-color: #0a58ca !important;
+  color: #ffffff !important;
+}
+
+/* Override CheckupManager's .btn-secondary global style */
+.user-management .btn-secondary,
+.user-management .modal .btn-secondary,
+.user-management .modal-footer .btn-secondary {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: #ffffff !important;
+}
+
+.user-management .btn-secondary:hover,
+.user-management .modal .btn-secondary:hover {
+  background-color: #5c636a !important;
+  border-color: #565e64 !important;
+  color: #ffffff !important;
+}
+
+/* Override CheckupManager's .btn-outline-secondary global style */
+.user-management .btn-outline-secondary,
+.user-management .modal .btn-outline-secondary {
+  color: #6c757d !important;
+  border-color: #6c757d !important;
+  background-color: transparent !important;
+}
+
+.user-management .btn-outline-secondary:hover,
+.user-management .modal .btn-outline-secondary:hover {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: #ffffff !important;
+}
+
+/* Override CheckupManager's .btn-success global style */
+.user-management .btn-success,
+.user-management .modal .btn-success {
+  background-color: #198754 !important;
+  border-color: #198754 !important;
+  color: #ffffff !important;
+}
+
+.user-management .btn-success:hover,
+.user-management .modal .btn-success:hover {
+  background-color: #157347 !important;
+  border-color: #146c43 !important;
+  color: #ffffff !important;
+}
+
+/* Override CheckupManager's .btn-danger global style */
+.user-management .btn-danger,
+.user-management .modal .btn-danger {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: #ffffff !important;
+}
+
+.user-management .btn-danger:hover,
+.user-management .modal .btn-danger:hover {
+  background-color: #bb2d3b !important;
+  border-color: #b02a37 !important;
+  color: #ffffff !important;
+}
+
+/* Override CheckupManager's .btn-warning global style */
+.user-management .btn-warning,
+.user-management .modal .btn-warning {
+  background-color: #ffc107 !important;
+  border-color: #ffc107 !important;
+  color: #000000 !important;
+}
+
+.user-management .btn-warning:hover,
+.user-management .modal .btn-warning:hover {
+  background-color: #ffca2c !important;
+  border-color: #ffc720 !important;
+  color: #000000 !important;
+}
+
+/* Override CheckupManager's .btn-info global style */
+.user-management .btn-info,
+.user-management .modal .btn-info {
+  background-color: #0dcaf0 !important;
+  border-color: #0dcaf0 !important;
+  color: #000000 !important;
+}
+
+.user-management .btn-info:hover,
+.user-management .modal .btn-info:hover {
+  background-color: #31d2f2 !important;
+  border-color: #25cff2 !important;
+  color: #000000 !important;
+}
+
+/* Dropdown fixes */
+.user-management .dropdown-toggle {
+  display: inline-flex !important;
+  align-items: center !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.user-management .manage-btn {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  padding: 0.75rem 1.5rem !important;
+  background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  color: white !important;
+  font-weight: 500 !important;
+  transition: all 0.3s ease !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.user-management .manage-btn:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(155, 196, 226, 0.4) !important;
+}
+
+/* Users Table */
+.users-table-container {
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin: 1rem;
+}
+
+.users-table {
+  margin: 0;
+  background-color: transparent;
+}
+
+.users-table thead th {
+  background-color: var(--bg-tertiary);
+  border: none;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 1rem;
+  border-bottom: 2px solid var(--border-primary);
+}
+
+.users-table tbody td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border-secondary);
+  vertical-align: middle;
+}
+
+.users-table tbody tr:hover {
+  background-color: var(--bg-tertiary);
+  transition: background-color 0.2s ease;
+}
+
+/* Role Badges */
+.role-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+
+.role-badge.admin {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+  border: 1px solid rgba(220, 53, 69, 0.3);
+}
+
+.role-badge.doctor {
+  background-color: rgba(13, 202, 240, 0.1);
+  color: #0dcaf0;
+  border: 1px solid rgba(13, 202, 240, 0.3);
+}
+
+/* Password Mask */
+.password-mask {
+  font-family: monospace;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+}
+
+/* Action Column */
+.action-column-header {
+  width: 120px;
+  text-align: center;
+}
+
+.action-column {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.action-column .btn {
+  transition: all 0.3s ease;
+}
+
+.action-column .btn:hover {
+  transform: translateY(-1px);
+}
+
+/* User Type Selection */
+.user-type-selection {
+  text-align: center;
+  padding: 2rem;
+}
+
+.user-type-btn {
+  padding: 1.2rem 1rem !important; /* Reduced height by ~10% */
+  border: 2px dashed var(--border-primary) !important;
+  transition: all 0.3s ease !important;
+  width: 80% !important; /* Reduced width by 20% */
+  margin: 0 auto !important;
+  font-size: 1.1rem !important; /* Increased font size */
+  font-weight: 600 !important; /* Made text bolder */
+}
+
+.user-type-btn:hover {
+  border-style: solid !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.user-type-btn small {
+  margin-top: 0.5rem !important;
+  font-size: 0.95rem !important; /* Increased small text size */
+  font-weight: 400 !important;
+  line-height: 1.4 !important;
+}
+
+.user-type-btn i {
+  font-size: 1.3rem !important; /* Larger icons */
+  margin-right: 0.5rem !important;
+}
+
+/* User type selection container improvements */
+.user-type-selection {
+  text-align: center !important;
+  padding: 1.5rem !important;
+}
+
+.user-type-selection h5 {
+  font-size: 1.4rem !important;
+  font-weight: 600 !important;
+  color: #495057 !important;
+  margin-bottom: 2rem !important;
+
+}
+
+.user-type-selection .d-grid {
+  max-width: 400px !important; /* Constrain the grid width */
+  margin: 0 auto !important;
+}
+
+/* Modal Styles */
+.user-management .modal-content {
+  border-radius: 12px !important;
+  border: none !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Compact Modal - 20% smaller */
+.user-management .compact-modal .modal-dialog {
+  max-width: 640px !important; /* 20% smaller than lg (800px) */
+  width: 80% !important;
+}
+
+.user-management .compact-modal .modal-content {
+  min-height: auto !important;
+}
+
+.user-management .compact-modal .modal-body {
+  padding: 1.5rem !important; /* Reduced padding */
+  min-height: auto !important;
+}
+
+.user-management .modal-header {
+  background-color: #f8f9fa !important;
+  border-bottom: 1px solid #dee2e6 !important;
+  border-radius: 12px 12px 0 0 !important;
+  padding: 1.2rem !important; /* Reduced padding */
+}
+
+.user-management .modal-title {
+  font-size: 1.3rem !important; /* Slightly smaller */
+  font-weight: 600 !important;
+  color: #495057 !important;
+}
+
+.user-management .modal-body {
+  padding: 2rem !important;
+  min-height: 300px !important;
+}
+
+.user-management .modal-footer {
+  background-color: #f8f9fa !important;
+  border-top: 1px solid #dee2e6 !important;
+  border-radius: 0 0 12px 12px !important;
+  padding: 1rem 2rem !important;
+}
+
+/* Compact user type selection */
+.user-management .user-type-selection-compact {
+  padding: 1rem 0 !important;
+}
+
+.user-management .user-type-selection-compact h6 {
+  font-size: 1.1rem !important;
+  font-weight: 600 !important;
+  color: #495057 !important;
+  margin-bottom: 1rem !important;
+}
+
+.user-management .user-type-btn-compact {
+  padding: 1rem !important;
+  text-align: left !important;
+  border-radius: 8px !important;
+  border: 2px solid transparent !important;
+  transition: all 0.2s ease !important;
+}
+
+.user-management .user-type-btn-compact:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.user-management .user-type-btn-compact small {
+  font-size: 0.8rem !important;
+  margin-top: 0.25rem !important;
+}
+
+.modal-header {
+  background-color: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-primary);
+  border-radius: 12px 12px 0 0;
+}
+
+.modal-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.modal-body {
+  padding: 2rem;
+  background-color: var(--bg-secondary);
+}
+
+.modal-footer {
+  background-color: var(--bg-tertiary);
+  border-top: 1px solid var(--border-primary);
+  border-radius: 0 0 12px 12px;
+}
+
+.user-management .modal-footer .btn {
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 1 !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.user-management .modal-dialog {
+  margin-top: 8vh;
+}
+
+/* Sizing for Add User Modals */
+.user-management .user-type-select-modal.modal-dialog {
+  max-width: 560px; /* 30% width reduction from lg (800px) */
+}
+
+.user-management .user-type-select-modal .modal-body {
+  padding: 1.5rem !important; /* Approx 30% height reduction via padding */
+  min-height: unset !important;
+}
+
+.user-management .add-user-form-modal.modal-dialog {
+  max-width: 720px; /* 10% width reduction from lg (800px) */
+}
+
+.user-management .add-user-form-modal .modal-body {
+  padding: 1.8rem 2rem !important; /* Approx 10% height reduction via padding */
+}
+
+/* Form Styles */
+.form-label {
+  font-weight: 500;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.user-management .form-control {
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  padding: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.user-management .form-control:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 0.2rem rgba(155, 196, 226, 0.25);
+}
+
+.input-group-text {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+}
+
+.input-group-text[style*="cursor: pointer"]:hover {
+  background-color: var(--accent-primary);
+  color: white;
+  transition: all 0.3s ease;
+}
+
+/* Badge Styles */
+.badge {
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+}
+
+/* Loading States */
+.text-center p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Alert Styles */
+.alert {
+  border-radius: 8px;
+  margin: 1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .content-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+  
+  .content-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .users-table-container {
+    margin: 0.5rem;
+    padding: 1rem;
+  }
+  
+  .users-table thead th,
+  .users-table tbody td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .action-column .btn {
+    padding: 0.5rem;
+    margin: 0.25rem;
+  }
+  
+  .user-type-btn {
+    padding: 1rem !important;
+    width: 90% !important; /* Slightly wider on mobile */
+    font-size: 1rem !important;
+  }
+  
+  .user-type-selection h5 {
+    font-size: 1.2rem !important;
+  }
+  
+  .user-type-selection .d-grid {
+    max-width: none !important; /* Remove width constraint on mobile */
+  }
+  
+  .modal-body {
+    padding: 1rem !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .users-table {
+    font-size: 0.8rem;
+  }
+  
+  .role-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+  }
+  
+  .action-column .btn {
+    padding: 0.4rem;
+  }
+  
+  .content-header h1 i {
+    display: none;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .user-management {
+    background-color: var(--bg-primary-dark, #ffffff);
+  }
+  
+  .content-header,
+  .users-table-container,
+  .modal-body {
+    background-color: var(--bg-secondary-dark, #ffffff);
+  }
+  
+  .users-table thead th {
+    background-color: var(--bg-tertiary-dark, #ffffff);
+  }
+  
+  .user-management .form-control {
+    border-color: var(--border-primary-dark, #555);
+    color: var(--text-primary-dark, #333);
+  }
+}
+
+/* CRITICAL FIXES - Override CheckupManager conflicts */
+
+/* Modal positioning - move higher to top */
+.user-management .modal-dialog {
+  margin-top: 2vh !important;
+  margin-bottom: auto !important;
+  max-height: 95vh !important;
+}
+
+.user-management .modal-content {
+  max-height: 95vh !important;
+  border-radius: 12px !important;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2) !important;
+  border: none !important;
+}
+
+.user-management .modal-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  border-bottom: 1px solid #dee2e6 !important;
+  padding: 1.25rem 1.5rem !important;
+}
+
+.user-management .modal-body {
+  padding: 1.5rem !important;
+  max-height: 70vh !important;
+  overflow-y: auto !important;
+}
+
+/* ULTIMATE BUTTON FIX - Use maximum specificity to override CheckupManager */
+.user-management .modal-footer .btn,
+.user-management .modal-body .btn,
+.user-management .modal .btn,
+.user-management .btn,
+.user-management button,
+.user-management .modal-footer button,
+.user-management .modal-body button,
+.user-management .user-type-btn,
+.user-management .btn-primary,
+.user-management .btn-secondary,
+.user-management .btn-success,
+.user-management .btn-danger,
+.user-management .btn-warning,
+.user-management .btn-info,
+.user-management .btn-outline-primary,
+.user-management .btn-outline-secondary,
+.user-management .manage-btn {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 9999 !important;
+  padding: 0.5rem 1rem !important;
+  margin: 0.25rem !important;
+  border-radius: 0.375rem !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  line-height: 1.5 !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  vertical-align: middle !important;
+  cursor: pointer !important;
+  border: 1px solid transparent !important;
+  transition: all 0.15s ease-in-out !important;
+  box-sizing: border-box !important;
+  background-clip: padding-box !important;
+}
+
+/* Specific button variant styles */
+.user-management .btn-primary {
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  color: #ffffff !important;
+}
+
+.user-management .btn-primary:hover,
+.user-management .btn-primary:focus {
+  background-color: #0b5ed7 !important;
+  border-color: #0a58ca !important;
+  color: #ffffff !important;
+}
+
+.user-management .btn-secondary {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: #ffffff !important;
+}
+
+.user-management .btn-secondary:hover,
+.user-management .btn-secondary:focus {
+  background-color: #5c636a !important;
+  border-color: #565e64 !important;
+  color: #ffffff !important;
+}
+
+.user-management .btn-success {
+  background-color: #198754 !important;
+  border-color: #198754 !important;
+  color: #ffffff !important;
+}
+
+.user-management .btn-success:hover,
+.user-management .btn-success:focus {
+  background-color: #157347 !important;
+  border-color: #146c43 !important;
+  color: #ffffff !important;
+}
+
+.user-management .btn-danger {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: #ffffff !important;
+}
+
+.user-management .btn-danger:hover,
+.user-management .btn-danger:focus {
+  background-color: #bb2d3b !important;
+  border-color: #b02a37 !important;
+  color: #ffffff !important;
+}
+
+.user-management .btn-outline-secondary {
+  background-color: transparent !important;
+  border-color: #6c757d !important;
+  color: #6c757d !important;
+}
+
+.user-management .btn-outline-secondary:hover,
+.user-management .btn-outline-secondary:focus {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: #ffffff !important;
+}
+
+/* User type selection buttons specific styling */
+.user-management .user-type-btn {
+  background-color: #f8f9fa !important;
+  border-color: #dee2e6 !important;
+  color: #495057 !important;
+  font-size: 1rem !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+.user-management .user-type-btn:hover,
+.user-management .user-type-btn:focus {
+  background-color: #e9ecef !important;
+  border-color: #adb5bd !important;
+  color: #495057 !important;
+}
+
+.user-management .user-type-btn.active {
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  color: #ffffff !important;
+}
+
+/* Manage dropdown button */
+.user-management .manage-btn {
+  background: linear-gradient(135deg, #0d6efd, #0b5ed7) !important;
+  border: none !important;
+  color: white !important;
+  font-weight: 500 !important;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 8px !important;
+}
+
+.user-management .manage-btn:hover,
+.user-management .manage-btn:focus {
+  background: linear-gradient(135deg, #0b5ed7, #0a58ca) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3) !important;
+}
+
+/* Close button fix */
+.user-management .btn-close {
+  background: transparent !important;
+  border: none !important;
+  opacity: 0.5 !important;
+  font-size: 1.5rem !important;
+  padding: 0.5rem !important;
+}
+
+.user-management .btn-close:hover {
+  opacity: 0.75 !important;
+}
+
+/* Form improvements */
+.user-management .form-control,
+.user-management .form-select {
+  border: 1px solid #ced4da !important;
+  border-radius: 0.375rem !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+}
+
+.user-management .form-control:focus,
+.user-management .form-select:focus {
+  border-color: #86b7fe !important;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+  outline: 0 !important;
+}
+
+/* User type selection area improvements */
+.user-management .modal-body .d-flex.gap-3.mb-4 {
+  background: #f8f9fa !important;
+  padding: 1rem !important;
+  border-radius: 8px !important;
+  border: 1px solid #e9ecef !important;
+}
+
+/* Form labels */
+.user-management .form-label {
+  font-weight: 600 !important;
+  color: #495057 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* Required asterisk styling */
+.user-management .text-danger {
+  color: #dc3545 !important;
+  font-weight: bold !important;
+}
+
+/* Input group styling for email */
+.user-management .input-group {
+  border-radius: 0.375rem !important;
+}
+
+.user-management .input-group .form-control {
+  border-right: 0 !important;
+}
+
+.user-management .input-group-text {
+  background-color: #e9ecef !important;
+  border: 1px solid #ced4da !important;
+  border-left: 0 !important;
+  color: #6c757d !important;
+}
+
+/* Password visibility button styling */
+.user-management .input-group .btn {
+  border-left: 0 !important;
+  border-color: #ced4da !important;
+  background-color: #f8f9fa !important;
+  color: #6c757d !important;
+}
+
+.user-management .input-group .btn:hover {
+  background-color: #e9ecef !important;
+  color: #495057 !important;
+}
+
+/* Additional button styling */
+.user-management .modal-footer .btn-primary,
+.user-management .modal-body .btn-primary,
+.user-management .modal .btn-primary {
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  color: #ffffff !important;
+}
+
+.user-management .modal-footer .btn-secondary,
+.user-management .modal-body .btn-secondary,
+.user-management .modal .btn-secondary {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: #ffffff !important;
+}
+
+.user-management .modal-footer .btn:hover,
+.user-management .modal-body .btn:hover,
+.user-management .modal .btn:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* User type selection buttons */
+.user-management .user-type-btn {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 9999 !important;
+  background-color: transparent !important;
+  border: 2px dashed #dee2e6 !important;
+  color: #495057 !important;
+}
+
+.user-management .user-type-btn:hover {
+  border-style: solid !important;
+  background-color: #f8f9fa !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ULTIMATE BUTTON FIX - Nuclear option to override CheckupManager */
+.user-management button,
+.user-management .btn,
+.user-management input[type="button"],
+.user-management input[type="submit"],
+.user-management .modal button,
+.user-management .modal .btn,
+.user-management .modal-footer button,
+.user-management .modal-footer .btn,
+.user-management .modal-body button,
+.user-management .modal-body .btn,
+.user-management .modal-header button,
+.user-management .modal-header .btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 8px 16px !important;
+  margin: 2px !important;
+  border-radius: 6px !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  border: 1px solid transparent !important;
+  transition: all 0.15s ease-in-out !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: relative !important;
+  z-index: 999999 !important;
+  background-clip: padding-box !important;
+  min-height: 38px !important;
+  line-height: 1.5 !important;
+  vertical-align: middle !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  outline: none !important;
+}
+
+/* Force all primary buttons to be visible and styled */
+.user-management .btn-primary,
+.user-management button.btn-primary,
+.user-management .modal .btn-primary,
+.user-management .modal-footer .btn-primary {
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  color: #ffffff !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-flex !important;
+}
+
+.user-management .btn-primary:hover,
+.user-management button.btn-primary:hover {
+  background-color: #0b5ed7 !important;
+  border-color: #0a58ca !important;
+  color: #ffffff !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(-1px) !important;
+}
+
+/* Force all secondary buttons to be visible */
+.user-management .btn-secondary,
+.user-management button.btn-secondary {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: #ffffff !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-flex !important;
+}
+
+.user-management .btn-secondary:hover,
+.user-management button.btn-secondary:hover {
+  background-color: #5c636a !important;
+  border-color: #565e64 !important;
+  color: #ffffff !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Force the user-type-btn to be visible and functional */
+.user-management .user-type-btn {
+  opacity: 1 !important;
+  visibility: visible !important;
+  display: inline-flex !important;
+  background-color: #ffffff !important;
+  border: 2px dashed #dee2e6 !important;
+  color: #495057 !important;
+  padding: 1.5rem !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  min-height: 120px !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.user-management .user-type-btn:hover {
+  border-style: solid !important;
+  background-color: #f8f9fa !important;
+  transform: translateY(-2px) !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Override any :not() selectors from CheckupManager */
+.user-management .btn:not(.disabled):not(:disabled),
+.user-management button:not(.disabled):not(:disabled) {
+  opacity: 1 !important;
+  visibility: visible !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease-in-out !important;
+}

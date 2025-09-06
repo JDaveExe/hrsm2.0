@@ -1,0 +1,295 @@
+/* Backup Manager Styles */
+.backup-manager {
+  padding: 1rem;
+}
+
+.backup-manager h2 {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+/* Statistics Cards */
+.backup-manager .card {
+  border: 1px solid var(--border-primary);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.backup-manager .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.backup-manager .card-body {
+  padding: 1.5rem;
+}
+
+.backup-manager .card h4 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+/* Progress Bar */
+.backup-manager .progress {
+  height: 8px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.backup-manager .progress-bar {
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Table Styles */
+.backup-manager .table {
+  margin-bottom: 0;
+}
+
+.backup-manager .table th {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  font-weight: 600;
+  border-bottom: 2px solid var(--border-primary);
+  padding: 1rem 0.75rem;
+}
+
+.backup-manager .table td {
+  padding: 1rem 0.75rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.backup-manager .table tbody tr:hover {
+  background-color: var(--bg-hover);
+}
+
+/* Badge Styles */
+.backup-manager .badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+/* Button Styles */
+.backup-manager .btn {
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.backup-manager .btn:hover {
+  transform: translateY(-1px);
+}
+
+.backup-manager .btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Modal Styles */
+.backup-manager .modal-content {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.backup-manager .modal-header {
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-primary);
+  border-radius: 12px 12px 0 0;
+}
+
+.backup-manager .modal-title {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.backup-manager .modal-body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.backup-manager .modal-footer {
+  background-color: var(--bg-primary);
+  border-top: 1px solid var(--border-primary);
+  border-radius: 0 0 12px 12px;
+}
+
+/* Form Styles */
+.backup-manager .form-label {
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.backup-manager .form-control {
+  border: 1px solid var(--border-primary);
+  border-radius: 8px;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+}
+
+.backup-manager .form-control:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.backup-manager .form-check-input {
+  border: 1px solid var(--border-primary);
+  background-color: var(--bg-primary);
+}
+
+.backup-manager .form-check-input:checked {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.backup-manager .form-check-label {
+  color: var(--text-primary);
+  margin-left: 0.5rem;
+}
+
+.backup-manager .form-range {
+  background: transparent;
+}
+
+.backup-manager .form-range::-webkit-slider-track {
+  background-color: var(--border-primary);
+  height: 6px;
+  border-radius: 3px;
+}
+
+.backup-manager .form-range::-webkit-slider-thumb {
+  background-color: var(--primary);
+  border: none;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* Alert Styles */
+.backup-manager .alert {
+  border-radius: 8px;
+  border: none;
+  margin-bottom: 1rem;
+}
+
+.backup-manager .alert-danger {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #dc3545;
+  border-left: 4px solid #dc3545;
+}
+
+.backup-manager .alert-success {
+  background-color: rgba(40, 167, 69, 0.1);
+  color: #28a745;
+  border-left: 4px solid #28a745;
+}
+
+.backup-manager .alert-warning {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #856404;
+  border-left: 4px solid #ffc107;
+}
+
+/* Spinner Styles */
+.backup-manager .spinner-border {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.125em;
+}
+
+/* Empty State */
+.backup-manager .text-center i {
+  opacity: 0.5;
+}
+
+/* Action Buttons Container */
+.backup-manager .d-flex.gap-2 {
+  gap: 0.5rem !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .backup-manager {
+    padding: 0.5rem;
+  }
+  
+  .backup-manager .table-responsive {
+    font-size: 0.875rem;
+  }
+  
+  .backup-manager .btn-sm {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.75rem;
+  }
+  
+  .backup-manager .card h4 {
+    font-size: 1.5rem;
+  }
+  
+  .backup-manager .modal-lg {
+    max-width: 95%;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .backup-manager .card {
+    background-color: var(--bg-secondary);
+    border-color: var(--border-secondary);
+  }
+  
+  .backup-manager .table {
+    color: var(--text-primary);
+  }
+  
+  .backup-manager .table th {
+    background-color: var(--bg-tertiary);
+  }
+  
+  .backup-manager .modal-content {
+    background-color: var(--bg-secondary);
+  }
+}
+
+/* Animation for loading states */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.backup-manager .loading {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Status badges custom colors */
+.backup-manager .badge.bg-success {
+  background-color: #28a745 !important;
+}
+
+.backup-manager .badge.bg-danger {
+  background-color: #dc3545 !important;
+}
+
+.backup-manager .badge.bg-warning {
+  background-color: #ffc107 !important;
+  color: #212529 !important;
+}
+
+.backup-manager .badge.bg-info {
+  background-color: #17a2b8 !important;
+}
+
+.backup-manager .badge.bg-secondary {
+  background-color: #6c757d !important;
+}

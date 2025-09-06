@@ -1,0 +1,345 @@
+/* DoctorLayout.css */
+
+.doctor-layout {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* Main Content Area */
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  transition: margin-left 0.5s ease;
+  background-color: #ffffff;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.main-content.sidebar-open {
+  margin-left: 260px;
+}
+
+.main-content.sidebar-closed {
+  margin-left: 78px;
+}
+
+/* Content Area */
+.content-area {
+  flex: 1;
+  padding: 25px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #f8f9fa;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Default modal content styles - will be overridden by specific components */
+.doctor-layout .modal-content,
+.modal-overlay .modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  animation: slideIn 0.3s ease;
+}
+
+/* Don't override Bootstrap modal sizing */
+.modal.show .modal-dialog .modal-content {
+  background: white !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Small modal for simple dialogs */
+.doctor-layout .modal-content.modal-small,
+.modal-overlay .modal-content.modal-small {
+  max-width: 400px !important;
+}
+
+/* Medium modal for forms */
+.doctor-layout .modal-content.modal-medium,
+.modal-overlay .modal-content.modal-medium {
+  max-width: 600px !important;
+}
+
+/* Large modal for detailed content */
+.doctor-layout .modal-content.modal-large,
+.modal-overlay .modal-content.modal-large {
+  max-width: 800px !important;
+}
+
+/* Extra large modal for complex interfaces */
+.doctor-layout .modal-content.modal-xlarge,
+.modal-overlay .modal-content.modal-xlarge {
+  max-width: 1000px !important;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #212529;
+}
+
+.close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  color: #6c757d;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.close-btn:hover {
+  background: #f8f9fa;
+  color: #212529;
+}
+
+.close-btn i {
+  font-size: 1.2rem;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.modal-body p {
+  margin: 0;
+  color: #495057;
+  line-height: 1.5;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px;
+  border-top: 1px solid #e9ecef;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #5a6268;
+}
+
+.btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover {
+  background: #c82333;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Loading States */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+/* Scrollbar Styling */
+.content-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.content-area::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.content-area::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.content-area::-webkit-scrollbar-thumb:hover {
+  background: #a1a1a1;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+  }
+  
+  .main-content.sidebar-open {
+    margin-left: 0;
+  }
+  
+  .main-content.sidebar-closed {
+    margin-left: 0;
+  }
+  
+  .content-area {
+    padding: 15px;
+  }
+  
+  .modal-content {
+    margin: 20px;
+    width: calc(100% - 40px);
+  }
+
+  /* Responsive modal sizing for tablets */
+  .doctor-layout .modal-content.modal-small,
+  .modal-overlay .modal-content.modal-small {
+    max-width: 90% !important;
+  }
+
+  .doctor-layout .modal-content.modal-medium,
+  .modal-overlay .modal-content.modal-medium {
+    max-width: 95% !important;
+  }
+
+  .doctor-layout .modal-content.modal-large,
+  .modal-overlay .modal-content.modal-large,
+  .doctor-layout .modal-content.modal-xlarge,
+  .modal-overlay .modal-content.modal-xlarge {
+    max-width: 98% !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .content-area {
+    padding: 10px;
+  }
+  
+  .modal-header,
+  .modal-body,
+  .modal-footer {
+    padding: 15px;
+  }
+  
+  .modal-footer {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .modal-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Mobile responsive modal sizing - all modals use full width on mobile */
+  .doctor-layout .modal-content,
+  .modal-overlay .modal-content,
+  .doctor-layout .modal-content.modal-small,
+  .modal-overlay .modal-content.modal-small,
+  .doctor-layout .modal-content.modal-medium,
+  .modal-overlay .modal-content.modal-medium,
+  .doctor-layout .modal-content.modal-large,
+  .modal-overlay .modal-content.modal-large,
+  .doctor-layout .modal-content.modal-xlarge,
+  .modal-overlay .modal-content.modal-xlarge {
+    max-width: 95% !important;
+    margin: 10px;
+    width: calc(100% - 20px);
+  }
+}
+
+/* Performance Optimizations */
+.doctor-layout * {
+  box-sizing: border-box;
+}
+
+.content-area {
+  contain: layout style;
+}
+
+/* Focus States for Accessibility */
+.btn:focus,
+.close-btn:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Print Styles */
+@media print {
+  .doctor-layout {
+    display: block;
+  }
+  
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+  }
+  
+  .modal-overlay {
+    display: none;
+  }
+}

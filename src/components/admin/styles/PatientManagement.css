@@ -1,0 +1,834 @@
+/* PatientManagement.css */
+
+.patient-management {
+  padding: 20px;
+  background-color: var(--bg-primary);
+}
+
+.management-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.management-title {
+  color: var(--text-primary);
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.5rem;
+}
+
+.management-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Override CheckupManager button styles for management actions */
+.management-actions .btn {
+  padding: 0.375rem 0.75rem !important;
+  margin: 0 !important;
+  border-radius: 0.375rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  vertical-align: middle !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  border: 1px solid transparent !important;
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+  display: inline-block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.management-actions .btn-primary {
+  color: #fff !important;
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+}
+
+.management-actions .btn-primary:hover {
+  color: #fff !important;
+  background-color: #0b5ed7 !important;
+  border-color: #0a58ca !important;
+}
+
+.management-actions .btn-success {
+  color: #fff !important;
+  background-color: #198754 !important;
+  border-color: #198754 !important;
+}
+
+.management-actions .btn-success:hover {
+  color: #fff !important;
+  background-color: #157347 !important;
+  border-color: #146c43 !important;
+}
+
+.management-actions .btn-outline-secondary {
+  color: #6c757d !important;
+  background-color: transparent !important;
+  border-color: #6c757d !important;
+}
+
+.management-actions .btn-outline-secondary:hover {
+  color: #fff !important;
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+}
+
+.management-actions .btn:disabled {
+  opacity: 0.65 !important;
+  cursor: not-allowed !important;
+}
+
+.management-actions .btn i {
+  margin-right: 0.25rem !important;
+}
+
+/* Bootstrap spacing overrides for management actions */
+.management-actions .ms-2 {
+  margin-left: 0.5rem !important;
+}
+
+.management-actions .me-1 {
+  margin-right: 0.25rem !important;
+}
+
+/* Ensure proper button spacing and layout */
+.management-actions > * {
+  flex-shrink: 0;
+}
+
+/* Make sure buttons are always visible */
+.management-actions .btn {
+  min-width: auto !important;
+  min-height: auto !important;
+  white-space: nowrap !important;
+}
+
+/* Auto Login button specific styling - Override CheckupManager conflicts */
+.auto-login-btn {
+  background-color: #ffc107 !important;
+  border-color: #ffc107 !important;
+  color: #000 !important;
+  padding: 0.375rem 0.75rem !important;
+  margin: 0 !important;
+  border-radius: 0.375rem !important;
+  font-weight: 500 !important;
+  line-height: 1.5 !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  vertical-align: middle !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  border: 1px solid transparent !important;
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+  display: inline-block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  white-space: nowrap !important;
+}
+
+.auto-login-btn:hover {
+  background-color: #e0a800 !important;
+  border-color: #d39e00 !important;
+  color: #000 !important;
+  transform: translateY(-1px) !important;
+}
+
+.auto-login-btn:focus {
+  background-color: #e0a800 !important;
+  border-color: #d39e00 !important;
+  color: #000 !important;
+  box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25) !important;
+}
+
+.auto-login-btn:active {
+  background-color: #d39e00 !important;
+  border-color: #c69500 !important;
+  color: #000 !important;
+}
+
+.auto-login-btn i {
+  margin-right: 0.25rem !important;
+  color: #000 !important;
+}
+
+/* Ensure button is visible in modal context */
+.modal-body .auto-login-btn {
+  z-index: 1 !important;
+  position: relative !important;
+}
+
+/* Override CheckupManager button styles for all modal buttons */
+.patient-management .modal-body .btn {
+  padding: 0.375rem 0.75rem !important;
+  margin: 0 !important;
+  border-radius: 0.375rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  vertical-align: middle !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  border: 1px solid transparent !important;
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+  display: inline-block !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  white-space: nowrap !important;
+}
+
+.patient-management .modal-body .btn-warning {
+  color: #000 !important;
+  background-color: #ffc107 !important;
+  border-color: #ffc107 !important;
+}
+
+.patient-management .modal-body .btn-warning:hover {
+  color: #000 !important;
+  background-color: #e0a800 !important;
+  border-color: #d39e00 !important;
+}
+
+.patient-management .modal-body .btn-outline-success {
+  color: #198754 !important;
+  background-color: transparent !important;
+  border-color: #198754 !important;
+}
+
+.patient-management .modal-body .btn-outline-success:hover {
+  color: #fff !important;
+  background-color: #198754 !important;
+  border-color: #198754 !important;
+}
+
+.patient-management .modal-body .btn-outline-primary {
+  color: #0d6efd !important;
+  background-color: transparent !important;
+  border-color: #0d6efd !important;
+}
+
+.patient-management .modal-body .btn-outline-primary:hover {
+  color: #fff !important;
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+}
+
+.patient-management .modal-body .btn i {
+  margin-right: 0.25rem !important;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  color: #6c757d;
+  z-index: 2;
+}
+
+.search-input {
+  padding: 8px 8px 8px 35px;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+  font-size: 14px;
+  width: 250px;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.data-table {
+  margin-bottom: 0;
+  background-color: white;
+}
+
+.data-table thead th {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+  color: #495057;
+  padding: 12px 8px;
+  vertical-align: middle;
+}
+
+.data-table tbody td {
+  padding: 12px 8px;
+  vertical-align: middle;
+  border-top: 1px solid #dee2e6;
+}
+
+.data-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.action-cell {
+  white-space: nowrap;
+}
+
+.action-cell .btn {
+  margin: 0 2px;
+}
+
+/* Unsorted Members Section */
+.unsorted-section {
+  padding: 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.section-info h4 {
+  color: #495057;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.section-info p {
+  color: #6c757d;
+  margin: 0;
+  font-size: 14px;
+}
+
+.section-actions {
+  flex-shrink: 0;
+}
+
+/* Empty state for unsorted members */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #6c757d;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.empty-state i {
+  font-size: 64px;
+  margin-bottom: 20px;
+  color: #28a745;
+  opacity: 0.8;
+}
+
+.empty-state h4 {
+  margin-bottom: 12px;
+  color: #495057;
+  font-weight: 600;
+}
+
+.empty-state p {
+  color: #6c757d;
+  font-size: 16px;
+}
+
+/* Form styling improvements */
+.form-control:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-select:focus {
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Patient form cards */
+.modal-body .card {
+  border: 1px solid #dee2e6;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.modal-body .card-header {
+  border-bottom: 1px solid #dee2e6;
+  font-weight: 600;
+}
+
+.modal-body .card-header i {
+  color: #007bff;
+}
+
+/* Required field indicator */
+.text-danger {
+  color: #dc3545 !important;
+}
+
+/* Auto-calculated fields */
+.form-control.bg-light {
+  background-color: #f8f9fa !important;
+  cursor: not-allowed;
+}
+
+/* Loading animation for refresh button */
+.rotate {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .management-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .management-actions {
+    justify-content: center;
+  }
+  
+  .search-input {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .action-cell .d-flex {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  .action-cell .btn {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+  
+  .section-actions {
+    align-self: center;
+    margin-top: 15px;
+  }
+}
+
+/* Tab styling */
+.nav-tabs {
+  border-bottom: 2px solid #dee2e6;
+}
+
+.nav-tabs .nav-item .nav-link {
+  border: none;
+  color: #6c757d;
+  font-weight: 500;
+  padding: 12px 20px;
+  transition: all 0.15s ease-in-out;
+}
+
+.nav-tabs .nav-item .nav-link:hover {
+  color: #0056b3;
+  background-color: #f8f9fa;
+}
+
+.nav-tabs .nav-item .nav-link.active {
+  color: #0056b3;
+  background-color: transparent;
+  border-bottom: 2px solid #0056b3;
+  font-weight: 600;
+}
+
+/* Alert styling */
+.alert {
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Modal improvements - Final Centering Fix */
+.patient-management .modal-dialog {
+  margin: 1.75rem auto;
+}
+
+.patient-management .modal-dialog.modal-xl {
+  max-width: 1200px;
+  width: 90vw;
+}
+
+.patient-management .modal-content {
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  border: none;
+}
+
+.patient-management .modal-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
+}
+
+.patient-management .modal-title {
+  color: #495057;
+  font-weight: 600;
+  font-size: 1.5rem;
+}
+
+.patient-management .modal-body {
+  padding: 1.5rem;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.patient-management .modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+}
+
+/* Button improvements */
+.btn {
+  border-radius: 5px;
+  font-weight: 500;
+  transition: all 0.15s ease-in-out;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.btn-primary:hover {
+  background-color: #0056b3;
+  border-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+.btn-success {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+
+.btn-success:hover {
+  background-color: #1e7e34;
+  border-color: #1e7e34;
+  transform: translateY(-1px);
+}
+
+.btn-outline-primary:hover {
+  transform: translateY(-1px);
+}
+
+.btn-outline-success:hover {
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  transform: none;
+}
+
+/* Patient details modal styling */
+.modal-body .card-header.bg-primary {
+  background-color: #007bff !important;
+  color: white !important;
+}
+
+.modal-body .card-body p {
+  margin-bottom: 8px;
+}
+
+.modal-body .card-body p strong {
+  color: #495057;
+  display: inline-block;
+  min-width: 120px;
+}
+
+/* Form layout improvements */
+.modal-body .row.mb-3:last-child {
+  margin-bottom: 0 !important;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-text {
+  font-size: 0.875em;
+  margin-top: 0.25rem;
+}
+
+/* Form layout improvements */
+.patient-management .modal-body .row.mb-3:last-child {
+  margin-bottom: 0 !important;
+}
+
+.patient-management .form-group {
+  margin-bottom: 1rem;
+}
+
+.patient-management .form-text {
+  font-size: 0.875em;
+  margin-top: 0.25rem;
+}
+
+/* Responsive modal sizing */
+@media (max-width: 1400px) {
+  .patient-management .modal-dialog {
+    width: 95vw !important;
+  }
+}
+
+@media (max-width: 992px) {
+  .patient-management .modal-dialog {
+    width: 98vw !important;
+    max-width: 800px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .patient-management .modal-dialog {
+    width: 100vw !important;
+    margin: 0 !important;
+    max-width: none !important;
+  }
+  
+  .patient-management .modal-body {
+    padding: 1rem;
+  }
+}
+
+/* Bootstrap Modal Z-Index Fix */
+.patient-management .modal {
+  z-index: 10005 !important;
+}
+
+.patient-management .modal-backdrop {
+  z-index: 10004 !important;
+}
+
+/* Ensure modals are properly positioned and above all content */
+.modal.show {
+  z-index: 10005 !important;
+}
+
+.modal-backdrop.show {
+  z-index: 10004 !important;
+}
+
+/* Fix for modals appearing below content */
+.modal-dialog {
+  z-index: 10006 !important;
+  position: relative;
+}
+
+/* Global Bootstrap Modal Fix - Ensure all modals appear above everything */
+.modal {
+  z-index: 10005 !important;
+}
+
+.modal-backdrop {
+  z-index: 10004 !important;
+}
+
+/* QR Modal Enhancements */
+.modal-lg .modal-body {
+  padding: 2rem !important;
+}
+
+#qr-code-container {
+  transition: all 0.3s ease !important;
+}
+
+#qr-code-container:hover {
+  transform: scale(1.02) !important;
+}
+
+.modal .card {
+  border: 1px solid #e9ecef !important;
+  border-radius: 8px !important;
+}
+
+.modal .card-header {
+  background-color: #f8f9fa !important;
+  border-bottom: 1px solid #e9ecef !important;
+  padding: 0.75rem 1rem !important;
+}
+
+.modal .card-body {
+  padding: 1rem !important;
+}
+
+.modal .alert-info {
+  background-color: #e7f3ff !important;
+  border-color: #b8daff !important;
+  color: #0c5460 !important;
+}
+
+/* Modal specific button styles */
+.modal-footer .btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 8px 16px !important;
+  margin: 0 4px !important;
+  border-radius: 6px !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  text-decoration: none !important;
+  border: 1px solid transparent !important;
+  transition: all 0.15s ease-in-out !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+.modal-footer .btn-info {
+  background-color: #0dcaf0 !important;
+  border-color: #0dcaf0 !important;
+  color: #000000 !important;
+}
+
+.modal-footer .btn-info:hover {
+  background-color: #31d2f2 !important;
+  border-color: #25cff2 !important;
+  color: #000000 !important;
+}
+
+.modal-footer .btn-outline-info {
+  color: #0dcaf0 !important;
+  border-color: #0dcaf0 !important;
+  background-color: transparent !important;
+}
+
+.modal-footer .btn-outline-info:hover {
+  background-color: #0dcaf0 !important;
+  border-color: #0dcaf0 !important;
+  color: #000000 !important;
+}
+
+.modal-footer .btn-secondary {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: #ffffff !important;
+}
+
+.modal-footer .btn-secondary:hover {
+  background-color: #5c636a !important;
+  border-color: #565e64 !important;
+  color: #ffffff !important;
+}
+
+/* Autosort Results Modal Styles */
+.bg-light-success {
+  background-color: #d4edda !important;
+  border-color: #c3e6cb !important;
+}
+
+.bg-light-warning {
+  background-color: #fff3cd !important;
+  border-color: #ffeaa7 !important;
+}
+
+/* Pagination Styles */
+.pagination-container {
+  padding: 15px 20px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  border-radius: 0 0 0.375rem 0.375rem;
+}
+
+.pagination-info {
+  color: #6c757d;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pagination-controls .btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 6px 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease-in-out;
+}
+
+.pagination-controls .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pagination-controls .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.pagination-controls .btn-primary {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+  color: white;
+}
+
+.pagination-controls .btn-outline-secondary {
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.pagination-controls .btn-outline-secondary:hover:not(:disabled) {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: white;
+}
+
+/* Responsive Pagination */
+@media (max-width: 768px) {
+  .pagination-container {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
+  
+  .pagination-controls {
+    justify-content: center;
+  }
+  
+  .pagination-info {
+    order: 2;
+  }
+}

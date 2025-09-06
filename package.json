@@ -4,13 +4,18 @@
   "private": true,
   "proxy": "http://localhost:5000",
   "dependencies": {
+    "@tanstack/react-query": "^5.85.5",
+    "@tanstack/react-query-devtools": "^5.85.5",
     "@testing-library/jest-dom": "^5.16.4",
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^13.5.0",
-    "axios": "^1.8.4",
-    "bootstrap": "^5.3.6",
+    "axios": "^1.11.0",
+    "bootstrap": "^5.3.7",
     "bootstrap-icons": "^1.13.1",
-    "chart.js": "^4.4.9",
+    "chart.js": "^4.5.0",
+    "mysql2": "^3.14.3",
+    "node-fetch": "^2.7.0",
+    "puppeteer": "^24.19.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-bootstrap": "^2.10.10",
@@ -21,14 +26,22 @@
     "react-router-dom": "^7.6.2",
     "react-scripts": "5.0.1",
     "react-to-print": "^3.1.1",
+    "react-window": "^1.8.11",
+    "react-window-infinite-loader": "^1.0.10",
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-app-rewired start",
+    "start": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096\" react-app-rewired start",
     "build": "react-app-rewired build",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject",
-    "analyze": "npm run build && npx webpack-bundle-analyzer build/static/js/*.js"
+    "analyze": "npm run build && npx webpack-bundle-analyzer build/static/js/*.js",
+    "clear-data": "node scripts/clearPatientData.js",
+    "clear-data-dev": "node scripts/clearPatientData.js --dev",
+    "reset-database": "node scripts/clearPatientData.js",
+    "setup-database": "node scripts/setupDatabase.js",
+    "generate-families": "node scripts/generateFamilies.js",
+    "setup-demo-data": "node scripts/setupDatabase.js && node scripts/generateFamilies.js"
   },
   "eslintConfig": {
     "extends": [
@@ -51,6 +64,7 @@
   "devDependencies": {
     "ajv": "^8.0.0",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^7.0.3",
     "postcss-preset-env": "^10.2.4",
     "react-app-rewired": "^2.2.1",
     "webpack-bundle-analyzer": "^4.10.2"

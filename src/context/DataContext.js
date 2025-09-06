@@ -72,15 +72,26 @@ export const DataProvider = ({ children }) => {
     loadFromLocalStorage('sharedCheckupsData', [])
   );
 
-  // Simulation mode status - shared between admin and doctor dashboards
-  const [simulationModeStatus, setSimulationModeStatus] = useState(() => 
-    loadFromLocalStorage('simulationModeStatus', {
-      enabled: false,
-      currentSimulatedDate: null,
-      activatedBy: null,
-      activatedAt: null
-    })
+  // Doctor checkups data - specific to doctor dashboard
+  const [doctorCheckupsData, setDoctorCheckupsData] = useState(() => 
+    loadFromLocalStorage('doctorCheckupsData', [])
   );
+
+  // Simulation mode status - shared between admin and doctor dashboards (handled locally in components)
+  // const [simulationModeStatus, setSimulationModeStatus] = useState(() => 
+  //   loadFromLocalStorage('simulationModeStatus', {
+  //     enabled: false,
+  //     currentSimulatedDate: null,
+  //     activatedBy: null,
+  //     activatedAt: null
+  //   })
+  // );
+
+  // Backend connection status
+  const [backendConnected, setBackendConnected] = useState(false);
+
+  // Connection check interval ref
+  const connectionCheckRef = useRef(null);
 
   // Debounced localStorage save function
   const saveTimeouts = useRef({});
@@ -98,6 +109,12 @@ export const DataProvider = ({ children }) => {
 
   // Function to fetch unsorted members from the backend
   const fetchUnsortedMembers = async () => {
+    // PREVENT LOOP: Only fetch if authenticated
+    if (!window.__authToken) {
+      console.log('No auth token, skipping unsorted members fetch');
+      return;
+    }
+    
     try {
       const members = await adminService.getUnsortedMembers();
       setUnsortedMembersData(members);
@@ -109,6 +126,12 @@ export const DataProvider = ({ children }) => {
 
   // Function to fetch all patients from the backend
   const fetchAllPatients = async () => {
+    // PREVENT LOOP: Only fetch if authenticated
+    if (!window.__authToken) {
+      console.log('No auth token, skipping patients fetch');
+      return [];
+    }
+    
     try {
       console.log('Fetching patients from backend...');
       const patients = await patientService.getAllPatients();
@@ -122,21 +145,55 @@ export const DataProvider = ({ children }) => {
     }
   };
 
+  // Function to fetch all families from the backend
+  const fetchAllFamilies = async () => {
+    // PREVENT LOOP: Only fetch if authenticated
+    if (!window.__authToken) {
+      console.log('No auth token, skipping families fetch');
+      return [];
+    }
+    
+    try {
+      console.log('Fetching families from backend...');
+      console.log('Auth token available:', !!window.__authToken);
+      const families = await adminService.getAllFamilies();
+      console.log('Received families from backend:', families);
+      setFamiliesData(families);
+      return families;
+    } catch (error) {
+      console.error("Failed to fetch families:", error);
+      console.error("Error details:", {
+        status: error.response?.status,
+        message: error.message,
+        data: error.response?.data
+      });
+      // Keep existing localStorage data if API fails
+      return [];
+    }
+  };
+
   // Function to fetch initial data from backend
   const fetchInitialData = async () => {
+    // PREVENT LOOP: Only fetch data if user is authenticated
+    if (!window.__authToken) {
+      console.log('No auth token found, skipping data fetch to prevent loops');
+      return;
+    }
+    
     try {
       console.log('Fetching initial data from backend...');
       
       // Fetch patients and unsorted members in parallel
-      const [patients, unsortedMembers] = await Promise.all([
+      const [patients, families, unsortedMembers] = await Promise.all([
         fetchAllPatients(),
+        fetchAllFamilies(),
         adminService.getUnsortedMembers().catch(err => {
           console.error('Failed to fetch unsorted members:', err);
           return [];
         })
       ]);
       
-      console.log('Initial data fetched:', { patients, unsortedMembers });
+      console.log('Initial data fetched:', { patients, families, unsortedMembers });
       setUnsortedMembersData(unsortedMembers);
       
     } catch (error) {
@@ -144,24 +201,25 @@ export const DataProvider = ({ children }) => {
     }
   };
 
-  // Fetch initial data when the component mounts
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
+  // Fetch initial data when the component mounts - DISABLED TO PREVENT LOOPS
+  // useEffect(() => {
+  //   fetchInitialData();
+  // }, []);
 
   // Listen for changes in localStorage from other tabs to sync state
   useEffect(() => {
     const handleStorageChange = (event) => {
-      if (event.key === 'simulationModeStatus') {
-        try {
-          const newValue = JSON.parse(event.newValue);
-          if (newValue) {
-            setSimulationModeStatus(newValue);
-          }
-        } catch (error) {
-          console.error('Error parsing simulationModeStatus from localStorage:', error);
-        }
-      }
+      // NOTE: simulationModeStatus is now handled locally in DoctorLayout to prevent infinite loops
+      // if (event.key === 'simulationModeStatus') {
+      //   try {
+      //     const newValue = JSON.parse(event.newValue);
+      //     if (newValue) {
+      //       setSimulationModeStatus(newValue);
+      //     }
+      //   } catch (error) {
+      //     console.error('Error parsing simulationModeStatus from localStorage:', error);
+      //   }
+      // }
     };
 
     window.addEventListener('storage', handleStorageChange);
@@ -171,45 +229,45 @@ export const DataProvider = ({ children }) => {
     };
   }, []);
 
-  // Auto-authenticate for testing (if no auth token exists)
-  useEffect(() => {
-    const setupAuth = async () => {
-      const authData = JSON.parse(localStorage.getItem('auth'));
-      if (!authData || !authData.token) {
-        try {
-          console.log('Setting up authentication...');
-          const response = await fetch('http://localhost:5000/api/auth/login', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              login: 'admin',
-              password: 'admin123'
-            })
-          });
-          
-          if (response.ok) {
-            const data = await response.json();
-            localStorage.setItem('auth', JSON.stringify({
-              token: data.token,
-              user: data.user
-            }));
-            console.log('Authentication setup complete');
-            
-            // Refresh data after authentication
-            setTimeout(() => {
-              fetchInitialData();
-            }, 1000);
-          }
-        } catch (error) {
-          console.error('Authentication setup failed:', error);
-        }
-      }
-    };
-    
-    setupAuth();
-  }, []);
+  // Auto-authenticate for testing (if no auth token exists) - DISABLED TO PREVENT LOOPS
+  // useEffect(() => {
+  //   const setupAuth = async () => {
+  //     const authData = JSON.parse(localStorage.getItem('auth'));
+  //     if (!authData || !authData.token) {
+  //       try {
+  //         console.log('Setting up authentication...');
+  //         const response = await fetch('http://localhost:5000/api/auth/login', {
+  //           method: 'POST',
+  //           headers: {
+  //             'Content-Type': 'application/json',
+  //           },
+  //           body: JSON.stringify({
+  //             login: 'admin',
+  //             password: 'admin123'
+  //           })
+  //         });
+  //         
+  //         if (response.ok) {
+  //           const data = await response.json();
+  //           localStorage.setItem('auth', JSON.stringify({
+  //             token: data.token,
+  //             user: data.user
+  //           }));
+  //           console.log('Authentication setup complete');
+  //           
+  //           // Refresh data after authentication
+  //           setTimeout(() => {
+  //             fetchInitialData();
+  //           }, 1000);
+  //         }
+  //       } catch (error) {
+  //         console.error('Authentication setup failed:', error);
+  //       }
+  //     }
+  //   };
+  //   
+  //   setupAuth();
+  // }, []);
 
   // Analytics/Reports data
   const [analyticsData, setAnalyticsData] = useState(() => 
@@ -254,8 +312,13 @@ export const DataProvider = ({ children }) => {
   }, [sharedCheckupsData, debouncedSave]);
 
   useEffect(() => {
-    debouncedSave('simulationModeStatus', simulationModeStatus);
-  }, [simulationModeStatus, debouncedSave]);
+    debouncedSave('doctorCheckupsData', doctorCheckupsData);
+  }, [doctorCheckupsData, debouncedSave]);
+
+  // NOTE: simulationModeStatus is now handled locally in DoctorLayout to prevent infinite loops
+  // useEffect(() => {
+  //   debouncedSave('simulationModeStatus', simulationModeStatus);
+  // }, [simulationModeStatus, debouncedSave]);
 
   useEffect(() => {
     debouncedSave('analyticsData', analyticsData);
@@ -470,30 +533,451 @@ export const DataProvider = ({ children }) => {
     );
   };
 
-  // Simulation mode management functions
-  const updateSimulationMode = (simulationData, userId = 'admin') => {
-    setSimulationModeStatus({
-      enabled: simulationData.enabled,
-      currentSimulatedDate: simulationData.currentSimulatedDate,
-      activatedBy: userId,
-      activatedAt: simulationData.enabled ? new Date().toISOString() : null,
-      smsSimulation: simulationData.smsSimulation,
-      emailSimulation: simulationData.emailSimulation,
-      dataSimulation: simulationData.dataSimulation
-    });
-  };
+  // Real-time synchronization functions for optimized queue management
+  const refreshDoctorQueue = useCallback(async () => {
+    console.log('DataContext: refreshDoctorQueue called');
+    if (!window.__authToken) {
+      console.log('DataContext: No auth token, skipping doctor queue refresh');
+      return;
+    }
 
-  const disableSimulationMode = () => {
-    setSimulationModeStatus({
-      enabled: false,
-      currentSimulatedDate: null,
-      activatedBy: null,
-      activatedAt: null,
-      smsSimulation: false,
-      emailSimulation: false,
-      dataSimulation: false
-    });
-  };
+    try {
+      console.log('DataContext: Making API call to /api/doctor/queue');
+      const response = await fetch('/api/doctor/queue', {
+        headers: {
+          'Authorization': `Bearer ${window.__authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const queueData = await response.json();
+        console.log('DataContext: Received queue data:', queueData);
+        setDoctorQueueData(queueData);
+      } else {
+        console.warn('DataContext: Failed to refresh doctor queue:', response.status);
+      }
+    } catch (error) {
+      console.error('DataContext: Error refreshing doctor queue:', error);
+    }
+  }, []);
+
+  const refreshTodaysCheckups = useCallback(async () => {
+    if (!window.__authToken) {
+      console.log('No auth token, skipping checkups refresh');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/checkups/today', {
+        headers: {
+          'Authorization': `Bearer ${window.__authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const checkupsData = await response.json();
+        setSharedCheckupsData(checkupsData);
+      } else {
+        console.warn('Failed to refresh today\'s checkups:', response.status);
+      }
+    } catch (error) {
+      console.error('Error refreshing today\'s checkups:', error);
+    }
+  }, []);
+
+  // Doctor checkups management functions
+  const refreshDoctorCheckups = useCallback(async () => {
+    console.log('DataContext: refreshDoctorCheckups called');
+    if (!window.__authToken) {
+      console.log('DataContext: No auth token, skipping doctor checkups refresh');
+      return;
+    }
+
+    try {
+      console.log('DataContext: Making API call to /api/doctor/checkups');
+      const response = await fetch('/api/doctor/checkups', {
+        headers: {
+          'Authorization': `Bearer ${window.__authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const checkupsData = await response.json();
+        console.log('DataContext: Received doctor checkups data:', checkupsData);
+        setDoctorCheckupsData(checkupsData);
+      } else {
+        console.warn('DataContext: Failed to refresh doctor checkups:', response.status);
+      }
+    } catch (error) {
+      console.error('DataContext: Error refreshing doctor checkups:', error);
+    }
+  }, []);
+
+  const updateCheckupStatus = useCallback(async (checkupId, status, additionalData = {}) => {
+    console.log('DataContext: updateCheckupStatus called', { checkupId, status, additionalData });
+    
+    try {
+      // Update local state first for immediate UI feedback
+      setDoctorCheckupsData(prev => 
+        prev.map(checkup => 
+          checkup.id === checkupId 
+            ? { ...checkup, status, ...additionalData }
+            : checkup
+        )
+      );
+
+      // Then sync with backend
+      const response = await fetch(`/api/checkups/${checkupId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${window.__authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status, ...additionalData })
+      });
+
+      if (response.ok) {
+        const updatedCheckup = await response.json();
+        console.log('DataContext: Checkup status updated successfully:', updatedCheckup);
+        
+        // Update with server response
+        setDoctorCheckupsData(prev => 
+          prev.map(checkup => 
+            checkup.id === checkupId 
+              ? updatedCheckup
+              : checkup
+          )
+        );
+        
+        return { success: true, data: updatedCheckup };
+      } else {
+        console.warn('DataContext: Failed to update checkup status:', response.status);
+        // Revert local state on failure
+        await refreshDoctorCheckups();
+        return { success: false, error: 'Failed to update checkup status' };
+      }
+    } catch (error) {
+      console.error('DataContext: Error updating checkup status:', error);
+      // Revert local state on error
+      await refreshDoctorCheckups();
+      return { success: false, error: error.message };
+    }
+  }, [refreshDoctorCheckups]);
+
+  const startCheckupSession = useCallback(async (patientData) => {
+    console.log('DataContext: startCheckupSession called', patientData);
+    
+    try {
+      const checkupData = {
+        patientId: patientData.patientId,
+        patientName: patientData.patientName,
+        age: patientData.age,
+        gender: patientData.gender,
+        contactNumber: patientData.contactNumber,
+        serviceType: patientData.serviceType,
+        priority: patientData.priority,
+        status: 'started',
+        startedAt: new Date().toISOString(),
+        notes: patientData.notes || ''
+      };
+
+      console.log('DataContext: Creating checkup with data:', checkupData);
+
+      // Add to local state immediately for optimistic UI
+      const newCheckup = {
+        ...checkupData,
+        id: Date.now(), // Temporary ID
+      };
+      
+      console.log('DataContext: Adding checkup to local state:', newCheckup);
+      setDoctorCheckupsData(prev => {
+        const updated = [...prev, newCheckup];
+        console.log('DataContext: Updated doctorCheckupsData:', updated);
+        return updated;
+      });
+
+      // Also update shared checkups data for analytics
+      setSharedCheckupsData(prev => {
+        const updated = [...prev, newCheckup];
+        console.log('DataContext: Updated sharedCheckupsData for analytics:', updated);
+        return updated;
+      });
+
+      // Sync with backend
+      const response = await fetch('/api/checkups', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.__authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(checkupData)
+      });
+
+      if (response.ok) {
+        const createdCheckup = await response.json();
+        console.log('DataContext: Checkup session created successfully:', createdCheckup);
+        
+        // Update with server response (replace temporary ID)
+        setDoctorCheckupsData(prev => {
+          const updated = prev.map(checkup => 
+            checkup.id === newCheckup.id 
+              ? createdCheckup
+              : checkup
+          );
+          console.log('DataContext: Updated with server response:', updated);
+          return updated;
+        });
+
+        // Also update shared checkups data
+        setSharedCheckupsData(prev => {
+          const updated = prev.map(checkup => 
+            checkup.id === newCheckup.id 
+              ? createdCheckup
+              : checkup
+          );
+          console.log('DataContext: Updated sharedCheckupsData with server response:', updated);
+          return updated;
+        });
+        
+        return { success: true, data: createdCheckup };
+      } else {
+        console.warn('DataContext: Failed to create checkup session:', response.status);
+        // Remove from local state on failure
+        setDoctorCheckupsData(prev => 
+          prev.filter(checkup => checkup.id !== newCheckup.id)
+        );
+        return { success: false, error: 'Failed to create checkup session' };
+      }
+    } catch (error) {
+      console.error('DataContext: Error creating checkup session:', error);
+      return { success: false, error: error.message };
+    }
+  }, []);
+
+  // Update checkup notes and prescriptions
+  const updateCheckupNotes = useCallback(async (checkupId, notes, prescriptions = []) => {
+    console.log('DataContext: updateCheckupNotes called', { checkupId, notes, prescriptions });
+    
+    try {
+      // Update local state first for immediate UI feedback
+      setDoctorCheckupsData(prev => 
+        prev.map(checkup => 
+          checkup.id === checkupId 
+            ? { ...checkup, notes, prescriptions }
+            : checkup
+        )
+      );
+
+      // Then sync with backend
+      const response = await fetch(`/api/checkups/${checkupId}/notes`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${window.__authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ notes, prescriptions })
+      });
+
+      if (response.ok) {
+        const updatedCheckup = await response.json();
+        console.log('DataContext: Checkup notes updated successfully:', updatedCheckup);
+        
+        // Update with server response
+        setDoctorCheckupsData(prev => 
+          prev.map(checkup => 
+            checkup.id === checkupId 
+              ? updatedCheckup
+              : checkup
+          )
+        );
+        
+        return { success: true, data: updatedCheckup };
+      } else {
+        console.warn('DataContext: Failed to update checkup notes:', response.status);
+        // Revert local state on failure
+        await refreshDoctorCheckups();
+        return { success: false, error: 'Failed to update checkup notes' };
+      }
+    } catch (error) {
+      console.error('DataContext: Error updating checkup notes:', error);
+      // Revert local state on error
+      await refreshDoctorCheckups();
+      return { success: false, error: error.message };
+    }
+  }, [refreshDoctorCheckups]);
+
+  // Get patient checkup history
+  const getPatientCheckupHistory = useCallback(async (patientId) => {
+    console.log('DataContext: getPatientCheckupHistory called', patientId);
+    
+    try {
+      const response = await fetch(`/api/checkups/history/${patientId}`, {
+        headers: {
+          'Authorization': `Bearer ${window.__authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const history = await response.json();
+        console.log('DataContext: Patient checkup history retrieved:', history);
+        return { success: true, data: history };
+      } else {
+        console.warn('DataContext: Failed to get patient checkup history:', response.status);
+        return { success: false, error: 'Failed to get patient checkup history' };
+      }
+    } catch (error) {
+      console.error('DataContext: Error getting patient checkup history:', error);
+      return { success: false, error: error.message };
+    }
+  }, []);
+
+  // Optimized function to add patient to queue with backend sync
+  const addToQueue = useCallback(async (patient) => {
+    try {
+      // First update local state for immediate UI feedback
+      const queueItem = {
+        id: patient.id,
+        patientId: patient.patientId,
+        patientName: patient.patientName,
+        age: patient.age,
+        gender: patient.gender,
+        contactNumber: patient.contactNumber,
+        checkInTime: patient.checkInTime,
+        queuedAt: new Date().toLocaleTimeString('en-US', { 
+          hour: 'numeric', 
+          minute: '2-digit',
+          hour12: true 
+        }),
+        serviceType: patient.serviceType,
+        status: 'waiting',
+        priority: patient.priority,
+        vitalSigns: patient.vitalSigns,
+        notes: patient.notes || '',
+        source: 'admin_checkup'
+      };
+
+      // Update local queue state immediately
+      setDoctorQueueData(prev => {
+        // Check if already exists to prevent duplicates
+        const exists = prev.some(item => item.id === patient.id);
+        if (exists) {
+          return prev.map(item => item.id === patient.id ? queueItem : item);
+        }
+        return [...prev, queueItem];
+      });
+
+      // Sync with backend
+      await fetch(`/api/checkups/${patient.id}/notify-doctor`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${window.__authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Update checkups status
+      syncCheckupStatus(patient.id, 'doctor-notified', 'admin');
+
+      return { success: true, message: 'Patient added to queue successfully' };
+    } catch (error) {
+      console.error('Error adding to queue:', error);
+      return { success: false, message: 'Failed to add patient to queue' };
+    }
+  }, [syncCheckupStatus]);
+
+  // Optimized function to update queue status with backend sync
+  const updateQueueStatus = useCallback(async (sessionId, status, additionalData = {}) => {
+    try {
+      // Update local state immediately for responsive UI
+      setDoctorQueueData(prev => 
+        prev.map(item => 
+          item.id === sessionId 
+            ? { 
+                ...item, 
+                status, 
+                ...additionalData, 
+                updatedAt: new Date().toISOString() 
+              }
+            : item
+        )
+      );
+
+      // Sync with backend
+      await fetch(`/api/doctor/queue/${sessionId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${window.__authToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ status, ...additionalData })
+      });
+
+      // Update shared checkups
+      syncCheckupStatus(sessionId, status, 'doctor');
+
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating queue status:', error);
+      return { success: false, error: error.message };
+    }
+  }, [syncCheckupStatus]);
+
+  // Auto-refresh mechanism for real-time updates
+  useEffect(() => {
+    if (!window.__authToken) return;
+
+    const refreshInterval = setInterval(() => {
+      // Only refresh if user is active (to save resources)
+      if (document.visibilityState === 'visible') {
+        refreshDoctorQueue();
+        refreshTodaysCheckups();
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    // Also refresh when tab becomes visible
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshDoctorQueue();
+        refreshTodaysCheckups();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshDoctorQueue, refreshTodaysCheckups]);
+
+  // Simulation mode management functions (commented out - handled locally in DoctorLayout)
+  // const updateSimulationMode = (simulationData, userId = 'admin') => {
+  //   setSimulationModeStatus({
+  //     enabled: simulationData.enabled,
+  //     currentSimulatedDate: simulationData.currentSimulatedDate,
+  //     activatedBy: userId,
+  //     activatedAt: simulationData.enabled ? new Date().toISOString() : null,
+  //     smsSimulation: simulationData.smsSimulation,
+  //     emailSimulation: simulationData.emailSimulation,
+  //     dataSimulation: simulationData.dataSimulation
+  //   });
+  // };
+
+  // const disableSimulationMode = () => {
+  //   setSimulationModeStatus({
+  //     enabled: false,
+  //     currentSimulatedDate: null,
+  //     activatedBy: null,
+  //     activatedAt: null,
+  //     smsSimulation: false,
+  //     emailSimulation: false,
+  //     dataSimulation: false
+  //   });
+  // };
 
   // Analytics functions
   const updateAnalyticsData = (newData) => {
@@ -515,7 +999,7 @@ export const DataProvider = ({ children }) => {
         unsortedMembersData,
         doctorQueueData,
         sharedCheckupsData,
-        simulationModeStatus,
+        // simulationModeStatus, // Handled locally in DoctorLayout
         analyticsData
       },
       metadata: {
@@ -533,7 +1017,7 @@ export const DataProvider = ({ children }) => {
           unsortedMembersData,
           doctorQueueData,
           sharedCheckupsData,
-          simulationModeStatus,
+          // simulationModeStatus, // Handled locally in DoctorLayout
           analyticsData
         }).length
       }
@@ -591,12 +1075,12 @@ export const DataProvider = ({ children }) => {
           setUnsortedMembersData(data.unsortedMembersData || []);
           setDoctorQueueData(data.doctorQueueData || []);
           setSharedCheckupsData(data.sharedCheckupsData || []);
-          setSimulationModeStatus(data.simulationModeStatus || {
-            enabled: false,
-            currentSimulatedDate: null,
-            activatedBy: null,
-            activatedAt: null
-          });
+          // setSimulationModeStatus(data.simulationModeStatus || {
+          //   enabled: false,
+          //   currentSimulatedDate: null,
+          //   activatedBy: null,
+          //   activatedAt: null
+          // }); // Handled locally in DoctorLayout
           setAnalyticsData(data.analyticsData || {});
 
           // Save restore info
@@ -724,12 +1208,12 @@ export const DataProvider = ({ children }) => {
     setUnsortedMembersData([]);
     setDoctorQueueData([]);
     setSharedCheckupsData([]);
-    setSimulationModeStatus({
-      enabled: false,
-      currentSimulatedDate: null,
-      activatedBy: null,
-      activatedAt: null
-    });
+    // setSimulationModeStatus({
+    //   enabled: false,
+    //   currentSimulatedDate: null,
+    //   activatedBy: null,
+    //   activatedAt: null
+    // }); // Handled locally in DoctorLayout
     setAnalyticsData({});
     
     // Clear from localStorage as well
@@ -743,6 +1227,102 @@ export const DataProvider = ({ children }) => {
     localStorage.removeItem('analyticsData');
   };
 
+  // Force refresh all data from backend (clears cache and fetches fresh)
+  const forceRefreshAllData = async () => {
+    try {
+      console.log('🔄 Force refreshing all data from backend...');
+      
+      // Clear localStorage cache first
+      localStorage.removeItem('dashboardData');
+      localStorage.removeItem('appointmentsData');
+      localStorage.removeItem('patientsData');
+      localStorage.removeItem('inventoryData');
+      localStorage.removeItem('medicalRecordsData');
+      localStorage.removeItem('familiesData');
+      localStorage.removeItem('unsortedMembersData');
+      localStorage.removeItem('analyticsData');
+      
+      // Reset state to empty arrays/objects
+      setDashboardData({});
+      setAppointmentsData([]);
+      setPatientsData([]);
+      setInventoryData([]);
+      setMedicalRecordsData([]);
+      setFamiliesData([]);
+      setUnsortedMembersData([]);
+      setAnalyticsData({});
+      
+      // Fetch fresh data from backend
+      console.log('📡 Fetching fresh data from backend...');
+      
+      // Check user role to determine what data to fetch
+      const currentUser = window.__authUser;
+      console.log('Current user role:', currentUser?.role);
+      
+      if (currentUser?.role === 'admin') {
+        // Admin gets all data including unsorted members
+        await Promise.all([
+          fetchAllPatients(),
+          fetchAllFamilies(),
+          fetchUnsortedMembers()
+        ]);
+      } else {
+        // Doctor/Patient gets only patients and families data
+        await Promise.all([
+          fetchAllPatients(),
+          fetchAllFamilies()
+        ]);
+        console.log('Skipping unsorted members fetch for non-admin user');
+      }
+      
+      // Also refresh analytics data to ensure dashboard updates
+      setAnalyticsData({});
+      
+      console.log('✅ All data refreshed successfully!');
+      return true;
+    } catch (error) {
+      console.error('❌ Error refreshing data:', error);
+      return false;
+    }
+  };
+
+  // Backend connection checking function
+  const checkBackendConnection = useCallback(async () => {
+    try {
+      const response = await fetch('/api/health', { 
+        method: 'GET',
+        signal: AbortSignal.timeout(5000) // 5 second timeout
+      });
+      
+      if (response.ok) {
+        setBackendConnected(true);
+        return true;
+      } else {
+        setBackendConnected(false);
+        return false;
+      }
+    } catch (error) {
+      setBackendConnected(false);
+      return false;
+    }
+  }, []);
+
+  // Initialize backend connection check on mount - DISABLED FOR QUICK WORKAROUND
+  useEffect(() => {
+    // Initial connection check only
+    checkBackendConnection();
+
+    // DISABLED: Set up periodic connection checks (causes performance issues)
+    // connectionCheckRef.current = setInterval(checkBackendConnection, 30000);
+
+    // Cleanup on unmount
+    return () => {
+      if (connectionCheckRef.current) {
+        clearInterval(connectionCheckRef.current);
+      }
+    };
+  }, [checkBackendConnection]);
+
   const value = {
     // Data state
     dashboardData,
@@ -753,6 +1333,7 @@ export const DataProvider = ({ children }) => {
     familiesData,
     unsortedMembersData,
     analyticsData,
+    backendConnected,
     
     // Dashboard functions
     updateDashboardData,
@@ -788,19 +1369,34 @@ export const DataProvider = ({ children }) => {
     removeUnsortedMember,
     fetchUnsortedMembers,
     fetchAllPatients,
+    fetchAllFamilies,
     
     // Doctor queue functions
     doctorQueueData,
     sharedCheckupsData,
+    doctorCheckupsData,
     notifyDoctor,
     updateDoctorQueueStatus,
     completeDoctorSession,
     syncCheckupStatus,
     
-    // Simulation mode functions
-    simulationModeStatus,
-    updateSimulationMode,
-    disableSimulationMode,
+    // Doctor checkups functions
+    refreshDoctorCheckups,
+    updateCheckupStatus,
+    startCheckupSession,
+    updateCheckupNotes,
+    getPatientCheckupHistory,
+    
+    // Real-time synchronization functions
+    refreshDoctorQueue,
+    refreshTodaysCheckups,
+    addToQueue,
+    updateQueueStatus,
+    
+    // Simulation mode functions (commented out - handled locally in DoctorLayout)
+    // simulationModeStatus,
+    // updateSimulationMode,
+    // disableSimulationMode,
     
     // Analytics functions
     updateAnalyticsData,
@@ -817,6 +1413,7 @@ export const DataProvider = ({ children }) => {
     
     // Utility functions
     clearAllData,
+    forceRefreshAllData,
   };
 
   return (

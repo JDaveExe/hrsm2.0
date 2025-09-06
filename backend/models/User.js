@@ -1,75 +1,67 @@
 const { DataTypes } = require('sequelize');
-const bcrypt = require('bcryptjs');
 const { sequelize } = require('../config/database');
+const bcrypt = require('bcryptjs');
+const { Op } = require('sequelize');
 
 const User = sequelize.define('User', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
-    autoIncrement: true,
+    autoIncrement: true
   },
   username: {
     type: DataTypes.STRING,
-    allowNull: false,
-    unique: true,
+    allowNull: false
   },
   email: {
     type: DataTypes.STRING,
     allowNull: true,
-    unique: true,
     validate: {
-      isEmail: true,
-    },
-  },
-  password: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  role: {
-    type: DataTypes.ENUM('admin', 'doctor', 'patient'),
-    allowNull: false,
-    defaultValue: 'patient',
-  },
-  firstName: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  lastName: {
-    type: DataTypes.STRING,
-    allowNull: false,
+      isEmail: true
+    }
   },
   contactNumber: {
     type: DataTypes.STRING,
-    allowNull: true,
-    unique: true,
+    allowNull: true
   },
-  address: {
+  password: {
     type: DataTypes.STRING,
+    allowNull: false
   },
-  position: {
+  role: {
+    type: DataTypes.ENUM('patient', 'doctor', 'admin', 'staff'),
+    allowNull: false,
+    defaultValue: 'patient'
+  },
+  firstName: {
     type: DataTypes.STRING,
-    allowNull: true,
+    allowNull: false
   },
   middleName: {
     type: DataTypes.STRING,
-    allowNull: true,
+    allowNull: true
+  },
+  lastName: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  position: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
   accessLevel: {
-    type: DataTypes.ENUM('Administrator', 'Doctor'),
+    type: DataTypes.INTEGER,
     allowNull: true,
+    defaultValue: 1
   },
   isActive: {
     type: DataTypes.BOOLEAN,
-    defaultValue: true,
-  },
+    allowNull: false,
+    defaultValue: true
+  }
 }, {
-  validate: {
-    eitherEmailOrContactNumber() {
-      if (!this.email && !this.contactNumber) {
-        throw new Error('Either email or contact number must be provided.');
-      }
-    }
-  },
+  tableName: 'users',
+  timestamps: true,
   hooks: {
     beforeCreate: async (user) => {
       if (user.password) {
@@ -82,126 +74,75 @@ const User = sequelize.define('User', {
         const salt = await bcrypt.genSalt(10);
         user.password = await bcrypt.hash(user.password, salt);
       }
-    },
-  },
+    }
+  }
 });
 
-// Instance method to compare password
+// Instance methods
 User.prototype.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+  return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Static method to create default users
+// Static methods
 User.createDefaultUsers = async function() {
   try {
-    // Check if admin exists
-    const adminExists = await User.findOne({ 
-      where: { 
-        role: 'admin',
-        isActive: true 
-      } 
-    });
-    
-    if (!adminExists) {
-      await User.create({
+    // Default users to create
+    const defaultUsers = [
+      {
         username: 'admin',
-        email: 'admin@maybunga.healthcare',
+        email: 'admin@brgymaybunga.health',
         password: 'admin123',
         role: 'admin',
         firstName: 'System',
         lastName: 'Administrator',
-        contactNumber: '09123456789',
-        address: 'Maybunga Health Center',
         position: 'System Administrator',
-        accessLevel: 'Administrator'
-      });
-      console.log('✅ Default admin user created');
-    }
-
-    // Check if doctor exists
-    const doctorExists = await User.findOne({ 
-      where: { 
-        role: 'doctor',
-        isActive: true 
-      } 
-    });
-    
-    if (!doctorExists) {
-      await User.create({
+        accessLevel: 10,
+        isActive: true
+      },
+      {
         username: 'doctor',
-        email: 'doctor@maybunga.healthcare',
+        email: 'doctor@brgymaybunga.health',
         password: 'doctor123',
         role: 'doctor',
-        firstName: 'Dr. John',
-        lastName: 'Smith',
-        contactNumber: '09123456790',
-        address: 'Maybunga Health Center',
-        position: 'General Physician',
-        accessLevel: 'Doctor'
-      });
-      console.log('✅ Default doctor user created');
-    }
-
-    // Check if patient exists
-    const patientExists = await User.findOne({ 
-      where: { 
-        role: 'patient',
-        isActive: true 
-      } 
-    });
-    
-    if (!patientExists) {
-      await User.create({
+        firstName: 'Default',
+        lastName: 'Doctor',
+        position: 'General Practitioner',
+        accessLevel: 5,
+        isActive: true
+      },
+      {
         username: 'patient',
-        email: 'patient@maybunga.healthcare',
+        email: 'patient@brgymaybunga.health',
         password: 'patient123',
         role: 'patient',
-        firstName: 'Maria',
-        lastName: 'Santos',
-        contactNumber: '09123456791',
-        address: '123 Maybunga St, Pasig City',
-        position: 'Patient',
-        accessLevel: 'Patient'
+        firstName: 'Test',
+        lastName: 'Patient',
+        accessLevel: 1,
+        isActive: true
+      }
+    ];
+
+    // Create each default user if they don't exist
+    for (const userData of defaultUsers) {
+      const existingUser = await User.findOne({
+        where: {
+          [Op.or]: [
+            { username: userData.username },
+            { email: userData.email }
+          ]
+        }
       });
-      console.log('✅ Default patient user created');
-    }
 
-    console.log('✅ Default users initialization complete');
-  } catch (error) {
-    console.error('❌ Error creating default users:', error.message);
-  }
-};
-
-// Static method to check if user can be deleted (prevent deletion of default admin/doctor)
-User.canDeleteUser = async function(userId) {
-  try {
-    const user = await User.findByPk(userId);
-    if (!user) return false; // User not found
-
-    // Prevent deletion of the default admin and doctor accounts
-    if (user.username === 'admin' || user.username === 'doctor') {
-      return false;
-    }
-
-    // Prevent deletion of the last active admin or doctor
-    if (user.role === 'admin') {
-      const adminCount = await User.count({ where: { role: 'admin', isActive: true } });
-      if (adminCount <= 1) {
-        return false; // Do not allow deleting the last admin
+      if (!existingUser) {
+        await User.create(userData);
+        console.log(`✅ Created default ${userData.role} user: ${userData.username}`);
+      } else {
+        console.log(`ℹ️ Default ${userData.role} user already exists: ${userData.username}`);
       }
     }
-
-    if (user.role === 'doctor') {
-      const doctorCount = await User.count({ where: { role: 'doctor', isActive: true } });
-      if (doctorCount <= 1) {
-        return false; // Do not allow deleting the last doctor
-      }
-    }
-
-    return true; // Allow deletion for other users
   } catch (error) {
-    console.error('Error checking user deletion permission:', error);
-    return false;
+    console.error('Error creating default users:', error);
+    throw error;
   }
 };
 

@@ -108,6 +108,43 @@ const PatientInfoCards = ({ selectedPatient }) => {
           </div>
         </div>
       </div>
+
+      {/* Medical Conditions Card - Full Width */}
+      <div className="col-12">
+        <div style={{
+          background: 'var(--bg-secondary)',
+          border: '1px solid var(--border-primary)',
+          borderRadius: '12px',
+          overflow: 'hidden'
+        }}>
+          <div style={{
+            background: 'var(--info)',
+            color: 'white',
+            padding: '12px 16px',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <i className="bi bi-heart-pulse"></i>
+            Medical Conditions
+          </div>
+          <div style={{padding: '16px'}}>
+            <div style={{
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border-secondary)',
+              borderRadius: '8px',
+              padding: '12px',
+              minHeight: '60px',
+              color: 'var(--text-primary)',
+              fontSize: '0.95rem',
+              lineHeight: '1.4'
+            }}>
+              {selectedPatient.medicalConditions || 'No medical conditions reported'}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

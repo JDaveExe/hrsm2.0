@@ -2,7 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { Op } = require('sequelize');
 const User = require('../models/User');
-const auth = require('../middleware/auth');
+const { authenticateToken: auth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -37,6 +37,45 @@ router.get('/', auth, async (req, res) => {
     });
 
     res.json({ users }); // Wrap in object for consistency
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+// @route   GET api/users/doctors
+// @desc    Get all doctors (accessible by doctors and admins)
+// @access  Private/Doctor+
+router.get('/doctors', auth, async (req, res) => {
+  try {
+    // Allow both doctors and admins to access this endpoint
+    const userRole = req.user.role.toLowerCase();
+    if (userRole !== 'admin' && userRole !== 'doctor') {
+      return res.status(403).json({ msg: 'Unauthorized: Doctor or Admin access required' });
+    }
+
+    const doctors = await User.findAll({
+      attributes: [
+        'id', 
+        'username',
+        'firstName', 
+        'lastName', 
+        'email', 
+        'contactNumber', 
+        'role', 
+        'position', 
+        'accessLevel', 
+        'isActive',
+        'createdAt'
+      ],
+      where: {
+        role: 'doctor',
+        isActive: true
+      },
+      order: [['lastName', 'ASC']],
+    });
+
+    res.json({ users: doctors }); // Keep same format as main users endpoint
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

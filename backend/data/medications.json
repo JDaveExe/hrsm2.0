@@ -9,12 +9,12 @@
     "form": "Tablet",
     "strength": "500mg",
     "manufacturer": "Unilab",
-    "batchNumber": "PAR001-2024",
-    "unitsInStock": 1000,
+    "batchNumber": "10",
+    "unitsInStock": 1010,
     "minimumStock": 200,
     "unitCost": 1.5,
     "sellingPrice": 2.5,
-    "expiryDate": "2025-12-31",
+    "expiryDate": "2026-12-12",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Pain relief, fever reduction",
@@ -26,7 +26,8 @@
     "isPrescriptionRequired": false,
     "status": "Available",
     "isActive": true,
-    "notes": "Most commonly used analgesic"
+    "notes": "Most commonly used analgesic",
+    "updatedAt": "2025-08-31T10:08:34.929Z"
   },
   {
     "id": 2,

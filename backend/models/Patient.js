@@ -36,7 +36,7 @@ const Patient = sequelize.define('Patient', {
     allowNull: false,
   },
   gender: {
-    type: DataTypes.ENUM('Male', 'Female'),
+    type: DataTypes.ENUM('Male', 'Female', 'Other'),
     allowNull: false,
   },
   civilStatus: {
@@ -131,6 +131,11 @@ const Patient = sequelize.define('Patient', {
   },
   bloodType: {
     type: DataTypes.ENUM('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'),
+    allowNull: true,
+  },
+  medicalConditions: {
+    type: DataTypes.TEXT,
+    allowNull: true,
   },
   emergencyContact: {
     type: DataTypes.JSON,

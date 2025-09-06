@@ -108,11 +108,7 @@
   color: var(--white);
 }
 
-.login-btn.primary:hover {
-  background: var(--primary-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px var(--shadow-medium);
-}
+
 
 .login-btn.secondary {
   background: transparent;
@@ -120,11 +116,7 @@
   border: 2px solid var(--accent);
 }
 
-.login-btn.secondary:hover {
-  background: var(--accent);
-  color: var(--white);
-  transform: translateY(-2px);
-}
+
 
 .auth-info {
   text-align: left;
@@ -212,11 +204,7 @@
   color: var(--white);
 }
 
-.btn-primary:hover {
-  background: var(--primary-dark);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px var(--shadow-medium);
-}
+
 
 .btn-secondary {
   background: transparent;
@@ -224,11 +212,7 @@
   border: 2px solid var(--accent);
 }
 
-.btn-secondary:hover {
-  background: var(--accent);
-  color: var(--white);
-  transform: translateY(-2px);
-}
+
 
 .appointments-grid {
   display: grid;
@@ -246,10 +230,7 @@
   transition: all 0.3s ease;
 }
 
-.appointment-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 15px 35px var(--shadow-medium);
-}
+
 
 .appointment-header {
   display: flex;
@@ -295,12 +276,7 @@
   margin-bottom: 10px;
 }
 
-.book-btn:hover,
-.history-btn:hover,
-.quick-btn:hover {
-  background: var(--primary-color);
-  color: var(--white);
-}
+
 
 .quick-actions h3 {
   color: var(--text-primary);

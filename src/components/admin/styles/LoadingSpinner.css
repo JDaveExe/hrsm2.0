@@ -1,0 +1,144 @@
+/* LoadingSpinner.css - Universal loading spinner styles */
+
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  backdrop-filter: blur(2px);
+}
+
+.loading-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Inline Loading */
+.loading-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  min-height: 200px;
+}
+
+/* Spinner Component */
+.loading-spinner-component {
+  display: inline-block;
+  position: relative;
+}
+
+.spinner {
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: currentColor;
+  animation: spin 1s linear infinite;
+}
+
+/* Size Variants */
+.size-small .spinner {
+  width: 24px;
+  height: 24px;
+  border-width: 2px;
+}
+
+.size-medium .spinner {
+  width: 40px;
+  height: 40px;
+  border-width: 3px;
+}
+
+.size-large .spinner {
+  width: 60px;
+  height: 60px;
+  border-width: 4px;
+}
+
+/* Color Variants */
+.color-primary {
+  color: #9bc4e2;
+}
+
+.color-secondary {
+  color: #6c757d;
+}
+
+.color-success {
+  color: #28a745;
+}
+
+.color-warning {
+  color: #ffc107;
+}
+
+.color-danger {
+  color: #dc3545;
+}
+
+/* Loading Message */
+.loading-message {
+  margin: 0;
+  color: #6c757d;
+  font-weight: 500;
+  font-size: 1rem;
+  text-align: center;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* Animations */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.loading-overlay,
+.loading-inline {
+  animation: fadeIn 0.3s ease-in;
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .loading-message {
+    font-size: 0.9rem;
+  }
+  
+  .size-large .spinner {
+    width: 50px;
+    height: 50px;
+  }
+}

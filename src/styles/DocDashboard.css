@@ -475,7 +475,7 @@
 }
 
 .doc-dashboard-wrapper .refresh-btn {
-  background: #007bff; /* Primary blue */
+  background: #0056b3; /* Primary blue */
   border: none;
   color: #fff;
   padding: 10px 18px;
@@ -484,10 +484,6 @@
   align-items: center;
   cursor: pointer;
   transition: background-color 0.2s ease;
-}
-
-.doc-dashboard-wrapper .refresh-btn:hover {
-  background: #0056b3; /* Darker blue */
 }
 
 .doc-dashboard-wrapper .refresh-btn i {
@@ -550,7 +546,7 @@
 }
 
 .doc-dashboard-wrapper .add-patient-btn {
-  background: #28a745; /* Bootstrap success green */
+  background: #0056b3; /* Bootstrap success green */
   color: #fff;
   border: none;
   padding: 10px 18px;
@@ -559,10 +555,6 @@
   align-items: center;
   cursor: pointer;
   transition: background-color 0.2s ease;
-}
-
-.doc-dashboard-wrapper .add-patient-btn:hover {
-  background: #1e7e34; /* Darker green */
 }
 
 .doc-dashboard-wrapper .add-patient-btn i {
@@ -2461,7 +2453,7 @@
 
 /* Modal Header */
 .vital-signs-header {
-  background: #9BC4CB; /* Pale Cerulean */
+  background: #0056b3; /* Pale Cerulean */
   border: none;
   padding: 1.25rem 1.5rem;
   color: white;

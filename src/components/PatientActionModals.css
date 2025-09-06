@@ -1,0 +1,227 @@
+/* Patient Action Modals Styling */
+
+/* Base Modal Styles */
+.patient-action-modal .modal-dialog {
+  max-width: 1200px;
+  margin: 1.75rem auto;
+}
+
+.patient-action-modal .modal-content {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  background: var(--bg-primary);
+}
+
+.patient-action-modal .modal-header {
+  background: var(--sidebar-bg);
+  color: white;
+  border-radius: 12px 12px 0 0;
+  padding: 1rem 1.5rem;
+  border-bottom: none;
+}
+
+.patient-action-modal .modal-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.patient-action-modal .modal-body {
+  padding: 1.5rem;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.patient-action-modal .modal-footer {
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-secondary);
+  padding: 1rem 1.5rem;
+  border-radius: 0 0 12px 12px;
+}
+
+/* Patient Header Styles */
+.patient-header {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-secondary);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.patient-header h5 {
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.patient-header small {
+  color: var(--text-secondary);
+}
+
+/* Table Styles for Modals */
+.patient-action-modal .table {
+  background: var(--bg-primary);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-secondary);
+}
+
+.patient-action-modal .table th {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border-secondary);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.patient-action-modal .table td {
+  color: var(--text-primary);
+  border-color: var(--border-secondary);
+  vertical-align: middle;
+}
+
+.patient-action-modal .table-striped tbody tr:nth-of-type(odd) {
+  background-color: var(--bg-secondary);
+}
+
+/* Form Styles */
+.patient-action-modal .form-control,
+.patient-action-modal .form-select {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  color: var(--text-primary);
+}
+
+.patient-action-modal .form-control:focus,
+.patient-action-modal .form-select:focus {
+  background: var(--bg-primary);
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 0.2rem rgba(var(--accent-primary-rgb), 0.25);
+  color: var(--text-primary);
+}
+
+.patient-action-modal .form-label {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+/* Badge Styles */
+.patient-action-modal .badge {
+  font-size: 0.75rem;
+  padding: 0.35em 0.65em;
+}
+
+/* Button Styles */
+.patient-action-modal .btn-primary {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+}
+
+.patient-action-modal .btn-primary:hover {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  opacity: 0.9;
+}
+
+.patient-action-modal .btn-secondary {
+  background: var(--bg-secondary);
+  border-color: var(--border-secondary);
+  color: var(--text-primary);
+}
+
+.patient-action-modal .btn-secondary:hover {
+  background: var(--border-secondary);
+  border-color: var(--border-secondary);
+  color: var(--text-primary);
+}
+
+.patient-action-modal .btn-success {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.patient-action-modal .btn-warning {
+  background: var(--warning);
+  border-color: var(--warning);
+  color: #000;
+}
+
+.patient-action-modal .btn-danger {
+  background: var(--error);
+  border-color: var(--error);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .patient-action-modal .modal-dialog {
+    max-width: 95%;
+    margin: 1rem auto;
+  }
+  
+  .patient-action-modal .modal-body {
+    padding: 1rem;
+  }
+  
+  .patient-action-modal .modal-footer {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Loading States */
+.patient-action-modal .loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.patient-action-modal .spinner-border {
+  color: var(--accent-primary);
+}
+
+/* Alert Styles in Modals */
+.patient-action-modal .alert {
+  border-radius: 8px;
+  border: none;
+  margin-bottom: 1rem;
+}
+
+.patient-action-modal .alert-success {
+  background: rgba(var(--success-rgb), 0.1);
+  color: var(--success);
+  border-left: 4px solid var(--success);
+}
+
+.patient-action-modal .alert-warning {
+  background: rgba(var(--warning-rgb), 0.1);
+  color: var(--warning);
+  border-left: 4px solid var(--warning);
+}
+
+.patient-action-modal .alert-danger {
+  background: rgba(var(--error-rgb), 0.1);
+  color: var(--error);
+  border-left: 4px solid var(--error);
+}
+
+.patient-action-modal .alert-info {
+  background: rgba(var(--accent-primary-rgb), 0.1);
+  color: var(--accent-primary);
+  border-left: 4px solid var(--accent-primary);
+}
+
+/* Print Styles */
+@media print {
+  .patient-action-modal .modal-header,
+  .patient-action-modal .modal-footer {
+    display: none !important;
+  }
+  
+  .patient-action-modal .modal-body {
+    padding: 0;
+  }
+}

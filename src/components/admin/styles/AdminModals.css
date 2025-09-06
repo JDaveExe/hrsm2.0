@@ -1,0 +1,105 @@
+/* AdminModals.css - Shared modal styles for admin components */
+
+/* Base modal styles */
+.admin-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10004;
+}
+
+.admin-modal-content {
+  background: white;
+  border-radius: 0.5rem;
+  max-width: 700px;
+  width: 50%;
+  max-height: 100vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.admin-modal-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-modal-header h4 {
+  margin: 0;
+  color: #343a40;
+}
+
+.admin-modal-close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.admin-modal-body {
+  padding: 1.5rem;
+}
+
+.admin-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #dee2e6;
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+/* Button styles for modals */
+.admin-modal-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.admin-modal-btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+.admin-modal-btn-secondary:hover {
+  background: #5a6268;
+}
+
+.admin-modal-btn-danger {
+  background: #dc3545;
+  color: white;
+}
+
+.admin-modal-btn-danger:hover {
+  background: #c82333;
+}
+
+.admin-modal-btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.admin-modal-btn-primary:hover {
+  background: #0056b3;
+}
+
+/* Responsive modal sizing */
+@media (max-width: 768px) {
+  .admin-modal-content {
+    width: 90%;
+    max-width: none;
+  }
+}

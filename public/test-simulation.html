@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard Simulation Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .status {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔬 Doctor Dashboard Simulation Test</h1>
+        <p>Use these controls to test the simulation mode synchronization between admin and doctor dashboards.</p>
+        
+        <div class="test-section">
+            <h3>Simulation Controls</h3>
+            <button class="button" onclick="activateSimulationMode()">Activate Simulation Mode</button>
+            <button class="button" onclick="addSimulationPatients()">Add Test Patients</button>
+            <button class="button" onclick="deactivateSimulationMode()">Deactivate Simulation</button>
+            <button class="button" onclick="checkSimulationState()">Check Current State</button>
+            <button class="button" onclick="clearSimulationData()">Clear All Data</button>
+        </div>
+
+        <div class="test-section">
+            <h3>Time Synchronization Tests</h3>
+            <button class="button" onclick="testFutureTime()">Test Future Date</button>
+            <button class="button" onclick="testPastTime()">Test Past Date</button>
+            <button class="button" onclick="testCurrentTime()">Reset to Current Time</button>
+        </div>
+
+        <div id="status" class="status">
+            Click buttons above to test simulation mode features.
+        </div>
+
+        <div class="instructions">
+            <h3>📋 Instructions</h3>
+            <ol>
+                <li>Open the doctor dashboard in another tab: <a href="/doctor/dashboard" target="_blank">Doctor Dashboard</a></li>
+                <li>Activate simulation mode using the controls above</li>
+                <li>Check if the blue banner appears on the doctor dashboard</li>
+                <li>Add test patients and verify they appear with CPU icons</li>
+                <li>Verify the time synchronization is working</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function updateStatus(message, isSuccess = false) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = isSuccess ? 'status success' : 'status';
+        }
+
+        function activateSimulationMode() {
+            try {
+                const simulationData = {
+                    isEnabled: true,
+                    currentDateTime: new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)).toISOString(), // 7 days in future
+                    adminUser: {
+                        id: 'admin-test-001',
+                        username: 'Test Admin',
+                        role: 'admin'
+                    },
+                    startedAt: new Date().toISOString(),
+                    patients: []
+                };
+
+                localStorage.setItem('simulationMode', JSON.stringify(simulationData));
+                updateStatus('✅ Simulation mode activated! Check doctor dashboard for blue banner.', true);
+                
+                // Trigger storage event for same-tab detection
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'simulationMode',
+                    newValue: JSON.stringify(simulationData)
+                }));
+            } catch (error) {
+                updateStatus('❌ Error activating simulation: ' + error.message);
+            }
+        }
+
+        function addSimulationPatients() {
+            try {
+                const simulationData = JSON.parse(localStorage.getItem('simulationMode') || '{}');
+                
+                if (!simulationData.isEnabled) {
+                    updateStatus('⚠️ Please activate simulation mode first!');
+                    return;
+                }
+
+                const testPatients = [
+                    {
+                        id: Date.now() + 1,
+                        patientId: 'PT-SIM001',
+                        name: 'John Simulation',
+                        time: '9:30 AM',
+                        type: 'General Checkup',
+                        priority: 'Normal',
+                        status: 'Waiting',
+                        source: 'admin_simulation',
+                        addedAt: new Date().toISOString()
+                    },
+                    {
+                        id: Date.now() + 2,
+                        patientId: 'PT-SIM002',
+                        name: 'Jane Virtual',
+                        time: '10:00 AM',
+                        type: 'Follow-up',
+                        priority: 'High',
+                        status: 'Waiting',
+                        source: 'admin_simulation',
+                        addedAt: new Date().toISOString()
+                    }
+                ];
+
+                simulationData.patients = testPatients;
+                localStorage.setItem('simulationMode', JSON.stringify(simulationData));
+                
+                // Also add to doctor queue
+                const doctorQueue = JSON.parse(localStorage.getItem('doctorQueue') || '[]');
+                doctorQueue.push(...testPatients);
+                localStorage.setItem('doctorQueue', JSON.stringify(doctorQueue));
+
+                updateStatus('✅ Added 2 test patients! Check doctor dashboard for blue patient cards with CPU icons.', true);
+                
+                // Trigger storage event
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'doctorQueue',
+                    newValue: JSON.stringify(doctorQueue)
+                }));
+            } catch (error) {
+                updateStatus('❌ Error adding patients: ' + error.message);
+            }
+        }
+
+        function deactivateSimulationMode() {
+            try {
+                localStorage.removeItem('simulationMode');
+                updateStatus('✅ Simulation mode deactivated! Doctor dashboard should return to normal.', true);
+                
+                // Trigger storage event
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'simulationMode',
+                    newValue: null
+                }));
+            } catch (error) {
+                updateStatus('❌ Error deactivating simulation: ' + error.message);
+            }
+        }
+
+        function checkSimulationState() {
+            try {
+                const simulationData = JSON.parse(localStorage.getItem('simulationMode') || '{}');
+                const doctorQueue = JSON.parse(localStorage.getItem('doctorQueue') || '[]');
+                
+                let status = '📊 Current Simulation State:\n\n';
+                status += `• Simulation Active: ${simulationData.isEnabled ? 'YES' : 'NO'}\n`;
+                
+                if (simulationData.isEnabled) {
+                    status += `• Simulated Date: ${new Date(simulationData.currentDateTime).toLocaleString()}\n`;
+                    status += `• Admin User: ${simulationData.adminUser?.username || 'Unknown'}\n`;
+                    status += `• Started At: ${new Date(simulationData.startedAt).toLocaleString()}\n`;
+                }
+                
+                status += `• Doctor Queue Size: ${doctorQueue.length}\n`;
+                status += `• Simulation Patients: ${doctorQueue.filter(p => p.source === 'admin_simulation').length}\n`;
+                
+                updateStatus(status);
+            } catch (error) {
+                updateStatus('❌ Error checking state: ' + error.message);
+            }
+        }
+
+        function clearSimulationData() {
+            try {
+                localStorage.removeItem('simulationMode');
+                localStorage.removeItem('doctorQueue');
+                updateStatus('✅ All simulation data cleared!', true);
+                
+                // Trigger storage events
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'simulationMode',
+                    newValue: null
+                }));
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'doctorQueue',
+                    newValue: null
+                }));
+            } catch (error) {
+                updateStatus('❌ Error clearing data: ' + error.message);
+            }
+        }
+
+        function testFutureTime() {
+            try {
+                const simulationData = JSON.parse(localStorage.getItem('simulationMode') || '{}');
+                if (!simulationData.isEnabled) {
+                    updateStatus('⚠️ Please activate simulation mode first!');
+                    return;
+                }
+
+                simulationData.currentDateTime = new Date(Date.now() + (30 * 24 * 60 * 60 * 1000)).toISOString(); // 30 days future
+                localStorage.setItem('simulationMode', JSON.stringify(simulationData));
+                updateStatus('✅ Time set to 30 days in the future! Check doctor dashboard time display.', true);
+                
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'simulationMode',
+                    newValue: JSON.stringify(simulationData)
+                }));
+            } catch (error) {
+                updateStatus('❌ Error setting future time: ' + error.message);
+            }
+        }
+
+        function testPastTime() {
+            try {
+                const simulationData = JSON.parse(localStorage.getItem('simulationMode') || '{}');
+                if (!simulationData.isEnabled) {
+                    updateStatus('⚠️ Please activate simulation mode first!');
+                    return;
+                }
+
+                simulationData.currentDateTime = new Date(Date.now() - (10 * 24 * 60 * 60 * 1000)).toISOString(); // 10 days past
+                localStorage.setItem('simulationMode', JSON.stringify(simulationData));
+                updateStatus('✅ Time set to 10 days in the past! Check doctor dashboard time display.', true);
+                
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'simulationMode',
+                    newValue: JSON.stringify(simulationData)
+                }));
+            } catch (error) {
+                updateStatus('❌ Error setting past time: ' + error.message);
+            }
+        }
+
+        function testCurrentTime() {
+            try {
+                const simulationData = JSON.parse(localStorage.getItem('simulationMode') || '{}');
+                if (!simulationData.isEnabled) {
+                    updateStatus('⚠️ Please activate simulation mode first!');
+                    return;
+                }
+
+                simulationData.currentDateTime = new Date().toISOString();
+                localStorage.setItem('simulationMode', JSON.stringify(simulationData));
+                updateStatus('✅ Time reset to current time! Check doctor dashboard.', true);
+                
+                window.dispatchEvent(new StorageEvent('storage', {
+                    key: 'simulationMode',
+                    newValue: JSON.stringify(simulationData)
+                }));
+            } catch (error) {
+                updateStatus('❌ Error resetting time: ' + error.message);
+            }
+        }
+
+        // Auto-check state on page load
+        window.addEventListener('load', checkSimulationState);
+    </script>
+</body>
+</html>

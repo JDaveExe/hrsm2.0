@@ -1,0 +1,915 @@
+/* Checkup Manager Styles */
+.checkup-manager {
+  padding: 1rem;
+  background: var(--bg-primary);
+  min-height: 100vh;
+}
+
+/* New stat notifications in top-right position */
+.stats-notifications {
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.stat-notif {
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: transform 0.2s ease;
+}
+
+.stat-notif:hover {
+  transform: translateY(-1px);
+}
+
+.stat-notif i {
+  font-size: 0.7rem;
+}
+
+/* Remove old header styles since we removed the header */
+.checkup-header {
+  display: none;
+}
+
+.header-content h1 {
+  display: none;
+}
+
+.header-subtitle {
+  display: none;
+}
+
+.header-stats {
+  display: none;
+}
+
+.stat-card {
+  display: none;
+}
+
+.stat-number {
+  display: none;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.checkup-controls {
+  background: var(--bg-secondary);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  border: 1px solid var(--border-secondary);
+}
+
+/* Ensure all form controls have the same height */
+.checkup-controls .form-control,
+.checkup-controls .form-select,
+.checkup-controls .btn {
+  height: 38px; /* Standard Bootstrap height */
+  font-size: 0.875rem; /* Consistent font size */
+}
+
+.checkup-controls .input-group {
+  height: 38px;
+}
+
+.checkup-controls .input-group .form-control {
+  height: 100%;
+  font-size: 0.875rem;
+}
+
+/* Fix placeholder text size for form-select */
+.checkup-controls .form-select {
+  font-size: 0.875rem;
+}
+
+.checkup-controls .form-select option {
+  font-size: 0.875rem;
+}
+
+.checkup-table-container {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border-secondary);
+}
+
+.checkup-table {
+  margin: 0;
+  background: var(--bg-secondary);
+}
+
+.checkup-table thead th {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-weight: 600;
+  border: none;
+  padding: 1rem 0.75rem;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.checkup-table tbody tr {
+  border-bottom: 1px solid var(--border-secondary);
+  transition: all 0.2s ease;
+}
+
+.checkup-table tbody tr:hover {
+  background: var(--hover-bg);
+}
+
+.checkup-table tbody td {
+  padding: 1rem 0.75rem;
+  vertical-align: middle;
+  border: none;
+  color: var(--text-primary);
+}
+
+.checkup-row.emergency-row {
+  background: rgba(220, 53, 69, 0.05);
+  border-left: 4px solid var(--danger);
+}
+
+.checkup-row.emergency-row:hover {
+  background: rgba(220, 53, 69, 0.1);
+}
+
+.row-number {
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+  width: 50px;
+}
+
+.patient-id {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.patient-name strong {
+  color: var(--text-primary);
+}
+
+.patient-name small {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+  font-size: 0.8rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.action-buttons .btn:disabled {
+  opacity: 0.6;
+}
+
+/* Modal Styles - Scoped to CheckupManager */
+.checkup-manager .modal-header {
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-secondary);
+}
+
+.checkup-manager .modal-body {
+  background: var(--bg-secondary);
+}
+
+.checkup-manager .modal-footer {
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-secondary);
+}
+
+/* Form Styles - Scoped to CheckupManager only */
+.checkup-manager .form-label {
+  color: var(--text-primary);
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.checkup-manager .form-control {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  color: var(--text-primary);
+}
+
+.checkup-manager .form-control:focus {
+  background: var(--bg-primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
+  color: var(--text-primary);
+}
+
+.checkup-manager .form-select {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-secondary);
+  color: var(--text-primary);
+}
+
+.checkup-manager .form-select:focus {
+  background: var(--bg-primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 0.2rem rgba(var(--primary-rgb), 0.25);
+  color: var(--text-primary);
+}
+
+.checkup-manager .input-group-text {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-secondary);
+  color: var(--text-secondary);
+}
+
+/* Badge Styles - Scoped to CheckupManager */
+.checkup-manager .badge {
+  font-size: 0.75rem;
+  padding: 0.4rem 0.6rem;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .checkup-manager {
+    padding: 1rem;
+  }
+  
+  .checkup-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .header-stats {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .stat-card {
+    flex: 1;
+    min-width: auto;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .action-buttons .btn {
+    width: 100%;
+    margin-bottom: 0.25rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .checkup-table-container {
+    overflow-x: auto;
+  }
+  
+  .checkup-table {
+    min-width: 800px;
+  }
+  
+  .header-stats {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .stat-card {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* Animation */
+.checkup-row {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Simulation Mode Styles */
+.checkup-manager .badge.bg-info {
+  background-color: #9BC4E2 !important;
+  color: #1976d2;
+}
+
+/* Vital Signs Modal Styles */
+.vital-signs-modal .modal-body {
+  padding: 1.5rem;
+}
+
+.vital-signs-modal .form-group {
+  margin-bottom: 1rem;
+}
+
+.vital-signs-modal .form-label {
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.vital-signs-modal .form-text {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.vital-signs-modal .form-control:read-only {
+  background-color: var(--bg-tertiary);
+  opacity: 0.8;
+}
+
+.vital-signs-modal .form-select:disabled {
+  background-color: var(--bg-tertiary);
+  opacity: 0.8;
+}
+
+.vital-signs-modal .row {
+  margin-bottom: 1rem;
+}
+
+.vital-signs-modal .modal-footer {
+  padding: 1rem 1.5rem;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-secondary);
+}
+
+.patient-info {
+  margin-top: 0.5rem;
+}
+
+.patient-info small {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+/* Vital Signs History Modal */
+.vital-signs-history-modal .modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.vital-signs-history-modal .table {
+  font-size: 0.9rem;
+}
+
+.vital-signs-history-modal .table th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+  border-bottom: 2px solid var(--border-primary);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.vital-signs-history-modal .table td {
+  vertical-align: middle;
+  padding: 0.75rem 0.5rem;
+}
+
+/* Service Assignment Dropdown */
+.checkup-table .form-select {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+/* Enhanced button states */
+.action-buttons .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.action-buttons .btn-outline-primary:disabled {
+  color: var(--text-secondary);
+  border-color: var(--border-secondary);
+}
+
+.action-buttons .btn-outline-success:disabled {
+  color: var(--text-secondary);
+  border-color: var(--border-secondary);
+}
+
+/* Method cell icon */
+.method-cell {
+  text-align: center;
+  width: 40px;
+}
+
+.method-cell i {
+  font-size: 1.1rem;
+}
+
+/* Patient Database Modal */
+.patient-database-modal .modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.patient-database-modal .search-patients {
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.95rem;
+  transition: border-color 0.3s ease;
+}
+
+.patient-database-modal .search-patients:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.checkup-manager .modal-subtitle {
+  margin-top: 0.5rem;
+}
+
+.patient-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1rem;
+  padding: 1rem 0;
+  min-height: 200px; /* Ensure the grid has minimum height */
+}
+
+.patient-card {
+  border: 1px solid var(--border-secondary);
+  border-radius: 12px;
+  padding: 1rem;
+  background: var(--bg-secondary);
+  transition: all 0.2s ease;
+  min-height: 180px; /* Ensure cards have consistent height */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.patient-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.patient-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.patient-avatar {
+  flex-shrink: 0;
+}
+
+.patient-info {
+  flex: 1;
+}
+
+.patient-name {
+  color: var(--text-primary);
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+}
+
+.patient-details,
+.patient-contact {
+  margin: 0 0 0.25rem 0;
+}
+
+.patient-card-footer {
+  border-top: 1px solid var(--border-tertiary);
+  padding-top: 1rem;
+}
+
+/* Remove Mode Styles */
+.remove-mode-row {
+  cursor: pointer !important;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.remove-mode-row:hover {
+  background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+.selected-for-removal {
+  background-color: rgba(220, 53, 69, 0.25) !important;
+  border-left: 4px solid var(--danger) !important;
+  color: #721c24 !important;
+}
+
+.selected-for-removal:hover {
+  background-color: rgba(220, 53, 69, 0.35) !important;
+}
+
+.selected-for-removal td {
+  background-color: transparent !important;
+  color: inherit !important;
+}
+
+/* Remove Confirmation Modal */
+.remove-confirmation-modal .modal-body {
+  padding: 1.5rem;
+}
+
+.removal-summary {
+  text-align: left;
+}
+
+.removal-summary .list-group-item {
+  border: 1px solid var(--border-secondary);
+  background: var(--bg-secondary);
+}
+
+.removal-summary .alert {
+  margin-bottom: 0;
+}
+
+/* Remove mode indicator */
+.checkup-table.remove-mode {
+  border: 2px dashed var(--danger);
+}
+
+.checkup-table.remove-mode thead {
+  background: rgba(220, 53, 69, 0.1);
+}
+
+/* Control buttons styling - Remove hover effects and show plain colors */
+.checkup-controls .btn {
+  font-weight: 500;
+}
+
+.checkup-controls .btn-danger {
+  border-color: var(--danger);
+  background-color: var(--danger);
+  color: white;
+}
+
+.checkup-controls .btn-outline-danger {
+  border-color: var(--danger);
+  color: var(--danger);
+  background-color: transparent;
+}
+
+.checkup-controls .btn-outline-danger:hover,
+.checkup-controls .btn-outline-danger:focus,
+.checkup-controls .btn-outline-danger:active {
+  background-color: var(--danger);
+  border-color: var(--danger);
+  color: white;
+}
+
+.checkup-controls .btn-outline-primary {
+  border-color: var(--primary);
+  color: var(--primary);
+  background-color: transparent;
+}
+
+.checkup-controls .btn-outline-primary:hover,
+.checkup-controls .btn-outline-primary:focus,
+.checkup-controls .btn-outline-primary:active {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  color: white;
+}
+
+.checkup-controls .btn-outline-secondary {
+  border-color: var(--secondary);
+  color: var(--secondary);
+  background-color: transparent;
+}
+
+.checkup-controls .btn-outline-secondary:hover,
+.checkup-controls .btn-outline-secondary:focus,
+.checkup-controls .btn-outline-secondary:active {
+  background-color: var(--secondary);
+  border-color: var(--secondary);
+  color: white;
+}
+
+/* Remove general button hover effects for plain appearance */
+.checkup-controls .btn:not(:disabled):not(.disabled) {
+  cursor: pointer;
+}
+
+/* Make buttons show their colors without hover requirement */
+.checkup-controls .btn-primary {
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  color: white !important;
+}
+
+.checkup-controls .btn-success {
+  background-color: #198754 !important;
+  border-color: #198754 !important;
+  color: white !important;
+}
+
+.checkup-controls .btn-warning {
+  background-color: var(--warning);
+  border-color: var(--warning);
+  color: var(--dark);
+}
+
+/* Specific styles for refresh and add patient buttons */
+.checkup-controls .btn-outline-success {
+  background-color: #198754 !important;
+  border-color: #198754 !important;
+  color: white !important;
+}
+
+.checkup-controls .btn-outline-primary {
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  color: white !important;
+}
+
+/* Scoped button styling - Only affects CheckupManager component */
+.checkup-manager .btn:not(:disabled):not(.disabled) {
+  transition: none !important;
+}
+
+/* Aggressive button reset to override any conflicting styles - NO HOVER */
+.checkup-manager button,
+.checkup-manager .btn,
+.checkup-manager input[type="button"],
+.checkup-manager input[type="submit"] {
+  background: none !important;
+  border: 1px solid transparent !important;
+  color: inherit !important;
+  padding: 0.375rem 0.75rem !important;
+  font-size: 1rem !important;
+  border-radius: 0.375rem !important;
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  cursor: pointer !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  user-select: none !important;
+  line-height: 1.5 !important;
+  font-weight: 400 !important;
+  transition: none !important;
+}
+
+/* Disable ALL hover, focus, and active effects */
+.checkup-manager button:hover,
+.checkup-manager .btn:hover,
+.checkup-manager button:focus,
+.checkup-manager .btn:focus,
+.checkup-manager button:active,
+.checkup-manager .btn:active {
+  transform: none !important;
+  box-shadow: none !important;
+  transition: none !important;
+}
+
+/* Essential button properties to ensure visibility */
+.checkup-manager .btn {
+  display: inline-block !important;
+  padding: 0.375rem 0.75rem !important;
+  margin-bottom: 0 !important;
+  font-size: 1rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  text-align: center !important;
+  text-decoration: none !important;
+  vertical-align: middle !important;
+  cursor: pointer !important;
+  border: 1px solid transparent !important;
+  border-radius: 0.375rem !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  position: relative !important;
+  z-index: 1 !important;
+  box-sizing: border-box !important;
+}
+
+/* Force button text to be visible */
+.checkup-manager .btn,
+.checkup-manager .btn:focus,
+.checkup-manager .btn:active,
+.checkup-manager .btn:visited {
+  text-decoration: none !important;
+  outline: none !important;
+}
+
+/* Ensure button icons and text are visible */
+.checkup-manager .btn i,
+.checkup-manager .btn span,
+.checkup-manager .btn::before,
+.checkup-manager .btn::after {
+  color: inherit !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Override any CSS variables that might be causing issues */
+.checkup-manager .btn-primary {
+  --bs-btn-color: #ffffff !important;
+  --bs-btn-bg: #0d6efd !important;
+  --bs-btn-border-color: #0d6efd !important;
+}
+
+.checkup-manager .btn-success {
+  --bs-btn-color: #ffffff !important;
+  --bs-btn-bg: #198754 !important;
+  --bs-btn-border-color: #198754 !important;
+}
+
+.checkup-manager .btn-danger {
+  --bs-btn-color: #ffffff !important;
+  --bs-btn-bg: #dc3545 !important;
+  --bs-btn-border-color: #dc3545 !important;
+}
+
+/* Solid button styles - NO HOVER EFFECTS */
+.checkup-manager .btn-primary,
+.checkup-manager .btn-primary:hover,
+.checkup-manager .btn-primary:focus,
+.checkup-manager .btn-primary:active {
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  color: #ffffff !important;
+}
+
+.checkup-manager .btn-success,
+.checkup-manager .btn-success:hover,
+.checkup-manager .btn-success:focus,
+.checkup-manager .btn-success:active {
+  background-color: #198754 !important;
+  border-color: #198754 !important;
+  color: #ffffff !important;
+}
+
+.checkup-manager .btn-danger,
+.checkup-manager .btn-danger:hover,
+.checkup-manager .btn-danger:focus,
+.checkup-manager .btn-danger:active {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: #ffffff !important;
+}
+
+.checkup-manager .btn-warning,
+.checkup-manager .btn-warning:hover,
+.checkup-manager .btn-warning:focus,
+.checkup-manager .btn-warning:active {
+  background-color: #ffc107 !important;
+  border-color: #ffc107 !important;
+  color: #000000 !important;
+}
+
+.checkup-manager .btn-secondary,
+.checkup-manager .btn-secondary:hover,
+.checkup-manager .btn-secondary:focus,
+.checkup-manager .btn-secondary:active {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: #ffffff !important;
+}
+
+.checkup-manager .btn-info,
+.checkup-manager .btn-info:hover,
+.checkup-manager .btn-info:focus,
+.checkup-manager .btn-info:active {
+  background-color: #0dcaf0 !important;
+  border-color: #0dcaf0 !important;
+  color: #000000 !important;
+}
+
+/* Outline button styles - NO HOVER EFFECTS */
+.checkup-manager .btn-outline-primary,
+.checkup-manager .btn-outline-primary:hover,
+.checkup-manager .btn-outline-primary:focus,
+.checkup-manager .btn-outline-primary:active {
+  color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  background-color: transparent !important;
+}
+
+.checkup-manager .btn-outline-secondary,
+.checkup-manager .btn-outline-secondary:hover,
+.checkup-manager .btn-outline-secondary:focus,
+.checkup-manager .btn-outline-secondary:active {
+  color: #6c757d !important;
+  border-color: #6c757d !important;
+  background-color: transparent !important;
+}
+
+.checkup-manager .btn-outline-danger,
+.checkup-manager .btn-outline-danger:hover,
+.checkup-manager .btn-outline-danger:focus,
+.checkup-manager .btn-outline-danger:active {
+  color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  background-color: transparent !important;
+}
+
+.checkup-manager .btn-outline-success,
+.checkup-manager .btn-outline-success:hover,
+.checkup-manager .btn-outline-success:focus,
+.checkup-manager .btn-outline-success:active {
+  color: #198754 !important;
+  border-color: #198754 !important;
+  background-color: transparent !important;
+}
+
+.checkup-manager .btn-outline-warning,
+.checkup-manager .btn-outline-warning:hover,
+.checkup-manager .btn-outline-warning:focus,
+.checkup-manager .btn-outline-warning:active {
+  color: #ffc107 !important;
+  border-color: #ffc107 !important;
+  background-color: transparent !important;
+}
+
+/* This rule was causing the button to be invisible.
+   It is overridden by another rule that sets a hardcoded color.
+.checkup-manager .btn-primary {
+  background-color: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: white !important;
+}
+*/
+
+.checkup-manager .btn-secondary {
+  color: white !important;
+}
+
+.checkup-manager .btn-danger {
+  background-color: var(--danger) !important;
+  border-color: var(--danger) !important;
+  color: white !important;
+}
+
+.checkup-manager .btn-success {
+  background-color: var(--success) !important;
+  border-color: var(--success) !important;
+  color: white !important;
+}
+
+.checkup-manager .btn-warning {
+  background-color: var(--warning) !important;
+  border-color: var(--warning) !important;
+  color: var(--dark) !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .patient-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .checkup-controls .d-flex {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .stats-notifications {
+    flex-wrap: wrap;
+  }
+  
+  .content-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+}
+
+/* Cancel button style fix */
+button.btn-secondary {
+  display: inline-block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: white !important;
+}
+
+/* Add margin for remove mode cancel button - Scoped to CheckupManager */
+.checkup-manager .btn-secondary[onclick*="cancelRemoveMode"] {
+  margin-left: 0.5rem !important;
+}

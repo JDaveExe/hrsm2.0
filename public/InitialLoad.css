@@ -1,0 +1,68 @@
+/* InitialLoad.css - Bootstrap Icons Fallback */
+
+/*
+  Fallback styles for Bootstrap Icons to prevent invisible icons
+  These styles ensure icons are visible even if bootstrap-icons.css fails to load
+*/
+
+/* Bootstrap Icons fallback - ensure icons are visible */
+.bi::before,
+[class^="bi-"]::before,
+[class*=" bi-"]::before {
+    display: inline-block !important;
+    font-family: bootstrap-icons, "Font Awesome 6 Free", "Font Awesome 6 Pro", sans-serif !important;
+    font-style: normal !important;
+    font-weight: normal !important;
+    line-height: 1;
+    vertical-align: -.125em;
+}
+
+/* Specific fallbacks for common icons */
+.bi-chevron-right::before {
+    content: "›" !important; /* Fallback character */
+}
+
+.bi-chevron-down::before {
+    content: "⌄" !important; /* Fallback character */
+}
+
+.bi-person::before {
+    content: "👤" !important; /* Fallback character */
+}
+
+.bi-box-arrow-right::before {
+    content: "→" !important; /* Fallback character */
+}
+
+.bi-gear::before {
+    content: "⚙" !important; /* Fallback character */
+}
+
+/* Ensure dropdown arrows are always visible */
+.dropdown-toggle::after {
+    display: inline-block !important;
+    margin-left: 0.255em !important;
+    vertical-align: 0.255em !important;
+    content: "" !important;
+    border-top: 0.3em solid !important;
+    border-right: 0.3em solid transparent !important;
+    border-bottom: 0 !important;
+    border-left: 0.3em solid transparent !important;
+}
+
+/* Force visibility for admin sidebar icons */
+.admin-sidebar .nav-link i,
+.sidebar .nav-link i {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: inline-block !important;
+    width: 1.2em !important;
+    text-align: center !important;
+}
+
+/* Force visibility for admin header icons */
+.admin-header .dropdown-toggle,
+.user-info .dropdown-toggle {
+    opacity: 1 !important;
+    visibility: visible !important;
+}

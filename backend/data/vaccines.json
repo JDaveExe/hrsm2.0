@@ -1,15 +1,15 @@
 [
   {
     "id": 1,
-    "name": "BCG Vaccine",
+    "name": "BCG Vaccines",
     "description": "Bacillus Calmette-Guérin - Administered at birth to prevent tuberculosis",
     "manufacturer": "Sanofi",
     "category": "Routine Childhood",
-    "batchNumber": "BCG001-2024",
-    "dosesInStock": 220,
+    "batchNumber": "10",
+    "dosesInStock": 240,
     "minimumStock": 50,
     "unitCost": 25,
-    "expiryDate": "2025-12-31",
+    "expiryDate": "2025-10-30",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intradermal",
     "ageGroups": [
@@ -21,7 +21,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Store in refrigerator, use within 6 hours of reconstitution",
-    "updatedAt": "2025-08-14T16:51:49.493Z"
+    "updatedAt": "2025-08-21T06:05:07.078Z"
   },
   {
     "id": 2,
@@ -589,5 +589,21 @@
     "costPerDose": 100,
     "createdAt": "2025-08-14T17:09:16.554Z",
     "updatedAt": "2025-08-14T17:09:16.554Z"
+  },
+  {
+    "id": 26,
+    "name": "",
+    "category": "Emergency",
+    "manufacturer": "sanole",
+    "administrationRoute": "Intranasal",
+    "description": "sample",
+    "dosesInStock": 0,
+    "minimumStock": 0,
+    "batchNumber": "",
+    "expiryDate": "2025-10-14",
+    "storageRequirements": "-15 to -25°C (Frozen)",
+    "costPerDose": 100,
+    "createdAt": "2025-08-24T12:20:06.411Z",
+    "updatedAt": "2025-08-24T12:20:06.411Z"
   }
 ]

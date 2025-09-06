@@ -1,0 +1,186 @@
+/* Box sizing reset for medication panel */
+.medication-item-panel,
+.medication-item-panel *,
+.medication-item-panel *::before,
+.medication-item-panel *::after {
+  box-sizing: border-box;
+}
+
+.medication-item-panel {
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid #e9ecef;
+    border-radius: 0.75rem;
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: stretch;
+    gap: 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    height: 70vh; /* Match checkup card height */
+    max-height: 200px; /* Reasonable max height for medication items */
+    min-height: 180px; /* Minimum height for consistency */
+  }
+  
+  .medication-item-panel:hover {
+    border-color: #007bff;
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+    transform: translateY(-2px);
+  }
+  
+  .medication-item-panel.selected {
+    border-color: #28a745;
+    background: #f8fff8;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
+  }
+  
+  .medication-info-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .medication-primary-panel {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  
+  .medication-primary-panel h5 {
+    margin: 0;
+    font-weight: 600;
+    color: #212529;
+    font-size: 1.1rem;
+  }
+  
+  .medication-strength-panel {
+    background: #e9ecef;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: #495057;
+  }
+  
+  .medication-form-panel {
+    background: #007bff;
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    font-size: 0.875rem;
+  }
+  
+  .medication-secondary-panel {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.875rem;
+    color: #6c757d;
+  }
+  
+  .medication-details-panel {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .category-panel {
+    background: #28a745;
+    color: white;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  
+  .indication-panel {
+    color: #6c757d;
+    font-style: italic;
+  }
+  
+  .stock-info-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 100px;
+  }
+  
+  .stock-level-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+  }
+  
+  .stock-level-panel.in-stock {
+    background: #d4edda;
+    color: #155724;
+  }
+  
+  .stock-level-panel.low-stock {
+    background: #fff3cd;
+    color: #856404;
+  }
+  
+  .stock-level-panel.out-of-stock {
+    background: #f8d7da;
+    color: #721c24;
+  }
+  
+  .stock-number-panel {
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+  
+  .stock-label-panel {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .min-stock-panel {
+    font-size: 0.75rem;
+    color: #6c757d;
+  }
+  
+  .quantity-selection-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 120px;
+  }
+  
+  .quantity-selection-panel label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #495057;
+    margin: 0;
+  }
+  
+  .quantity-input-group-panel {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .quantity-input-panel {
+    width: 60px;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    text-align: center;
+  }
+  
+  .quantity-input-panel:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  }
+  

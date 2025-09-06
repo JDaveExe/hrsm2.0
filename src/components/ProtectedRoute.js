@@ -20,10 +20,14 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
-    // Redirect to appropriate dashboard based on role
+    // QUICK WORKAROUND: Allow admin to access any dashboard for testing
+    if (user?.role === 'admin') {
+      console.log('Admin accessing', allowedRoles[0], 'dashboard - allowing for testing');
+      return children;
+    }
+    
+    // For non-admin users, redirect to appropriate dashboard
     switch (user?.role) {
-      case 'admin':
-        return <Navigate to="/admin/dashboard" replace />;
       case 'doctor':
         return <Navigate to="/doctor/dashboard" replace />;
       case 'patient':

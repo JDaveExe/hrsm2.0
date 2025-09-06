@@ -181,10 +181,6 @@ class EmailService {
   // Send email
   async sendEmail(to, subject, content, options = {}) {
     try {
-      if (!this.isConfigured) {
-        throw new Error('Email service not configured');
-      }
-
       // Check if email is N/A, null, undefined, or empty
       if (!to || to === 'N/A' || to === 'n/a' || to.trim() === '') {
         console.log('📧 Skipping email - recipient has no valid email address (N/A or empty)');
@@ -198,6 +194,29 @@ class EmailService {
 
       if (!this.isValidEmail(to)) {
         throw new Error('Invalid email address format');
+      }
+
+      // Development mode - simulate email sending
+      if (!this.isConfigured) {
+        console.log('📧 DEVELOPMENT MODE - Simulating email send:');
+        console.log(`   To: ${to}`);
+        console.log(`   Subject: ${subject}`);
+        console.log(`   Content: ${content.substring(0, 100)}...`);
+        console.log(`   Options: ${JSON.stringify(options)}`);
+        
+        // Simulate email sending delay
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        return {
+          success: true,
+          messageId: `mock-email-${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          recipient: to,
+          subject: subject,
+          provider: 'email-mock',
+          mode: 'development',
+          note: 'Email simulated in development mode - no actual email sent'
+        };
       }
 
       const htmlContent = this.generateEmailHTML(
@@ -218,6 +237,7 @@ class EmailService {
         ...options.mailOptions
       };
 
+      // Only send actual email if service is properly configured
       const result = await this.transporter.sendMail(mailOptions);
       
       console.log('📧 Email sent successfully:', {

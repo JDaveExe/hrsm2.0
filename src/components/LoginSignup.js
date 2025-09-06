@@ -17,7 +17,7 @@ const LoginSignup = () => {
   const [activeTab, setActiveTab] = useState('login'); // 'login' or 'register'
   const [activeKey, setActiveKey] = useState('login');
   const navigate = useNavigate(); // Initialize useNavigate
-  const { login, logout, isAuthenticated, user } = useAuth(); // Use auth context
+  const { login, logout, isAuthenticated, user, setIsLoading } = useAuth(); // Use auth context
   const { addUnsortedMember } = useData(); // Use data context
   const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
   const [isAutoLoggingIn, setIsAutoLoggingIn] = useState(false);
@@ -104,51 +104,54 @@ const LoginSignup = () => {
     setRegPasswordStrength(checkPasswordStrength(formData.password));
   }, [formData.password]);
 
-  // Auto-login based on port (second instance and beyond)
-  useEffect(() => {
-    const currentPort = window.location.port;
-    
-    // Define auto-login mapping for different ports
-    const autoLoginConfig = {
-      '3001': { username: 'doctor', password: 'doctor123', role: 'doctor', dashboard: '/doctor/dashboard' },
-      '3002': { username: 'patient', password: 'patient123', role: 'patient', dashboard: '/patient/dashboard' },
-      // Future: '3003': { username: 'admin', password: 'admin123', role: 'admin', dashboard: '/admin/dashboard' }
-    };
-    
-    const config = autoLoginConfig[currentPort];
-    
-    // If running on a configured port and no user is authenticated and auto-login hasn't been attempted
-    if (config && !isAuthenticated && !autoLoginAttempted) {
-      setAutoLoginAttempted(true);
-      setIsAutoLoggingIn(true);
-      
-      // Auto-login based on port configuration
-      const autoLogin = async () => {
-        try {
-          console.log(`🔄 Auto-login detected for port ${currentPort} - logging in as ${config.role}...`);
-          
-          const response = await authService.login(config.username, config.password);
-          if (response && response.user) {
-            // Use auth context to store user data
-            login(response.user, response.token);
-            
-            // Navigate to appropriate dashboard
-            navigate(config.dashboard);
-            
-            console.log(`✅ Auto-login successful - redirected to ${config.role} dashboard`);
-          }
-        } catch (error) {
-          console.error('❌ Auto-login failed:', error);
-          // Don't show error to user, just log it and let them login manually
-        } finally {
-          setIsAutoLoggingIn(false);
-        }
-      };
-      
-      // Add a small delay to let the component mount properly
-      setTimeout(autoLogin, 1000);
-    }
-  }, [isAuthenticated, autoLoginAttempted, login, navigate]);
+  // Auto-login based on port (DISABLED - now handled in App.js to prevent redirect loops)
+  // useEffect(() => {
+  //   const currentPort = window.location.port;
+  //   
+  //   // Define auto-login mapping for different ports
+  //   const autoLoginConfig = {
+  //     '3001': { username: 'doctor', password: 'doctor123', role: 'doctor', dashboard: '/doctor/dashboard' },
+  //     '3002': { username: 'patient', password: 'patient123', role: 'patient', dashboard: '/patient/dashboard' },
+  //     // Future: '3003': { username: 'admin', password: 'admin123', role: 'admin', dashboard: '/admin/dashboard' }
+  //   };
+  //   
+  //   const config = autoLoginConfig[currentPort];
+  //   
+  //   // If running on a configured port and no user is authenticated and auto-login hasn't been attempted
+  //   if (config && !isAuthenticated && !autoLoginAttempted) {
+  //     setAutoLoginAttempted(true);
+  //     setIsAutoLoggingIn(true);
+  //     
+  //     // Auto-login based on port configuration
+  //     const autoLogin = async () => {
+  //       try {
+  //         setIsAutoLoggingIn(true);
+  //         setIsLoading(true);
+  //         console.log(`🔄 Auto-login detected for port ${currentPort} - logging in as ${config.role}...`);
+  //         
+  //         const response = await authService.login(config.username, config.password);
+  //         if (response && response.user) {
+  //           // Use auth context to store user data and token
+  //           login({ user: response.user, token: response.token });
+  //           
+  //           // Navigate to appropriate dashboard
+  //           navigate(config.dashboard);
+  //           
+  //           console.log(`✅ Auto-login successful - redirected to ${config.role} dashboard`);
+  //         }
+  //       } catch (error) {
+  //         console.error('❌ Auto-login failed:', error);
+  //         // Don't show error to user, just log it and let them login manually
+  //         setIsLoading(false);
+  //       } finally {
+  //         setIsAutoLoggingIn(false);
+  //       }
+  //     };
+  //     
+  //     // Add a small delay to let the component mount properly
+  //     setTimeout(autoLogin, 1000);
+  //   }
+  // }, [isAuthenticated, autoLoginAttempted, login, navigate]);
 
   // Don't automatically redirect - let users access login page even when authenticated
   // They might want to logout or switch accounts
@@ -171,12 +174,13 @@ const LoginSignup = () => {
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setLoginError('');
+    setIsLoading(true);
 
     try {
       const response = await authService.login(emailOrPhone, password);
       if (response && response.user) {
-        // Use auth context to store user data
-        login(response.user, response.token);
+        // Use auth context to store user data and token
+        login({ user: response.user, token: response.token });
         
         // Redirect based on user role
         switch (response.user.role) {
@@ -196,6 +200,7 @@ const LoginSignup = () => {
     } catch (error) {
       const errorMessage = error.response?.data?.msg || "An unexpected error occurred. Please try again.";
       setLoginError(errorMessage);
+      setIsLoading(false);
     }
   };
 
@@ -308,9 +313,11 @@ const LoginSignup = () => {
     e.preventDefault();
     setRegistrationError("");
     setRegistrationMessage('');
+    setIsLoading(true);
 
     if (!formData.email && !formData.phoneNumber) {
       setRegistrationError("Please provide either an email or a phone number.");
+      setIsLoading(false);
       return;
     }
     
@@ -319,24 +326,29 @@ const LoginSignup = () => {
       const phoneRegex = /^09\d{9}$/;
       if (!phoneRegex.test(formData.phoneNumber)) {
         setRegistrationError("Phone number must be exactly 11 digits starting with 09 (e.g., 09171234567).");
+        setIsLoading(false);
         return;
       }
     }
     
     if (formData.password !== formData.repeatPassword) {
       setRegistrationError("Passwords do not match.");
+      setIsLoading(false);
       return;
     }
     if (!formData.firstName || !formData.lastName || !formData.password) {
       setRegistrationError("Please fill in all required fields.");
+      setIsLoading(false);
       return;
     }
     if (!formData.dateOfBirth) {
       setRegistrationError("Date of birth is required.");
+      setIsLoading(false);
       return;
     }
     if (!formData.gender) {
       setRegistrationError("Gender is required.");
+      setIsLoading(false);
       return;
     }
 
@@ -345,8 +357,8 @@ const LoginSignup = () => {
       const response = await authService.register(formData);
       
       if (response && response.user) {
-        // Use auth context to store user data
-        login(response.user, response.token);
+        // Use auth context to store user data and token
+        login({ user: response.user, token: response.token });
         
         // Add patient to unsorted members in the data context
         const patientData = {
@@ -418,6 +430,8 @@ const LoginSignup = () => {
         error.message ||
         error.toString();
       setRegistrationError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -692,7 +706,7 @@ const LoginSignup = () => {
 
   // Render already authenticated view
   const renderAuthenticatedView = () => (
-    <div className="text-center">
+    <div className="text-center authenticated-view">
       <h4>Welcome back, {user?.firstName || user?.username}!</h4>
       <p className="text-muted mb-4">You are already logged in as a {user?.role}.</p>
       

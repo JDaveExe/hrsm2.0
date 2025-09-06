@@ -1,0 +1,304 @@
+/* Forecasting Dashboard Styles */
+.forecasting-dashboard {
+  padding: 0;
+}
+
+/* Season Card */
+.season-card {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-width: 2px !important;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.season-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.8);
+}
+
+.forecast-summary {
+  text-align: center;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.summary-number {
+  font-size: 2rem;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.summary-label {
+  font-size: 0.85rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Alerts Card */
+.alerts-card {
+  border-left: 4px solid #ffc107;
+}
+
+.alert-item {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+}
+
+.alert-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.alert-type {
+  margin-bottom: 8px;
+}
+
+.alert-message {
+  font-size: 0.95rem;
+}
+
+/* Disease Risk Cards */
+.disease-risks-card {
+  border-left: 4px solid #dc3545;
+}
+
+.disease-card {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  background-color: #fff;
+}
+
+.disease-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.disease-name {
+  font-weight: 600;
+  color: #343a40;
+  margin-bottom: 0;
+}
+
+.disease-metrics {
+  margin: 12px 0;
+}
+
+.metric-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.metric-label {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.metric-value {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.seasonal-indicator {
+  margin-top: 8px;
+}
+
+.disease-message {
+  font-style: italic;
+  color: #6c757d;
+  border-left: 3px solid #e9ecef;
+  padding-left: 12px;
+}
+
+.disease-recommendation {
+  background-color: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 3px solid #17a2b8;
+}
+
+/* Resource Planning Cards */
+.resource-planning-card {
+  border-left: 4px solid #28a745;
+}
+
+.resource-card {
+  transition: all 0.3s ease;
+  border-radius: 8px;
+  background-color: #fff;
+}
+
+.resource-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.resource-name {
+  font-weight: 600;
+  color: #343a40;
+  margin-bottom: 0;
+}
+
+.resource-metrics {
+  margin: 12px 0;
+}
+
+.metric-number {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #495057;
+  line-height: 1;
+}
+
+.metric-label {
+  font-size: 0.8rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.seasonal-adjustment {
+  margin: 8px 0;
+}
+
+.resource-recommendations {
+  background-color: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 3px solid #ffc107;
+}
+
+.recommendations-header {
+  font-weight: 600;
+  color: #495057;
+}
+
+.recommendation-item {
+  margin: 2px 0;
+  font-size: 0.85rem;
+}
+
+/* Forecasting Footer */
+.forecasting-footer {
+  padding: 20px 0;
+  border-top: 1px solid #e9ecef;
+  margin-top: 20px;
+}
+
+/* Loading State */
+.forecasting-dashboard .text-center {
+  color: #6c757d;
+}
+
+.forecasting-dashboard .spinner-border {
+  color: #007bff;
+}
+
+/* Error State */
+.forecasting-dashboard .alert-danger {
+  border-left: 4px solid #dc3545;
+}
+
+/* Badge Styles */
+.badge {
+  font-size: 0.75rem;
+  padding: 0.375rem 0.75rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .season-card .d-flex {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .season-icon {
+    margin-bottom: 15px;
+  }
+  
+  .forecast-summary {
+    margin-top: 15px;
+  }
+  
+  .disease-card,
+  .resource-card {
+    margin-bottom: 15px;
+  }
+  
+  .alert-item {
+    margin-bottom: 10px;
+  }
+}
+
+/* Animation Effects */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.forecasting-dashboard .card {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+.forecasting-dashboard .card:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.forecasting-dashboard .card:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+/* Custom Cursor for Interactive Elements */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Enhanced Border Styles */
+.border-danger {
+  border-color: #dc3545 !important;
+}
+
+.border-warning {
+  border-color: #ffc107 !important;
+}
+
+.border-success {
+  border-color: #28a745 !important;
+}
+
+.border-info {
+  border-color: #17a2b8 !important;
+}
+
+/* Text Color Utilities */
+.text-danger {
+  color: #dc3545 !important;
+}
+
+.text-warning {
+  color: #ffc107 !important;
+}
+
+.text-success {
+  color: #28a745 !important;
+}
+
+.text-info {
+  color: #17a2b8 !important;
+}

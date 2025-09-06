@@ -2,11 +2,12 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const path = require('path');
 const { sequelize, connectDB } = require('./config/database');
 const dbProtection = require('./utils/databaseProtection');
 
 // Import models with associations already defined
-const { User, Patient, Family, VitalSigns } = require('./models');
+const { User, Patient, Family, VitalSigns, Appointment } = require('./models');
 
 const app = express();
 
@@ -29,17 +30,12 @@ const initializeServer = async () => {
     // Initialize database protection
     await dbProtection.initializeDatabase();
     
-    // Sync database without altering existing tables
-    await sequelize.sync({ alter: false });
+    // Sync database with alter to add new columns
+    await sequelize.sync({ alter: true });
     console.log('Database connected - tables synchronized');
     
-    // Create default users if they don't exist
-    try {
-      await User.createDefaultUsers();
-      console.log('Default users initialized');
-    } catch (error) {
-      console.error('Error creating default users:', error);
-    }
+    // Note: Using hardcoded fallback accounts in auth.js instead of database records
+    console.log('Hardcoded test accounts available: admin/admin123, doctor/doctor123, patient/patient123');
   } catch (error) {
     console.error('Server initialization failed:', error);
     process.exit(1);
@@ -55,9 +51,28 @@ app.use('/api/patients', require('./routes/patients'));
 app.use('/api/families', require('./routes/families'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/vital-signs', require('./routes/vitalSigns'));
 app.use('/api/inventory', require('./routes/inventory'));
+app.use('/api/dashboard', require('./routes/dashboard'));
+app.use('/api/checkups', require('./routes/checkups'));
+app.use('/api/medications', require('./routes/medications'));
+app.use('/api/doctor/queue', require('./routes/doctorQueue'));
+
+// Doctor checkups endpoint - specific route for doctor checkups
+app.use('/api/doctor/checkups', (req, res, next) => {
+  // If it's a GET request to the root, route to the doctor endpoint
+  if (req.method === 'GET' && req.path === '/') {
+    req.url = '/doctor';
+  }
+  require('./routes/checkups')(req, res, next);
+});
+app.use('/api/forecast', require('./routes/forecast'));
+app.use('/api/backup', require('./routes/backup'));
+
+// Serve static data files
+app.use('/backend/data', express.static(require('path').join(__dirname, 'data')));
 
 // Database status endpoint
 app.get('/api/db-status', async (req, res) => {
@@ -75,6 +90,16 @@ app.get('/api/debug/check', (req, res) => {
     status: 'ok',
     message: 'API is responding correctly',
     timestamp: new Date().toISOString()
+  });
+});
+
+// Health check endpoint for frontend connectivity
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    message: 'Backend is connected and running',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
   });
 });
 
