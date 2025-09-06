@@ -1,175 +1,300 @@
-# 🏥 Maybunga Health Station Management System
+# 🏥 Healthcare Resource Sharing Management (HRSM) 2.0
 
-A comprehensive healthcare management system built with React.js frontend and Node.js backend, designed specifically for Maybunga Health Station.
+A comprehensive, modern healthcare management system built with React and Node.js, designed for healthcare facilities to efficiently manage patients, appointments, inventory, and staff with advanced features and security.
 
-## 📋 Features
+## ✨ Key Features
 
-### 👨‍💼 Admin Dashboard
-- **Patient Management**: Complete patient database with family grouping
-- **User Management**: Create and manage system users (Doctors, Nurses, Aides, etc.)
-- **Appointment Scheduling**: Comprehensive appointment management system
-- **Today's Checkups**: Real-time monitoring of daily patient checkups
-- **Reports & Analytics**: Healthcare data analysis and reporting
-- **Settings**: System configuration and preferences
+### 👥 **Patient Management**
+- Advanced patient records with family organization
+- Real-time patient data synchronization
+- Comprehensive medical history tracking
+- Family member relationships and management
+- Patient search and filtering capabilities
 
-### 👨‍⚕️ Doctor Dashboard
-- **Today's Checkups**: View patients ready for consultation
-- **Session Management**: Handle ongoing patient sessions
-- **Patient Database**: Access to patient records and history
-- **Appointment History**: Complete appointment tracking
-- **Medical Records**: Create and manage patient medical records
-- **Settings**: Personal preferences and clinical settings
+### 📅 **Appointment System**
+- Real-time appointment scheduling and management
+- Calendar view with availability checking
+- Appointment conflict detection
+- Multi-user appointment coordination
+- Today's checkups workflow
 
-### 🎨 Design Features
-- **Responsive Design**: Works seamlessly on desktop, tablet, and mobile
-- **Dark/Light Mode**: Full theme switching support
-- **Modern UI**: Clean, professional healthcare interface
-- **Role-Based Access**: Secure access control for different user types
+### 🏥 **Healthcare Operations**
+- Vital signs monitoring and history
+- Prescription tracking and management
+- Immunization records and scheduling
+- Medical inventory management with alerts
+- Treatment records and follow-ups
 
-## 🛠️ Technology Stack
+### 📊 **Analytics & Reporting**
+- Real-time dashboard with statistics
+- Interactive charts and data visualization
+- Healthcare trend analysis and forecasting
+- Comprehensive report generation
+- Performance monitoring
+
+### 🛡️ **Security & Access Control**
+- Role-based user management (Admin, Doctor, Patient)
+- Secure JWT authentication with auto-logout
+- CSRF protection and input validation
+- Encrypted data transmission
+- Session management and security monitoring
+
+### 🔧 **Advanced Features**
+- Multi-instance testing support
+- Simulation mode for testing and training
+- Real-time data synchronization
+- Backup and restore functionality
+- Performance optimization and caching
+
+## 🚀 Technologies Used
 
 ### Frontend
-- **React.js 18+**: Modern React with functional components and hooks
-- **Bootstrap 5**: Responsive CSS framework
-- **React Bootstrap**: Bootstrap components for React
-- **CSS Variables**: Dynamic theming system
-- **Bootstrap Icons**: Comprehensive icon library
+- **React.js 18** with modern hooks and context
+- **TanStack Query** for optimized data fetching
+- **Bootstrap 5** with responsive design
+- **Chart.js** for interactive analytics
+- **CSS3** with modern design system
 
-### Backend (In Development)
-- **Node.js**: JavaScript runtime
-- **Express.js**: Web application framework
-- **MongoDB**: NoSQL database
-- **Mongoose**: MongoDB object modeling
-- **JWT**: Authentication and authorization
-- **bcrypt**: Password hashing
-- **Multer**: File upload handling
+### Backend
+- **Node.js** with Express.js framework
+- **MySQL** with Sequelize ORM
+- **JWT** authentication with secure storage
+- **Axios** for API communication
+- **Real-time** data synchronization
 
-## 🚀 Getting Started
+### Development Tools
+- **Performance monitoring** and error boundaries
+- **Comprehensive testing** scripts and tools
+- **Database migration** and seeding tools
+- **Multi-instance** development support
+
+## 📋 Installation & Setup
 
 ### Prerequisites
-- Node.js (v16 or higher)
-- npm or yarn package manager
-- Git
+- **Node.js** (v16 or higher)
+- **MySQL** (v8.0 or higher)
+- **npm** package manager
+- **Git** for version control
 
-### Installation
+### Quick Start
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/[your-username]/maybunga-health-system.git
-   cd maybunga-health-system
+   git clone https://github.com/JDaveExe/hrsm2.0.git
+   cd hrsm2.0
    ```
 
 2. **Install dependencies**
    ```bash
+   # Install all dependencies
    npm install
+   cd backend && npm install && cd ..
    ```
 
-3. **Start the development server**
+3. **Database Setup**
    ```bash
-   npm start
+   # Create MySQL database
+   mysql -u root -p -e "CREATE DATABASE hrsm_db;"
+   
+   # Copy and configure environment
+   cp backend/.env.example backend/.env
+   ```
+   
+   Edit `backend/.env`:
+   ```env
+   # Database Configuration
+   DB_HOST=localhost
+   DB_USER=your_mysql_username
+   DB_PASSWORD=your_mysql_password
+   DB_NAME=hrsm_db
+   
+   # Security
+   JWT_SECRET=your-super-secure-secret-key-64-characters-long
+   
+   # Default User Passwords (Change for production!)
+   DEFAULT_ADMIN_PASSWORD=secure_admin_password
+   DEFAULT_DOCTOR_PASSWORD=secure_doctor_password
+   DEFAULT_PATIENT_PASSWORD=secure_patient_password
+   
+   # Server Configuration
+   PORT=5000
+   NODE_ENV=development
    ```
 
-4. **Access the application**
-   - Frontend: http://localhost:3000
+4. **Start the application**
+   ```bash
+   # Quick start script
+   ./start-backend.bat    # Start backend server
+   npm start             # Start frontend (new terminal)
+   ```
 
-## 📱 Usage
+5. **Access the system**
+   - **Main Application**: `http://localhost:3000`
+   - **Backend API**: `http://localhost:5000`
 
-### Default Login Credentials (Development)
-- **Admin**: admin / admin123
-- **Doctor**: doctor / doctor123
+## 👤 Login Credentials
 
-### Navigation
-1. **Homepage**: Overview of the health station
-2. **Admin Dashboard**: Complete system management
-3. **Doctor Dashboard**: Clinical workflow management
-4. **About Us**: Information about the health station
-5. **Contact Us**: Contact information and location
+### Default Test Accounts
+- **Admin**: 
+  - Username: `admin`
+  - Password: Set in `.env` as `DEFAULT_ADMIN_PASSWORD`
+  - Access: Full system administration
 
-## 🚧 Development Status
+- **Doctor**: 
+  - Username: `doctor`
+  - Password: Set in `.env` as `DEFAULT_DOCTOR_PASSWORD`
+  - Access: Patient care and medical records
 
-### ✅ Completed Features
-- Frontend UI/UX design
-- Admin Dashboard functionality
-- Doctor Dashboard interface
-- Responsive design implementation
-- Dark/Light mode theming
-- User management system
-- Patient database interface
+- **Patient**: 
+  - Username: `patient`
+  - Password: Set in `.env` as `DEFAULT_PATIENT_PASSWORD`
+  - Access: Personal health records
 
-### 🔄 In Progress
-- Backend API development
-- Database integration
-- Authentication system
-- File upload functionality
+> ⚠️ **Security Notice**: Change default passwords in production!
 
-### 📅 Planned Features
-- Real-time notifications
-- QR code patient check-in
-- Medical record templates
-- Prescription management
-- Report generation
+## 🧪 Development & Testing
 
-## 📄 Available Scripts
+### Multi-Instance Testing
+```bash
+# Test with multiple frontend instances
+./start-multi-instance.bat     # Admin + Patient dashboards
+./start-three-instances.bat     # Full multi-user testing
+```
 
-### `npm start`
+### Database Management
+```bash
+# Reset database
+node backend/scripts/setupDatabase.js
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+# Add sample data
+node backend/add_sample_data.js
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+# Clear specific data
+node backend/scripts/clearPatientData.js
+```
 
-### `npm test`
+### Testing Scripts
+```bash
+# API connectivity test
+node test-api-connection.js
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+# Complete workflow test
+node test-complete-workflow.js
 
-### `npm run build`
+# Security testing
+node test-security.js
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## 📁 Project Structure
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```
+hrsm2.0/
+├── 📁 src/
+│   ├── 📁 components/
+│   │   ├── 📁 admin/          # Admin dashboard components
+│   │   ├── 📁 doctor/         # Doctor interface components
+│   │   ├── 📁 patient/        # Patient portal components
+│   │   └── 📁 shared/         # Shared UI components
+│   ├── 📁 hooks/              # Custom React hooks
+│   ├── 📁 services/           # API services and utilities
+│   ├── 📁 context/            # React context providers
+│   └── 📁 utils/              # Utility functions
+├── 📁 backend/
+│   ├── 📁 routes/             # API endpoints
+│   ├── 📁 models/             # Database models
+│   ├── 📁 middleware/         # Express middleware
+│   ├── 📁 services/           # Business logic
+│   └── 📁 scripts/            # Database and utility scripts
+├── 📁 public/                 # Static assets
+└── 📁 documentation/          # Project documentation
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## 🚀 Deployment
 
-### `npm run eject`
+### Production Setup
+1. Set `NODE_ENV=production` in backend `.env`
+2. Configure production database
+3. Set strong JWT secrets and passwords
+4. Enable HTTPS and security headers
+5. Set up proper backup procedures
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+### Environment Variables
+```env
+# Production Security
+NODE_ENV=production
+JWT_SECRET=your-super-secure-production-secret
+DB_SSL=true
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+# Email Configuration (Optional)
+SMTP_HOST=your-smtp-server
+SMTP_PORT=587
+SMTP_USER=your-email
+SMTP_PASS=your-password
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+# Backup Configuration
+BACKUP_ENABLED=true
+BACKUP_SCHEDULE=daily
+```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+## 🔄 Recent Updates (v2.0)
 
-## Learn More
+### Major Improvements
+- ✅ Complete UI/UX overhaul with modern design
+- ✅ Advanced patient management with family organization
+- ✅ Real-time appointment scheduling system
+- ✅ Comprehensive inventory management
+- ✅ Enhanced security with JWT and auto-logout
+- ✅ Performance optimizations and caching
+- ✅ Multi-user testing environment
+- ✅ Backup and restore functionality
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Technical Enhancements
+- ✅ Modern React patterns with hooks
+- ✅ TanStack Query for optimized data fetching
+- ✅ Responsive CSS design system
+- ✅ Database optimizations and indexing
+- ✅ API modernization and standardization
+- ✅ Error boundary implementations
+- ✅ Comprehensive testing framework
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## 🤝 Contributing
 
-### Code Splitting
+We welcome contributions! Please follow these steps:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. **Push** to the branch (`git push origin feature/amazing-feature`)
+5. **Open** a Pull Request
 
-### Analyzing the Bundle Size
+### Development Guidelines
+- Follow existing code patterns and naming conventions
+- Add tests for new features
+- Update documentation as needed
+- Ensure responsive design compatibility
+- Test across different user roles
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## 📄 License
 
-### Making a Progressive Web App
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 🆘 Support & Documentation
 
-### Advanced Configuration
+- **Issues**: [GitHub Issues](https://github.com/JDaveExe/hrsm2.0/issues)
+- **Documentation**: Check the documentation files in the repository
+- **Security**: See `SECURITY_GUIDE.md` for security best practices
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## 🎯 Roadmap
 
-### Deployment
+- [ ] Mobile application development
+- [ ] Advanced analytics and AI insights
+- [ ] Integration with external health systems
+- [ ] Telemedicine capabilities
+- [ ] Multi-language support
+- [ ] Cloud deployment options
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+---
 
-### `npm run build` fails to minify
+**Made with ❤️ for healthcare professionals**
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+*This system is designed to improve healthcare delivery and patient care through modern technology and user-friendly interfaces.*
