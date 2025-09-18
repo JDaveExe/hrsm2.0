@@ -86,24 +86,10 @@ const AdminSidebar = memo(({
             </ul>
           </li>
           
-          <li className={currentPath === 'Generate Reports' ? 'active' : ''} onClick={() => handleNavigationClick('Generate Reports')}>
-            <Link to="#">
-              <i className="bi bi-file-earmark-bar-graph"></i>
-              <span>Reports</span>
-            </Link>
-          </li>
-          
           <li className={currentPath === 'Appointment Scheduling' ? 'active' : ''} onClick={() => handleNavigationClick('Appointment Scheduling')}>
             <Link to="#">
               <i className="bi bi-calendar-check"></i>
               <span>Appointments</span>
-            </Link>
-          </li>
-          
-          <li onClick={() => handleNavigationClick('Inventory')}>
-            <Link to="#">
-              <i className="bi bi-box-seam"></i>
-              <span>Inventory</span>
             </Link>
           </li>
           
@@ -171,6 +157,14 @@ const AdminSidebar = memo(({
       <div className="sidebar-toggle-section">
         <button className="sidebar-toggle-btn" onClick={toggleSidebar} title={sidebarOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}>
           <i className={`bi ${sidebarOpen ? 'bi-chevron-left' : 'bi-list'}`}></i>
+        </button>
+      </div>
+
+      {/* Logout Button */}
+      <div className="sidebar-logout-section">
+        <button className="sidebar-logout-btn" onClick={handleLogout} title="Logout">
+          <i className="bi bi-box-arrow-right"></i>
+          <span className="logout-text">Logout</span>
         </button>
       </div>
 

@@ -66,6 +66,11 @@
   box-shadow: 0 4px 16px rgba(40, 167, 69, 0.2);
 }
 
+.management-card:hover {
+  border-color: #ffcc00;
+  box-shadow: 0 4px 16px rgba(255, 204, 0, 0.2);
+}
+
 .user-type-card h5 {
   margin: 8px 0 5px;
   font-weight: 600;
@@ -78,6 +83,10 @@
 
 .doctor-card h5 {
   color: #28a745;
+}
+
+.management-card h5 {
+  color: #ffcc00;
 }
 
 .user-type-card p {
@@ -99,6 +108,43 @@
 
 .doctor-card i {
   color: #28a745;
+}
+
+.management-card i {
+  color: #ffcc00;
+}
+
+/* Dedicated User Type Selection Modal */
+.user-type-selection-modal .modal-dialog {
+  max-width: 600px;
+}
+
+.user-type-selection-modal .modal-body {
+  padding: 2rem;
+}
+
+.user-type-selection-modal .user-type-selection {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  padding: 20px 0;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.user-type-selection-modal .user-type-card {
+  flex: 1;
+  min-width: 150px;
+  max-width: 180px;
+}
+
+/* User Form Modal */
+.user-form-modal .modal-dialog {
+  max-width: 800px;
+}
+
+.user-form-modal .modal-body {
+  padding: 2rem;
 }
 
 /* User Management Buttons */
@@ -241,6 +287,57 @@
   opacity: 1 !important;
 }
 
+/* User Management Dropdown Specific Styles */
+.user-management-dropdown-menu {
+  background: #ffffff !important;
+  border: 1px solid #dee2e6 !important;
+  border-radius: 0.375rem !important;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+  min-width: 160px !important;
+}
+
+.user-management-dropdown-menu .dropdown-item {
+  color: #212529 !important;
+  background: transparent !important;
+  padding: 0.5rem 1rem !important;
+  font-weight: 500 !important;
+}
+
+.user-management-dropdown-menu .dropdown-item:hover,
+.user-management-dropdown-menu .dropdown-item:focus {
+  background: #f8f9fa !important;
+  color: #007bff !important;
+}
+
+.user-management-dropdown-menu .dropdown-item i {
+  color: #6c757d !important;
+  width: 16px !important;
+  text-align: center !important;
+}
+
+.user-management-dropdown-menu .dropdown-item:hover i,
+.user-management-dropdown-menu .dropdown-item:focus i {
+  color: #007bff !important;
+}
+
+/* Ensure sidebar dropdown styles are not affected */
+.sidebar .dropdown-menu {
+  background-color: rgba(255, 255, 255, 0.15) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.sidebar .dropdown-menu .dropdown-item,
+.sidebar .sub-menu li a {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.sidebar .dropdown-menu .dropdown-item:hover,
+.sidebar .sub-menu li a:hover {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: #ffffff !important;
+}
+
 /* Responsive adjustments */
 @media (max-width: 576px) {
   .user-type-selection {
@@ -252,5 +349,9 @@
     min-width: 200px;
     width: 100%;
     max-width: 250px;
+  }
+  
+  .user-management-dropdown-menu {
+    min-width: 140px !important;
   }
 }

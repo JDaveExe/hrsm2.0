@@ -25,6 +25,8 @@ const VitalSignsModal = ({
     height: 'varies by age'
   }
 }) => {
+  // Check if the service type is vaccination
+  const isVaccinationService = patient?.serviceType === 'vaccination';
   // State for vital signs form
   const [vitalSigns, setVitalSigns] = useState({
     temperature: '',
@@ -370,7 +372,14 @@ const VitalSignsModal = ({
           <Row className="mb-3">
             <Col md={6}>
               <Form.Group as={Row} className="mb-3">
-                <Form.Label column sm={5}>Respiratory Rate</Form.Label>
+                <Form.Label column sm={5} className={isVaccinationService ? 'text-muted' : ''}>
+                  Respiratory Rate
+                  {isVaccinationService && (
+                    <small className="text-warning ms-1" title="Not required for vaccination service">
+                      <i className="bi bi-exclamation-triangle"></i>
+                    </small>
+                  )}
+                </Form.Label>
                 <Col sm={7}>
                   <InputGroup>
                     <Form.Control
@@ -378,18 +387,32 @@ const VitalSignsModal = ({
                       name="respiratoryRate"
                       value={vitalSigns.respiratoryRate}
                       onChange={handleChange}
-                      readOnly={isReadOnly}
-                      className={isReadOnly ? 'vitals-readonly' : ''}
-                      placeholder={normalRanges.respiratoryRate}
+                      readOnly={isReadOnly || isVaccinationService}
+                      disabled={isVaccinationService}
+                      className={`${isReadOnly ? 'vitals-readonly' : ''} ${isVaccinationService ? 'bg-light text-muted' : ''}`}
+                      placeholder={isVaccinationService ? "Not required" : normalRanges.respiratoryRate}
                     />
-                    <InputGroup.Text>brpm</InputGroup.Text>
+                    <InputGroup.Text className={isVaccinationService ? 'bg-light text-muted' : ''}>brpm</InputGroup.Text>
                   </InputGroup>
+                  {isVaccinationService && (
+                    <Form.Text className="text-warning">
+                      <i className="bi bi-info-circle me-1"></i>
+                      Not required for vaccination service
+                    </Form.Text>
+                  )}
                 </Col>
               </Form.Group>
             </Col>
             <Col md={6}>
               <Form.Group as={Row} className="mb-3">
-                <Form.Label column sm={5}>Oxygen Saturation</Form.Label>
+                <Form.Label column sm={5} className={isVaccinationService ? 'text-muted' : ''}>
+                  Oxygen Saturation
+                  {isVaccinationService && (
+                    <small className="text-warning ms-1" title="Not required for vaccination service">
+                      <i className="bi bi-exclamation-triangle"></i>
+                    </small>
+                  )}
+                </Form.Label>
                 <Col sm={7}>
                   <InputGroup>
                     <Form.Control
@@ -397,12 +420,19 @@ const VitalSignsModal = ({
                       name="oxygenSaturation"
                       value={vitalSigns.oxygenSaturation}
                       onChange={handleChange}
-                      readOnly={isReadOnly}
-                      className={isReadOnly ? 'vitals-readonly' : ''}
-                      placeholder={normalRanges.oxygenSaturation}
+                      readOnly={isReadOnly || isVaccinationService}
+                      disabled={isVaccinationService}
+                      className={`${isReadOnly ? 'vitals-readonly' : ''} ${isVaccinationService ? 'bg-light text-muted' : ''}`}
+                      placeholder={isVaccinationService ? "Not required" : normalRanges.oxygenSaturation}
                     />
-                    <InputGroup.Text>%</InputGroup.Text>
+                    <InputGroup.Text className={isVaccinationService ? 'bg-light text-muted' : ''}>%</InputGroup.Text>
                   </InputGroup>
+                  {isVaccinationService && (
+                    <Form.Text className="text-warning">
+                      <i className="bi bi-info-circle me-1"></i>
+                      Not required for vaccination service
+                    </Form.Text>
+                  )}
                 </Col>
               </Form.Group>
             </Col>
@@ -412,9 +442,14 @@ const VitalSignsModal = ({
           <Row className="mb-3">
             <Col md={6}>
               <Form.Group as={Row} className="mb-3">
-                <Form.Label column sm={5}>
+                <Form.Label column sm={5} className={isVaccinationService ? 'text-muted' : ''}>
                   Weight
-                  {initialData.weight && !isReadOnly && (
+                  {isVaccinationService && (
+                    <small className="text-warning ms-1" title="Not required for vaccination service">
+                      <i className="bi bi-exclamation-triangle"></i>
+                    </small>
+                  )}
+                  {initialData.weight && !isReadOnly && !isVaccinationService && (
                     <small className="text-info ms-1" title="Pre-filled from last visit">
                       <i className="bi bi-info-circle"></i>
                     </small>
@@ -427,22 +462,30 @@ const VitalSignsModal = ({
                       name="weight"
                       value={vitalSigns.weight}
                       onChange={handleChange}
-                      readOnly={isReadOnly}
-                      className={`${isReadOnly ? 'vitals-readonly' : ''} ${initialData.weight && !isReadOnly ? 'prefilled-field' : ''}`}
+                      readOnly={isReadOnly || isVaccinationService}
+                      disabled={isVaccinationService}
+                      className={`${isReadOnly ? 'vitals-readonly' : ''} ${isVaccinationService ? 'bg-light text-muted' : ''} ${initialData.weight && !isReadOnly && !isVaccinationService ? 'prefilled-field' : ''}`}
+                      placeholder={isVaccinationService ? "Not required" : ""}
                     />
                     <Form.Select
                       name="weightUnit"
                       value={vitalSigns.weightUnit}
                       onChange={handleUnitChange}
-                      disabled={isReadOnly}
-                      className={isReadOnly ? 'vitals-readonly' : ''}
+                      disabled={isReadOnly || isVaccinationService}
+                      className={`${isReadOnly ? 'vitals-readonly' : ''} ${isVaccinationService ? 'bg-light text-muted' : ''}`}
                       style={{ maxWidth: '80px' }}
                     >
                       <option value="kg">kg</option>
                       <option value="lbs">lbs</option>
                     </Form.Select>
                   </InputGroup>
-                  {initialData.weight && !isReadOnly && (
+                  {isVaccinationService && (
+                    <Form.Text className="text-warning">
+                      <i className="bi bi-info-circle me-1"></i>
+                      Not required for vaccination service
+                    </Form.Text>
+                  )}
+                  {initialData.weight && !isReadOnly && !isVaccinationService && (
                     <Form.Text className="text-info">
                       <i className="bi bi-clock-history me-1"></i>
                       Pre-filled from last visit (editable)
@@ -453,9 +496,14 @@ const VitalSignsModal = ({
             </Col>
             <Col md={6}>
               <Form.Group as={Row} className="mb-3">
-                <Form.Label column sm={5}>
+                <Form.Label column sm={5} className={isVaccinationService ? 'text-muted' : ''}>
                   Height
-                  {initialData.height && !isReadOnly && (
+                  {isVaccinationService && (
+                    <small className="text-warning ms-1" title="Not required for vaccination service">
+                      <i className="bi bi-exclamation-triangle"></i>
+                    </small>
+                  )}
+                  {initialData.height && !isReadOnly && !isVaccinationService && (
                     <small className="text-info ms-1" title="Pre-filled from last visit">
                       <i className="bi bi-info-circle"></i>
                     </small>
@@ -468,23 +516,30 @@ const VitalSignsModal = ({
                       name="height"
                       value={vitalSigns.height}
                       onChange={handleChange}
-                      readOnly={isReadOnly}
-                      className={`${isReadOnly ? 'vitals-readonly' : ''} ${initialData.height && !isReadOnly ? 'prefilled-field' : ''}`}
-                      placeholder={vitalSigns.heightUnit === 'ft' ? "5'8\"" : "175"}
+                      readOnly={isReadOnly || isVaccinationService}
+                      disabled={isVaccinationService}
+                      className={`${isReadOnly ? 'vitals-readonly' : ''} ${isVaccinationService ? 'bg-light text-muted' : ''} ${initialData.height && !isReadOnly && !isVaccinationService ? 'prefilled-field' : ''}`}
+                      placeholder={isVaccinationService ? "Not required" : (vitalSigns.heightUnit === 'ft' ? "5'8\"" : "175")}
                     />
                     <Form.Select
                       name="heightUnit"
                       value={vitalSigns.heightUnit}
                       onChange={handleUnitChange}
-                      disabled={isReadOnly}
-                      className={isReadOnly ? 'vitals-readonly' : ''}
+                      disabled={isReadOnly || isVaccinationService}
+                      className={`${isReadOnly ? 'vitals-readonly' : ''} ${isVaccinationService ? 'bg-light text-muted' : ''}`}
                       style={{ maxWidth: '80px' }}
                     >
                       <option value="cm">cm</option>
                       <option value="ft">ft</option>
                     </Form.Select>
                   </InputGroup>
-                  {initialData.height && !isReadOnly && (
+                  {isVaccinationService && (
+                    <Form.Text className="text-warning">
+                      <i className="bi bi-info-circle me-1"></i>
+                      Not required for vaccination service
+                    </Form.Text>
+                  )}
+                  {initialData.height && !isReadOnly && !isVaccinationService && (
                     <Form.Text className="text-info">
                       <i className="bi bi-clock-history me-1"></i>
                       Pre-filled from last visit (editable)

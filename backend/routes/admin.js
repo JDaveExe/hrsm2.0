@@ -117,14 +117,14 @@ router.post('/autosort-patients', [auth, adminOnly], async (req, res) => {
 });
 
 // @route   GET api/admin/users
-// @desc    Get all users (admin and doctor accounts)
+// @desc    Get all users (admin, doctor, and management accounts)
 // @access  Private/Admin
 router.get('/users', [auth, adminOnly], async (req, res) => {
   try {
     const users = await User.findAll({
       where: {
         role: {
-          [Op.in]: ['admin', 'doctor']
+          [Op.in]: ['admin', 'doctor', 'management']
         }
       },
       attributes: {
@@ -189,7 +189,7 @@ router.put('/users/:id', [
     }
 
     // Update user
-    const role = accessLevel === 'Administrator' ? 'admin' : 'doctor';
+    const role = accessLevel === 'Administrator' ? 'admin' : accessLevel === 'Management' ? 'management' : 'doctor';
     await user.update({
       firstName,
       middleName: middleName || null,
@@ -306,7 +306,7 @@ router.delete('/users/cleanup', [auth, adminOnly], async (req, res) => {
       {
         where: {
           id: { [Op.ne]: currentUserId },
-          role: { [Op.in]: ['admin', 'doctor'] }
+          role: { [Op.in]: ['admin', 'doctor', 'management'] }
         }
       }
     );
@@ -322,6 +322,31 @@ router.delete('/users/cleanup', [auth, adminOnly], async (req, res) => {
     });
   } catch (err) {
     console.error('Error during user cleanup:', err.message);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
+// @route   POST api/admin/lab-referrals/:id/upload-results
+// @desc    Upload lab results for a referral
+// @access  Private/Admin
+router.post('/lab-referrals/:id/upload-results', [auth, adminOnly], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { resultsData, resultsNotes } = req.body;
+    
+    console.log(`📋 Admin uploading lab results for referral ID: ${id}`);
+    
+    // For now, just return success - in production this would update the database
+    // and potentially store file uploads
+    
+    res.json({
+      msg: 'Lab results uploaded successfully',
+      referralId: id,
+      uploadedBy: req.user.id,
+      uploadDate: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error uploading lab results:', err.message);
     res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });

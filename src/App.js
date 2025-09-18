@@ -36,6 +36,7 @@ const Appointments = lazy(() => import('./components/Appointments'));
 const DoctorLayout = lazy(() => import('./components/doctor/DoctorLayout'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 const PatientLayout = lazy(() => import('./components/patient/PatientLayout'));
+const ManagementDashboard = lazy(() => import('./components/ManagementDashboard'));
 
 // Auto-login component to handle port-based auto login
 const AutoLoginHandler = () => {
@@ -60,7 +61,8 @@ const AutoLoginHandler = () => {
     // Define auto-login mapping for different ports
     const autoLoginConfig = {
       '3001': { username: 'doctor', password: 'doctor123', role: 'doctor', dashboard: '/doctor/dashboard' },
-      '3002': { username: 'patient', password: 'patient123', role: 'patient', dashboard: '/patient/dashboard' }
+      '3002': { username: 'patient', password: 'patient123', role: 'patient', dashboard: '/patient/dashboard' },
+      '3003': { username: 'management', password: 'management123', role: 'management', dashboard: '/management/dashboard' }
     };
     
     const config = autoLoginConfig[currentPort];
@@ -164,6 +166,14 @@ function App() {
                     element={
                       <ProtectedRoute allowedRoles={['patient']}>
                         <PatientLayout />
+                      </ProtectedRoute>
+                    } 
+                  />
+                  <Route 
+                    path="/management/dashboard" 
+                    element={
+                      <ProtectedRoute allowedRoles={['admin', 'management']}>
+                        <ManagementDashboard />
                       </ProtectedRoute>
                     } 
                   />

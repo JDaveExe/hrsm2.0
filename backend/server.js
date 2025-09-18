@@ -13,7 +13,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5000'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:5000'],
   credentials: true
 }));
 app.use(helmet({
@@ -34,8 +34,12 @@ const initializeServer = async () => {
     await sequelize.sync({ alter: true });
     console.log('Database connected - tables synchronized');
     
+    // Create default users (including management)
+    const User = require('./models/User');
+    await User.createDefaultUsers();
+    
     // Note: Using hardcoded fallback accounts in auth.js instead of database records
-    console.log('Hardcoded test accounts available: admin/admin123, doctor/doctor123, patient/patient123');
+    console.log('Hardcoded test accounts available: admin/admin123, doctor/doctor123, patient/patient123, management/management123');
   } catch (error) {
     console.error('Server initialization failed:', error);
     process.exit(1);
@@ -55,10 +59,18 @@ app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/vital-signs', require('./routes/vitalSigns'));
 app.use('/api/inventory', require('./routes/inventory'));
+app.use('/api/inventory-analytics', require('./routes/inventoryAnalytics'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/checkups', require('./routes/checkups'));
 app.use('/api/medications', require('./routes/medications'));
+app.use('/api/vaccinations', require('./routes/vaccinations'));
 app.use('/api/doctor/queue', require('./routes/doctorQueue'));
+app.use('/api/doctor/sessions', require('./routes/doctorSessions'));
+app.use('/api/doctor/reports', require('./routes/doctorReports'));
+app.use('/api/lab-referrals', require('./routes/labReferrals'));
+app.use('/api', require('./routes/patientPrescriptions'));
+app.use('/api/vaccine-analytics', require('./routes/vaccine-analytics'));
+app.use('/api/immunization-history', require('./routes/immunization-history'));
 
 // Doctor checkups endpoint - specific route for doctor checkups
 app.use('/api/doctor/checkups', (req, res, next) => {

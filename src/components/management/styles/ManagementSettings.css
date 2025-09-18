@@ -1,0 +1,75 @@
+/* ManagementSettings.css */
+.management-settings {
+  padding: 30px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  margin: 20px;
+}
+
+.settings-title {
+  color: #6c757d;
+  margin-bottom: 30px;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.settings-section {
+  margin-bottom: 40px;
+}
+
+.settings-section-title {
+  color: #495057;
+  margin-bottom: 20px;
+  font-size: 1.3rem;
+  font-weight: 500;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 10px;
+}
+
+.settings-card {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  margin-bottom: 15px;
+}
+
+.settings-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.settings-label {
+  font-weight: 500;
+  color: #495057;
+}
+
+.settings-value {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.settings-btn {
+  background: #6c757d;
+  border-color: #6c757d;
+  color: white;
+  font-size: 0.85rem;
+  padding: 5px 15px;
+}
+
+.settings-btn:hover {
+  background: #5a6268;
+  border-color: #5a6268;
+}
+
+.settings-alert {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  color: #6c757d;
+  padding: 15px;
+  border-radius: 5px;
+  margin-top: 20px;
+}

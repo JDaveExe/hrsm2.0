@@ -134,52 +134,6 @@ const Homepage = () => {
         </div>
       </div>
 
-      {/* Health Programs Section */}
-      <div className="health-programs-section">
-        <div className="container">
-          <h2>Community Health Programs</h2>
-          <p>Comprehensive health initiatives for every member of our community</p>
-          <div className="programs-grid">
-            <div className="program-card">
-              <div className="program-header">
-                <div className="program-icon">👶</div>
-                <h3>Maternal & Child Health</h3>
-              </div>
-              <ul className="program-features">
-                <li>Prenatal care and check-ups</li>
-                <li>Newborn screening</li>
-                <li>Child immunization</li>
-                <li>Nutrition counseling</li>
-              </ul>
-            </div>
-            <div className="program-card">
-              <div className="program-header">
-                <div className="program-icon">👴</div>
-                <h3>Senior Citizen Care</h3>
-              </div>
-              <ul className="program-features">
-                <li>Regular health monitoring</li>
-                <li>Free medicine program</li>
-                <li>Physical therapy sessions</li>
-                <li>Health education</li>
-              </ul>
-            </div>
-            <div className="program-card">
-              <div className="program-header">
-                <div className="program-icon">💊</div>
-                <h3>Chronic Disease Management</h3>
-              </div>
-              <ul className="program-features">
-                <li>Diabetes monitoring</li>
-                <li>Hypertension management</li>
-                <li>Regular consultations</li>
-                <li>Lifestyle counseling</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Footer - Pasig Style */}
       <footer className="government-footer">
         <div className="footer-content">
@@ -193,36 +147,35 @@ const Homepage = () => {
               and fostering a healthy, resilient community guided by transparency, 
               accountability, and patient-centered care.
             </p>
-            
-            {/* Compact Contact & Hours */}
-            <div className="footer-info-compact">
-              <div className="info-row">
-                <span className="info-label">🚨 Emergency:</span>
-                <span>911 | (02) 8123-4567</span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">🕐 Hours:</span>
-                <span>Mon-Fri: 8AM-5PM | Sat: 8AM-12PM | Sun: Emergency Only</span>
-              </div>
-              <div className="info-row">
-                <span className="info-label">📍 Location:</span>
-                <span>123 Maybunga Street, Pasig City | health@maybunga.gov.ph</span>
-              </div>
-            </div>
           </div>
           
-          <div className="footer-section portals-section">
-            <h3 className="footer-title">Portals</h3>
-            <ul className="portals-list">
-              <li><Link to="/auth" className="portal-link">Patient Portal</Link></li>
-              <li><Link to="/contact" className="portal-link">Book Appointment</Link></li>
-              <li><a href="#" onClick={e => e.preventDefault()} className="portal-link">Telemedicine</a></li>
-              <li><a href="#" onClick={e => e.preventDefault()} className="portal-link">Health Records</a></li>
-              <li><a href="#" onClick={e => e.preventDefault()} className="portal-link">Lab Results</a></li>
-              <li><a href="#" onClick={e => e.preventDefault()} className="portal-link">Vaccination Schedule</a></li>
-              <li><a href="#" onClick={e => e.preventDefault()} className="portal-link">Emergency Hotline</a></li>
-              <li><a href="#" onClick={e => e.preventDefault()} className="portal-link">Health Programs</a></li>
-            </ul>
+          <div className="footer-section mission-section">
+            <h3 className="footer-title">Mission</h3>
+            <p className="mission-text">
+              Work towards the City Government of Pasig path to sustainable development and 
+              progress through an efficient and pro-active Primary Health Care Delivery System: 
+              responsive to the needs of Pasigueños through the provision of highly accessible, 
+              cost efficient and effective preventive and managed health services enhanced by 
+              continuing professional education, in touch with the current trends and technical expertise.
+            </p>
+          </div>
+        </div>
+        
+        {/* Compact Contact & Hours - Now Below Vision & Mission */}
+        <div className="footer-info-section">
+          <div className="footer-info-compact">
+            <div className="info-row">
+              <span className="info-label">🚨 Emergency:</span>
+              <span>911 | (02) 8123-4567</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">🕐 Hours:</span>
+              <span>Mon-Fri: 8AM-5PM | Sat: 8AM-12PM | Sun: Emergency Only</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label">📍 Location:</span>
+              <span>123 Maybunga Street, Pasig City | health@maybunga.gov.ph</span>
+            </div>
           </div>
         </div>
         

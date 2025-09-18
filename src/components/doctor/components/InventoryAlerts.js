@@ -7,6 +7,7 @@ const InventoryAlerts = ({ onNavigateToInventory }) => {
   const [lowStockItems, setLowStockItems] = useState([]);
   const [emptyStockItems, setEmptyStockItems] = useState([]);
   const [expiringItems, setExpiringItems] = useState([]);
+  const [expiredItems, setExpiredItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [muteStates, setMuteStates] = useState({});
   const [showMuteOptions, setShowMuteOptions] = useState(null);
@@ -81,6 +82,7 @@ const InventoryAlerts = ({ onNavigateToInventory }) => {
       setLowStockItems([...vaccineAlerts.lowStock, ...medicationAlerts.lowStock]);
       setEmptyStockItems([...vaccineAlerts.emptyStock, ...medicationAlerts.emptyStock]);
       setExpiringItems([...vaccineAlerts.expiring, ...medicationAlerts.expiring]);
+      setExpiredItems([...vaccineAlerts.expired, ...medicationAlerts.expired]);
     } catch (error) {
       console.error('Error loading inventory alerts:', error);
     } finally {
@@ -92,8 +94,15 @@ const InventoryAlerts = ({ onNavigateToInventory }) => {
     const lowStock = [];
     const emptyStock = [];
     const expiring = [];
+    const expired = [];
 
     items.forEach(item => {
+      // Skip items with invalid/empty names
+      if (!item.name || item.name.trim() === '') {
+        console.warn(`Skipping item with missing name:`, item);
+        return;
+      }
+
       const stock = type === 'vaccine' ? item.dosesInStock : item.unitsInStock;
       const minStock = item.minimumStock || 0;
 
@@ -104,14 +113,33 @@ const InventoryAlerts = ({ onNavigateToInventory }) => {
         lowStock.push({ ...item, type, alertType: 'low' });
       }
 
-      // Check expiry dates (within 30 days)
+      // Check expiry dates - Enhanced logic
       if (item.expiryDate) {
         const expiryDate = new Date(item.expiryDate);
+        const today = new Date();
         const thirtyDaysFromNow = new Date();
-        thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+        thirtyDaysFromNow.setDate(today.getDate() + 30);
+
+        // Skip invalid dates
+        if (isNaN(expiryDate.getTime())) {
+          console.warn(`Invalid expiry date for ${item.name}: ${item.expiryDate}`);
+          return;
+        }
+
+        const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
         
-        if (expiryDate <= thirtyDaysFromNow) {
-          const daysUntilExpiry = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+        // Categorize by expiry status
+        if (expiryDate < today) {
+          // Already expired
+          expired.push({ 
+            ...item, 
+            type, 
+            alertType: 'expired',
+            daysUntilExpiry: 0,
+            daysOverdue: Math.abs(daysUntilExpiry)
+          });
+        } else if (expiryDate <= thirtyDaysFromNow) {
+          // Expiring within 30 days
           expiring.push({ 
             ...item, 
             type, 
@@ -122,7 +150,7 @@ const InventoryAlerts = ({ onNavigateToInventory }) => {
       }
     });
 
-    return { lowStock, emptyStock, expiring };
+    return { lowStock, emptyStock, expiring, expired };
   };
 
   const renderAlert = (alert, alertCategory) => {
@@ -143,12 +171,14 @@ const InventoryAlerts = ({ onNavigateToInventory }) => {
         alertMessage = `${alert.name} has only ${stock} ${unit} remaining (minimum: ${alert.minimumStock})`;
         alertVariant = 'warning';
         break;
+      case 'expired':
+        alertTitle = 'EXPIRED';
+        alertMessage = `${alert.name} expired ${alert.daysOverdue} day(s) ago - DO NOT USE`;
+        alertVariant = 'danger';
+        break;
       case 'expiring':
         alertTitle = 'Expiring Soon';
-        if (alert.daysUntilExpiry <= 0) {
-          alertMessage = `${alert.name} has expired`;
-          alertVariant = 'danger';
-        } else if (alert.daysUntilExpiry <= 7) {
+        if (alert.daysUntilExpiry <= 7) {
           alertMessage = `${alert.name} expires in ${alert.daysUntilExpiry} day(s)`;
           alertVariant = 'danger';
         } else {
@@ -244,8 +274,8 @@ const InventoryAlerts = ({ onNavigateToInventory }) => {
     );
   }
 
-  const totalAlerts = emptyStockItems.length + lowStockItems.length + expiringItems.length;
-  const criticalAlerts = emptyStockItems.length + expiringItems.filter(item => item.daysUntilExpiry <= 7).length;
+  const totalAlerts = emptyStockItems.length + lowStockItems.length + expiringItems.length + expiredItems.length;
+  const criticalAlerts = emptyStockItems.length + expiredItems.length + expiringItems.filter(item => item.daysUntilExpiry <= 7).length;
 
   if (totalAlerts === 0) {
     return (
@@ -278,6 +308,20 @@ const InventoryAlerts = ({ onNavigateToInventory }) => {
       </div>
 
       <div className="alerts-content">
+        {/* Expired Items Alerts (Highest Priority) */}
+        {expiredItems.length > 0 && !isAlertMuted('expired') && (
+          <div className="alert-section">
+            <div className="section-header critical" style={{ backgroundColor: '#721c24', color: 'white' }}>
+              <i className="bi bi-calendar-x-fill me-2"></i>
+              EXPIRED - DO NOT USE ({expiredItems.length})
+            </div>
+            {expiredItems
+              .sort((a, b) => b.daysOverdue - a.daysOverdue)
+              .map(item => renderAlert(item, 'expired'))
+            }
+          </div>
+        )}
+
         {/* Empty Stock Alerts (Critical) */}
         {emptyStockItems.length > 0 && !isAlertMuted('empty') && (
           <div className="alert-section">

@@ -174,7 +174,6 @@ class SimulationService {
       'Prenatal Care',
       'Immunization',
       'Family Planning',
-      'Dental',
       'Mental Health'
     ];
 

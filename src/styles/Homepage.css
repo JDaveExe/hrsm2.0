@@ -23,6 +23,7 @@
   background-color: var(--white);
   line-height: 1.6;
   padding-top: 85px; /* adjusted for fixed header (info bar 28px + nav 40px + some spacing) */
+  font-size: 110%; /* Increase all fonts by 10% */
 }
 
 /* Date and Time Bar */
@@ -893,98 +894,7 @@ footer .text-center {
   color: var(--white);
 }
 
-/* Health Programs Section */
-.health-programs-section {
-  background: var(--bg-secondary);
-  padding: 80px 0;
-  text-align: center;
-}
 
-.health-programs-section h2 {
-  font-size: 2.5rem;
-  margin-bottom: 1rem;
-  color: var(--text-primary);
-  font-weight: 700;
-}
-
-.health-programs-section > p {
-  margin-bottom: 3rem;
-  font-size: 1.1rem;
-  max-width: 700px;
-  margin-left: auto;
-  margin-right: auto;
-  color: var(--text-secondary);
-  line-height: 1.6;
-}
-
-.programs-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 30px;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-}
-
-.program-card {
-  background: var(--white);
-  border-radius: 15px;
-  padding: 30px;
-  text-align: left;
-  transition: all 0.3s ease;
-  border: 1px solid var(--border-light);
-  box-shadow: 0 5px 15px var(--shadow-light);
-}
-
-.program-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 15px 35px var(--shadow-medium);
-  border-color: var(--primary-color);
-}
-
-.program-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.program-icon {
-  font-size: 2.5rem;
-  margin-right: 15px;
-}
-
-.program-header h3 {
-  color: var(--text-primary);
-  font-size: 1.2rem;
-  font-weight: 700;
-  margin: 0;
-}
-
-.program-features {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.program-features li {
-  padding: 8px 0;
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-light);
-  position: relative;
-  padding-left: 20px;
-}
-
-.program-features li:last-child {
-  border-bottom: none;
-}
-
-.program-features li:before {
-  content: "✓";
-  color: var(--primary-color);
-  font-weight: bold;
-  position: absolute;
-  left: 0;
-}
 
 /* Operating Hours & Location Section */
 .hours-location-section {
@@ -1152,7 +1062,7 @@ footer .text-center {
   margin: 0 auto;
   padding: 0 24px;
   display: grid;
-  grid-template-columns: 1fr 300px;
+  grid-template-columns: 1fr 1fr;
   gap: 48px;
   align-items: start;
 }
@@ -1171,16 +1081,25 @@ footer .text-center {
   letter-spacing: 0.5px;
 }
 
-.vision-section {
+.vision-section, 
+.mission-section {
   flex: 1;
 }
 
-.vision-text {
+.vision-text,
+.mission-text {
   line-height: 1.7;
   color: var(--text-secondary);
   font-size: 0.95rem;
   text-align: justify;
-  margin-bottom: 30px;
+  margin-bottom: 20px;
+}
+
+/* Footer Info Section - Below Vision & Mission */
+.footer-info-section {
+  max-width: 1200px;
+  margin: 32px auto 0 auto;
+  padding: 0 24px;
 }
 
 /* Footer Subsections */
@@ -1344,7 +1263,7 @@ footer .text-center {
     gap: 32px;
   }
   
-  .portals-section {
+  .mission-section {
     min-width: auto;
   }
   
@@ -1381,11 +1300,8 @@ footer .text-center {
     padding: 0 16px;
   }
   
-  .vision-text {
+  .vision-text,
+  .mission-text {
     font-size: 0.9rem;
-  }
-  
-  .portal-link {
-    font-size: 0.85rem;
   }
 }

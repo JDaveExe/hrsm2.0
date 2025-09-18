@@ -8,6 +8,9 @@ const Family = require('../models/Family');
 const { authenticateToken: auth } = require('../middleware/auth');
 const { smartIdAllocation } = require('../middleware/smartIdAllocation');
 
+// Ensure associations are loaded
+require('../models/index');
+
 const router = express.Router();
 
 // @route   POST api/patients
@@ -247,6 +250,337 @@ router.get('/unsorted', auth, async (req, res) => {
     res.json(unsortedPatients);
   } catch (err) {
     console.error('Error fetching unsorted patients:', err.message);
+    res.status(500).json({ 
+      msg: 'Server Error',
+      error: err.message
+    });
+  }
+});
+
+// @route   GET api/patients/me/profile
+// @desc    Get current patient's profile information
+// @access  Private (Patient only)
+router.get('/me/profile', auth, async (req, res) => {
+  try {
+    console.log('Profile request - User:', req.user);
+    console.log('Profile request - User role:', req.user?.role);
+    
+    // Get the patient ID from the authenticated user
+    const patientId = req.user.patientId;
+    
+    // If the user is using admin token but trying to access patient profile,
+    // check if they have a patientId parameter or check session for patient info
+    if (!patientId && req.user.role === 'Admin') {
+      console.log('Admin user accessing patient profile without patientId');
+      return res.status(400).json({ 
+        msg: 'Admin users must specify a patient ID or log in as a patient',
+        hint: 'This endpoint is for patients to view their own profile'
+      });
+    }
+    
+    if (!patientId) {
+      console.log('No patientId found in user:', req.user);
+      return res.status(404).json({ msg: 'Patient profile not found - No patientId in token' });
+    }
+
+    console.log('Looking for patient with ID:', patientId);
+
+    // First, try to get the patient without includes to see if the basic record exists
+    const patient = await Patient.findByPk(patientId);
+
+    if (!patient) {
+      console.log('Patient not found with ID:', patientId);
+      return res.status(404).json({ msg: 'Patient profile not found' });
+    }
+
+    console.log('Found patient:', patient.firstName, patient.lastName);
+
+    // Now try to get with associations
+    let patientWithAssociations;
+    try {
+      patientWithAssociations = await Patient.findByPk(patientId, {
+        include: [
+          {
+            model: User,
+            attributes: ['id', 'username', 'email', 'contactNumber', 'role'],
+            required: false
+          },
+          {
+            model: Family,
+            as: 'family',
+            attributes: ['id', 'familyName', 'surname'],
+            required: false
+          }
+        ]
+      });
+    } catch (associationError) {
+      console.log('Association error, using basic patient data:', associationError.message);
+      patientWithAssociations = patient;
+    }
+
+    // Calculate age from date of birth
+    const calculateAge = (dateOfBirth) => {
+      if (!dateOfBirth) return 'N/A';
+      const today = new Date();
+      const birthDate = new Date(dateOfBirth);
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      return age;
+    };
+
+    // Format the patient profile data
+    const profileData = {
+      // Personal Information
+      firstName: patientWithAssociations.firstName || 'N/A',
+      middleName: patientWithAssociations.middleName || 'N/A',
+      lastName: patientWithAssociations.lastName || 'N/A',
+      suffix: patientWithAssociations.suffix || 'N/A',
+      fullName: `${patientWithAssociations.firstName} ${patientWithAssociations.middleName ? patientWithAssociations.middleName + ' ' : ''}${patientWithAssociations.lastName}${patientWithAssociations.suffix ? ' ' + patientWithAssociations.suffix : ''}`,
+      
+      // Demographics
+      dateOfBirth: patientWithAssociations.dateOfBirth || 'N/A',
+      age: calculateAge(patientWithAssociations.dateOfBirth),
+      gender: patientWithAssociations.gender || 'N/A',
+      civilStatus: patientWithAssociations.civilStatus || 'N/A',
+      
+      // Contact Information
+      contactNumber: patientWithAssociations.contactNumber || 'N/A',
+      email: patientWithAssociations.email || 'N/A',
+      
+      // Address Information
+      houseNo: patientWithAssociations.houseNo || 'N/A',
+      street: patientWithAssociations.street || 'N/A',
+      barangay: patientWithAssociations.barangay || 'N/A',
+      city: patientWithAssociations.city || 'N/A',
+      region: patientWithAssociations.region || 'N/A',
+      formattedAddress: [
+        patientWithAssociations.houseNo,
+        patientWithAssociations.street,
+        patientWithAssociations.barangay,
+        patientWithAssociations.city,
+        patientWithAssociations.region
+      ].filter(val => val && val !== 'N/A').join(', ') || 'N/A',
+      
+      // Medical Information
+      bloodType: patientWithAssociations.bloodType || 'N/A',
+      philHealthNumber: patientWithAssociations.philHealthNumber || 'N/A',
+      medicalConditions: patientWithAssociations.medicalConditions || 'N/A',
+      
+      // Emergency Contact (if available)
+      emergencyContact: patientWithAssociations.emergencyContact || 'N/A',
+      
+      // Family Information
+      family: (patientWithAssociations.family && patientWithAssociations.family.familyName) ? {
+        id: patientWithAssociations.family.id,
+        familyName: patientWithAssociations.family.familyName,
+        surname: patientWithAssociations.family.surname
+      } : 'N/A',
+      familyId: (patientWithAssociations.family && patientWithAssociations.family.id) ? patientWithAssociations.family.id : 'N/A',
+      
+      // Registration Information
+      registrationDate: patientWithAssociations.createdAt ? new Date(patientWithAssociations.createdAt).toLocaleDateString() : 'N/A',
+      lastUpdated: patientWithAssociations.updatedAt ? new Date(patientWithAssociations.updatedAt).toLocaleDateString() : 'N/A',
+      
+      // Patient ID
+      patientId: patientWithAssociations.id,
+      
+      // Account Information
+      userId: patientWithAssociations.userId || 'N/A',
+      qrCode: patientWithAssociations.qrCode || 'N/A',
+      isActive: patientWithAssociations.isActive || false,
+      createdAt: patientWithAssociations.createdAt,
+      updatedAt: patientWithAssociations.updatedAt
+    };
+
+    console.log('Sending profile data successfully');
+    res.json(profileData);
+  } catch (err) {
+    console.error('Error fetching patient profile:', err.message);
+    console.error('Stack trace:', err.stack);
+    res.status(500).json({ 
+      msg: 'Server Error',
+      error: err.message
+    });
+  }
+});
+
+// @route   PUT api/patients/me/profile
+// @desc    Update current patient's profile information
+// @access  Private
+router.put('/me/profile', auth, async (req, res) => {
+  try {
+    console.log('Profile update request - User:', req.user);
+    console.log('Profile update request - Body:', req.body);
+
+    // Validate that we have a patientId in the token
+    if (!req.user || !req.user.patientId) {
+      console.log('No patientId found in token for profile update');
+      return res.status(404).json({ msg: 'Patient profile not found - No patientId in token' });
+    }
+
+    const patientId = req.user.patientId;
+    console.log('Attempting to update patient profile for ID:', patientId);
+
+    // Find the patient to update - simplified approach
+    const patient = await Patient.findByPk(patientId);
+
+    if (!patient) {
+      console.log('Patient not found for update:', patientId);
+      return res.status(404).json({ msg: 'Patient profile not found' });
+    }
+
+    console.log('Found patient for update:', patient.id, patient.firstName, patient.lastName);
+
+    // Extract updateable fields from request body
+    const {
+      firstName,
+      middleName,
+      lastName,
+      suffix,
+      dateOfBirth,
+      gender,
+      civilStatus,
+      email,
+      contactNumber,
+      houseNo,
+      street,
+      barangay,
+      city,
+      philHealthNumber,
+      bloodType,
+      medicalConditions
+    } = req.body;
+
+    // Calculate age if dateOfBirth is provided
+    let age;
+    if (dateOfBirth) {
+      const today = new Date();
+      const birthDate = new Date(dateOfBirth);
+      age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+    }
+
+    // Update patient record - convert empty strings to null for cleaner data
+    const updateData = {};
+    const cleanValue = (value) => (value === '' || value === 'N/A') ? null : value;
+    
+    if (firstName !== undefined) updateData.firstName = cleanValue(firstName);
+    if (middleName !== undefined) updateData.middleName = cleanValue(middleName);
+    if (lastName !== undefined) updateData.lastName = cleanValue(lastName);
+    if (suffix !== undefined) updateData.suffix = cleanValue(suffix);
+    if (dateOfBirth !== undefined) updateData.dateOfBirth = cleanValue(dateOfBirth);
+    if (age !== undefined) updateData.age = age;
+    if (gender !== undefined) updateData.gender = cleanValue(gender);
+    if (civilStatus !== undefined) updateData.civilStatus = cleanValue(civilStatus);
+    if (contactNumber !== undefined) updateData.contactNumber = cleanValue(contactNumber);
+    if (houseNo !== undefined) updateData.houseNo = cleanValue(houseNo);
+    if (street !== undefined) updateData.street = cleanValue(street);
+    if (barangay !== undefined) updateData.barangay = cleanValue(barangay);
+    if (city !== undefined) updateData.city = cleanValue(city);
+    if (philHealthNumber !== undefined) updateData.philHealthNumber = cleanValue(philHealthNumber);
+    if (bloodType !== undefined) updateData.bloodType = cleanValue(bloodType);
+    if (medicalConditions !== undefined) updateData.medicalConditions = cleanValue(medicalConditions);
+
+    console.log('Update data:', updateData);
+
+    // Update the patient
+    try {
+      await patient.update(updateData);
+      console.log('Patient updated successfully');
+    } catch (updateError) {
+      console.error('Error updating patient:', updateError.message);
+      throw new Error(`Failed to update patient: ${updateError.message}`);
+    }
+
+    // Update email in User table if provided
+    if (email !== undefined) {
+      try {
+        const user = await User.findOne({ where: { id: patient.userId } });
+        if (user) {
+          await user.update({ email: email });
+          console.log('User email updated successfully');
+        }
+      } catch (userUpdateError) {
+        console.log('Error updating user email:', userUpdateError.message);
+        // Continue anyway, the patient data was updated successfully
+      }
+    }
+
+    // Fetch updated patient data - simplified approach
+    const updatedPatient = await Patient.findByPk(patientId);
+    
+    // Get user email separately if needed
+    let userEmail = updatedPatient.email;
+    try {
+      const user = await User.findOne({ where: { id: updatedPatient.userId } });
+      if (user && user.email) {
+        userEmail = user.email;
+      }
+    } catch (userFetchError) {
+      console.log('Could not fetch user email:', userFetchError.message);
+    }
+
+    // Get family info separately if needed
+    let familyInfo = null;
+    try {
+      if (updatedPatient.familyId) {
+        const family = await Family.findByPk(updatedPatient.familyId);
+        if (family) {
+          familyInfo = {
+            id: family.id,
+            familyName: family.familyName
+          };
+        }
+      }
+    } catch (familyFetchError) {
+      console.log('Could not fetch family info:', familyFetchError.message);
+    }
+
+    // Format the updated profile data (same as GET route)
+    const formatDisplayValue = (value) => value || 'N/A';
+    const formatNameValue = (value) => value || '';
+    
+    const profileData = {
+      patientId: updatedPatient.id,
+      firstName: formatDisplayValue(updatedPatient.firstName),
+      middleName: formatDisplayValue(updatedPatient.middleName),
+      lastName: formatDisplayValue(updatedPatient.lastName),
+      suffix: formatDisplayValue(updatedPatient.suffix),
+      fullName: `${formatNameValue(updatedPatient.firstName)} ${formatNameValue(updatedPatient.middleName) ? formatNameValue(updatedPatient.middleName) + ' ' : ''}${formatNameValue(updatedPatient.lastName)}${formatNameValue(updatedPatient.suffix) ? ' ' + formatNameValue(updatedPatient.suffix) : ''}`.trim(),
+      dateOfBirth: updatedPatient.dateOfBirth ? new Date(updatedPatient.dateOfBirth).toISOString().split('T')[0] : 'N/A',
+      age: updatedPatient.age || 'N/A',
+      gender: formatDisplayValue(updatedPatient.gender),
+      civilStatus: formatDisplayValue(updatedPatient.civilStatus),
+      email: userEmail || 'N/A',
+      contactNumber: formatDisplayValue(updatedPatient.contactNumber),
+      houseNo: formatDisplayValue(updatedPatient.houseNo),
+      street: formatDisplayValue(updatedPatient.street),
+      barangay: formatDisplayValue(updatedPatient.barangay),
+      city: formatDisplayValue(updatedPatient.city),
+      address: `${updatedPatient.houseNo ? updatedPatient.houseNo + ' ' : ''}${updatedPatient.street ? updatedPatient.street + ', ' : ''}${updatedPatient.barangay ? updatedPatient.barangay + ', ' : ''}${updatedPatient.city || 'Metro Manila'}`,
+      philHealthNumber: formatDisplayValue(updatedPatient.philHealthNumber),
+      bloodType: formatDisplayValue(updatedPatient.bloodType),
+      medicalConditions: formatDisplayValue(updatedPatient.medicalConditions),
+      familyId: familyInfo?.id || updatedPatient.familyId || 'N/A',
+      familyName: familyInfo?.familyName || 'N/A',
+      registrationDate: updatedPatient.createdAt ? new Date(updatedPatient.createdAt).toLocaleDateString() : 'N/A',
+      lastUpdated: new Date().toLocaleDateString()
+    };
+
+    console.log('Profile updated successfully:', profileData);
+    res.json(profileData);
+  } catch (err) {
+    console.error('Error updating patient profile:', err.message);
+    console.error('Stack trace:', err.stack);
     res.status(500).json({ 
       msg: 'Server Error',
       error: err.message

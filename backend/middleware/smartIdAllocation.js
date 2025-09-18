@@ -13,8 +13,8 @@ const smartIdAllocation = (role = null) => {
                 // Set both user and patient AUTO_INCREMENT for patient creation
                 await IdAllocationService.setUserAutoIncrement('patient');
                 await IdAllocationService.setPatientAutoIncrement();
-            } else if (userRole === 'admin' || userRole === 'doctor' || userRole === 'administrator') {
-                // Set user AUTO_INCREMENT for admin/doctor creation
+            } else if (userRole === 'admin' || userRole === 'doctor' || userRole === 'administrator' || userRole === 'management') {
+                // Set user AUTO_INCREMENT for admin/doctor/management creation
                 await IdAllocationService.setUserAutoIncrement(userRole === 'administrator' ? 'admin' : userRole);
             }
             

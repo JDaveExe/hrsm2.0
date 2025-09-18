@@ -150,7 +150,15 @@ const PatientQueue = ({
     }
   }, [updateQueueStatus, user?.id, refreshDoctorQueue, onRefresh]);
 
-  const filteredQueue = (doctorQueueData || []).filter(patient => {
+  // Helper function to filter patients assigned to current doctor
+  const getMyPatients = useCallback(() => {
+    return (doctorQueueData || []).filter(patient => {
+      return patient.assignedDoctor === user?.id || 
+             patient.assignedDoctorName === user?.name;
+    });
+  }, [doctorQueueData, user?.id, user?.name]);
+
+  const filteredQueue = getMyPatients().filter(patient => {
     if (filterStatus === 'all') return true;
     return patient.status === filterStatus;
   });
@@ -209,19 +217,19 @@ const PatientQueue = ({
         <div className="queue-stats">
           <div className="stat-card waiting">
             <div className="stat-number">
-              {(doctorQueueData || []).filter(p => p.status === 'waiting').length}
+              {getMyPatients().filter(p => p.status === 'waiting').length}
             </div>
             <div className="stat-label">Waiting</div>
           </div>
           <div className="stat-card in-progress">
             <div className="stat-number">
-              {(doctorQueueData || []).filter(p => p.status === 'in-progress').length}
+              {getMyPatients().filter(p => p.status === 'in-progress').length}
             </div>
             <div className="stat-label">In Progress</div>
           </div>
           <div className="stat-card completed">
             <div className="stat-number">
-              {(doctorQueueData || []).filter(p => p.status === 'completed').length}
+              {getMyPatients().filter(p => p.status === 'completed' || p.status === 'vaccination-completed').length}
             </div>
             <div className="stat-label">Completed</div>
           </div>

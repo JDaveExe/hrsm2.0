@@ -178,22 +178,36 @@ const LoginSignup = () => {
 
     try {
       const response = await authService.login(emailOrPhone, password);
+      console.log('🔐 Login response received:', response);
+      console.log('🔐 Token:', response.token);
+      console.log('🔐 User:', response.user);
+      
       if (response && response.user) {
         // Use auth context to store user data and token
+        console.log('🔐 Calling login with:', { user: response.user, token: response.token });
         login({ user: response.user, token: response.token });
         
         // Redirect based on user role
+        console.log('🔐 User role for redirect:', response.user.role);
         switch (response.user.role) {
           case 'admin':
+            console.log('🔐 Redirecting to admin dashboard');
             navigate('/admin/dashboard');
             break;
           case 'doctor':
+            console.log('🔐 Redirecting to doctor dashboard');
             navigate('/doctor/dashboard');
             break;
           case 'patient':
+            console.log('🔐 Redirecting to patient dashboard');
             navigate('/patient/dashboard');
             break;
+          case 'management':
+            console.log('🔐 Redirecting to management dashboard');
+            navigate('/management/dashboard');
+            break;
           default:
+            console.log('🔐 Unknown role, redirecting to homepage. Role was:', response.user.role);
             navigate('/'); // Or a default dashboard
         }
       }

@@ -1,0 +1,228 @@
+/* VaccinationModal.css */
+
+.vaccination-modal .modal-content {
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border: none;
+}
+
+.vaccination-modal .modal-header {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border-radius: 12px 12px 0 0;
+  border-bottom: none;
+  padding: 20px 24px;
+}
+
+.vaccination-modal .modal-title {
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.vaccination-modal .patient-info {
+  margin-top: 8px;
+}
+
+.vaccination-modal .patient-info small {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.85rem;
+}
+
+.vaccination-modal .modal-body {
+  padding: 24px;
+  background-color: #f8f9fa;
+}
+
+.vaccination-modal .vaccine-selection-section {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.vaccination-modal .vaccination-details-section {
+  background: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  height: fit-content;
+  position: sticky;
+  top: 20px;
+}
+
+.vaccination-modal .vaccines-list {
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  background: white;
+}
+
+.vaccination-modal .vaccine-row {
+  transition: all 0.2s ease;
+}
+
+.vaccination-modal .vaccine-row:hover {
+  background-color: #f8f9fa;
+}
+
+.vaccination-modal .vaccine-row.table-primary {
+  background-color: #cce7ff !important;
+  border-color: #007bff;
+}
+
+.vaccination-modal .form-control,
+.vaccination-modal .form-select {
+  border-radius: 6px;
+  border: 1px solid #ced4da;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.vaccination-modal .form-control:focus,
+.vaccination-modal .form-select:focus {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.vaccination-modal .btn-success {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+  border: none;
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.vaccination-modal .btn-success:hover {
+  background: linear-gradient(135deg, #218838 0%, #1e7e64 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.vaccination-modal .btn-success:disabled {
+  background: #6c757d;
+  border-color: #6c757d;
+  transform: none;
+  box-shadow: none;
+}
+
+.vaccination-modal .btn-secondary {
+  border-radius: 6px;
+  padding: 10px 20px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.vaccination-modal .btn-secondary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.vaccination-modal .alert {
+  border-radius: 6px;
+  border: none;
+  font-size: 0.9rem;
+}
+
+.vaccination-modal .alert-info {
+  background-color: #e1f5fe;
+  color: #01579b;
+}
+
+.vaccination-modal .alert-warning {
+  background-color: #fff8e1;
+  color: #e65100;
+}
+
+.vaccination-modal .badge {
+  font-size: 0.75rem;
+  padding: 0.4em 0.6em;
+  border-radius: 4px;
+}
+
+.vaccination-modal .input-group-text {
+  background-color: #f8f9fa;
+  border-color: #ced4da;
+  color: #6c757d;
+}
+
+.vaccination-modal .table th {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #495057;
+  padding: 12px 8px;
+}
+
+.vaccination-modal .table td {
+  vertical-align: middle;
+  padding: 12px 8px;
+  font-size: 0.9rem;
+}
+
+.vaccination-modal .form-check-input:checked {
+  background-color: #28a745;
+  border-color: #28a745;
+}
+
+.vaccination-modal .form-check-input:focus {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.25rem rgba(40, 167, 69, 0.25);
+}
+
+.vaccination-modal .spinner-border {
+  width: 3rem;
+  height: 3rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .vaccination-modal .modal-body {
+    padding: 16px;
+  }
+  
+  .vaccination-modal .vaccine-selection-section,
+  .vaccination-modal .vaccination-details-section {
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  
+  .vaccination-modal .vaccination-details-section {
+    position: relative;
+    top: auto;
+  }
+}
+
+/* Animation for modal entrance */
+.vaccination-modal .modal-content {
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Custom scrollbar for vaccines list */
+.vaccination-modal .vaccines-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.vaccination-modal .vaccines-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.vaccination-modal .vaccines-list::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.vaccination-modal .vaccines-list::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

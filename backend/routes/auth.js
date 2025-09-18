@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const { Op } = require('sequelize');
 const User = require('../models/User');
 const Patient = require('../models/Patient');
+const { DoctorSession } = require('../models');
 const { authenticateToken: auth } = require('../middleware/auth');
 const { smartIdAllocation } = require('../middleware/smartIdAllocation');
 
@@ -167,7 +168,7 @@ router.post(
       min: 6,
       max: 10
     }).matches(/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{6,10}$/),
-    body('accessLevel', 'Access level is required').isIn(['Administrator', 'Doctor']),
+    body('accessLevel', 'Access level is required').isIn(['Administrator', 'Doctor', 'Management']),
     body('position', 'Position is required').not().isEmpty(),
   ],
   async (req, res) => {
@@ -193,7 +194,7 @@ router.post(
 
     try {
       const email = `${emailInitials}@brgymaybunga.health`;
-      const role = accessLevel === 'Administrator' ? 'admin' : 'doctor';
+      const role = accessLevel === 'Administrator' ? 'admin' : accessLevel === 'Management' ? 'management' : 'doctor';
 
       // Check if user already exists
       let user = await User.findOne({
@@ -295,7 +296,7 @@ router.post(
                   { email: login }
                 ]
               },
-              { role: { [Op.in]: ['admin', 'doctor', 'patient'] } },
+              { role: { [Op.in]: ['admin', 'doctor', 'patient', 'management'] } },
               { isActive: true }
             ]
           }
@@ -341,14 +342,24 @@ router.post(
               };
           } else if (login === 'patient' && password === 'patient123') {
               user = {
-                  id: 100003, // Use very high ID to avoid conflicts
+                  id: 47, // Use Josuke's User ID
                   username: 'patient',
-                  email: 'patient@maybunga.healthcare',
+                  email: 'jojojosuke@gmail.com', // Use Josuke's email
                   role: 'patient',
-                  firstName: 'Maria',
-                  lastName: 'Santos',
+                  firstName: 'Josuke',
+                  lastName: 'Joestar',
                   accessLevel: 'Patient',
-                  patientId: 100003 // Add patientId for test account
+                  patientId: 40 // Use Josuke's Patient ID
+              };
+          } else if (login === 'management' && password === 'management123') {
+              user = {
+                  id: 100003, // Use very high ID to avoid conflicts
+                  username: 'management',
+                  email: 'management@brgymaybunga.health',
+                  role: 'management',
+                  firstName: 'Management',
+                  lastName: 'Dashboard',
+                  accessLevel: 'Management'
               };
           } else {
               // For any other login, act as if credentials are invalid
@@ -360,6 +371,7 @@ router.post(
             user: {
                 id: user.id,
                 role: user.role,
+                patientId: user.patientId || null, // Include patientId in JWT token
             },
         };
 
@@ -367,11 +379,45 @@ router.post(
             payload,
             process.env.JWT_SECRET || 'your_jwt_secret',
             { expiresIn: process.env.JWT_EXPIRES_IN || '1h' },
-            (err, token) => {
+            async (err, token) => {
                 if (err) {
                     console.error('Error signing token:', err);
                     return res.status(500).send('Server error during token generation');
                 }
+
+                // Create doctor session if user is a doctor
+                if (user.role === 'doctor') {
+                    try {
+                        // End any existing active sessions for this doctor
+                        await DoctorSession.update(
+                            { 
+                                status: 'offline',
+                                logoutTime: new Date()
+                            },
+                            {
+                                where: {
+                                    doctorId: user.id,
+                                    status: ['online', 'busy']
+                                }
+                            }
+                        );
+
+                        // Create new active session
+                        await DoctorSession.create({
+                            doctorId: user.id,
+                            status: 'online',
+                            loginTime: new Date(),
+                            lastActivity: new Date(),
+                            sessionToken: token
+                        });
+
+                        console.log(`Doctor session created for ${user.firstName} ${user.lastName} (ID: ${user.id})`);
+                    } catch (sessionError) {
+                        console.error('Error creating doctor session:', sessionError);
+                        // Don't fail the login if session creation fails
+                    }
+                }
+                
                 res.json({ 
                   token, 
                   user: {
@@ -381,7 +427,7 @@ router.post(
                     role: user.role,
                     firstName: user.firstName,
                     lastName: user.lastName,
-                    accessLevel: user.accessLevel || (user.role === 'admin' ? 'Administrator' : 'Doctor'),
+                    accessLevel: user.accessLevel || (user.role === 'admin' ? 'Administrator' : user.role === 'management' ? 'Management' : 'Doctor'),
                     patientId: user.patientId // Include patientId for patient users
                   }
                 });

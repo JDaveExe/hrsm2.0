@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { CheckInSession, Patient, VitalSigns, User } = require('../models');
 const { Op } = require('sequelize');
+const { authenticateToken: auth } = require('../middleware/auth');
 
 // Helper function to calculate age from date of birth
 const calculateAge = (dateOfBirth) => {
@@ -16,33 +17,47 @@ const calculateAge = (dateOfBirth) => {
   return age;
 };
 
-// Get doctor's patient queue
-router.get('/', async (req, res) => {
+// Get doctor's patient queue - for doctors and admins
+router.get('/', auth, async (req, res) => {
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Get sessions that are in doctor's queue (doctor has been notified)
-    const queueSessions = await CheckInSession.findAll({
-      where: {
-        checkInTime: {
-          [Op.between]: [today, tomorrow]
-        },
-        doctorNotified: true,
-        status: {
-          [Op.in]: ['doctor-notified', 'in-progress', 'completed']
-        },
-        [Op.not]: {
-          status: 'transferred'
-        }
+    // Build where clause - admins see all queue items, doctors see only their assigned patients
+    const whereClause = {
+      checkInTime: {
+        [Op.between]: [today, tomorrow]
       },
+      doctorNotified: true,
+      status: {
+        [Op.in]: ['doctor-notified', 'in-progress', 'completed']
+      },
+      [Op.not]: {
+        status: 'transferred'
+      }
+    };
+
+    // If user is not admin, filter by assigned doctor
+    if (req.user.role !== 'admin') {
+      whereClause.assignedDoctor = req.user.id;
+    }
+
+    // Get queue sessions
+    const queueSessions = await CheckInSession.findAll({
+      where: whereClause,
       include: [
         {
           model: Patient,
           as: 'Patient',
           attributes: ['id', 'firstName', 'lastName', 'dateOfBirth', 'gender', 'contactNumber']
+        },
+        {
+          model: User,
+          as: 'assignedDoctorUser',
+          attributes: ['id', 'firstName', 'lastName', 'username', 'position'],
+          required: false
         }
       ],
       order: [
@@ -75,6 +90,8 @@ router.get('/', async (req, res) => {
       vitalSignsTime: session.vitalSignsTime,
       notes: session.notes || '',
       assignedDoctor: session.assignedDoctor || null,
+      assignedDoctorName: session.assignedDoctorUser ? 
+        `${session.assignedDoctorUser.firstName} ${session.assignedDoctorUser.lastName}` : null,
       startedAt: session.startedAt || null,
       completedAt: session.completedAt || null
     }));
@@ -90,7 +107,7 @@ router.get('/', async (req, res) => {
 });
 
 // Start a checkup session
-router.post('/:sessionId/start', async (req, res) => {
+router.post('/:sessionId/start', auth, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { doctorId } = req.body;
@@ -109,6 +126,11 @@ router.post('/:sessionId/start', async (req, res) => {
 
     if (!session.doctorNotified) {
       return res.status(400).json({ error: 'Patient must be in queue before starting checkup' });
+    }
+
+    // Ensure this session is assigned to the authenticated doctor
+    if (session.assignedDoctor !== req.user.id) {
+      return res.status(403).json({ error: 'You can only start checkups for patients assigned to you' });
     }
 
     // Update session to in-progress
@@ -138,7 +160,7 @@ router.post('/:sessionId/start', async (req, res) => {
 });
 
 // Complete a checkup session
-router.post('/:sessionId/complete', async (req, res) => {
+router.post('/:sessionId/complete', auth, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { doctorId, diagnosis, prescription, notes } = req.body;
@@ -157,6 +179,11 @@ router.post('/:sessionId/complete', async (req, res) => {
 
     if (session.status !== 'in-progress') {
       return res.status(400).json({ error: 'Checkup must be in progress to complete' });
+    }
+
+    // Ensure this session is assigned to the authenticated doctor
+    if (session.assignedDoctor !== req.user.id) {
+      return res.status(403).json({ error: 'You can only complete checkups for patients assigned to you' });
     }
 
     // Update session to completed
@@ -187,7 +214,7 @@ router.post('/:sessionId/complete', async (req, res) => {
 });
 
 // Update queue status (general purpose)
-router.patch('/:sessionId/status', async (req, res) => {
+router.patch('/:sessionId/status', auth, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { status, notes } = req.body;

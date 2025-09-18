@@ -6,10 +6,11 @@ import PatientHeader from './components/PatientHeader';
 import PatientProfile from './components/PatientProfile';
 import PatientAppointments from './components/PatientAppointments';
 import PatientMedicalRecords from './components/PatientMedicalRecords';
+import PatientImmunizationHistory from './components/PatientImmunizationHistory';
+import PatientLabResults from './components/PatientLabResults';
 import PatientPrescriptions from './components/PatientPrescriptions';
-import PatientHealthTracking from './components/PatientHealthTracking';
-import PatientCommunication from './components/PatientCommunication';
 import PatientSettings from './components/PatientSettings';
+import ComingSoonModal from './components/ComingSoonModal';
 import LoadingSpinnerPatient from './components/LoadingSpinnerPatient';
 import { PerformanceIndicator } from '../../hooks/usePerformanceMonitor';
 import axios from 'axios';
@@ -17,7 +18,7 @@ import './styles/PatientLayout.css';
 import sealmainImage from '../../images/sealmain.png';
 
 const PatientLayout = () => {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const { 
     patientsData,
     familiesData,
@@ -31,6 +32,9 @@ const PatientLayout = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showFPSMonitor, setShowFPSMonitor] = useState(false);
+  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
+  const [modalFeatureName, setModalFeatureName] = useState('');
+  const [notificationCount, setNotificationCount] = useState(3); // Mock count - replace with real data
 
   // Cache management state for security
   const [cache, setCache] = useState(new Map());
@@ -68,13 +72,17 @@ const PatientLayout = () => {
         return cachedData.data;
       }
 
+      if (!token) {
+        throw new Error('No authentication token available');
+      }
+
       const response = await axios({
         url: `http://localhost:5000${endpoint}`,
         method: options.method || 'GET',
         data: options.data,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user?.token || ''}`
+          'Authorization': `Bearer ${token}`
         },
         timeout: 10000, // 10 second timeout
         ...options
@@ -93,7 +101,7 @@ const PatientLayout = () => {
       console.error('API call failed:', error);
       throw error;
     }
-  }, [cache, user?.token]);
+  }, [cache, token]);
 
   // Handle sidebar toggle
   const toggleSidebar = useCallback(() => {
@@ -116,6 +124,13 @@ const PatientLayout = () => {
     logout();
   }, [logout]);
 
+  // Handle notification click
+  const handleNotificationClick = useCallback(() => {
+    // Navigate to default view since Communication is removed
+    setCurrentPath('Appointments');
+    // You could also set a specific sub-tab here if needed
+  }, []);
+
   // Handle data refresh
   const handleRefreshData = useCallback(async () => {
     setIsLoading(true);
@@ -123,13 +138,21 @@ const PatientLayout = () => {
       // Clear cache to force fresh data
       setCache(new Map());
       setLastRefresh(Date.now());
-      await forceRefreshAllData();
+      
+      // If on Treatment Record page, call specific refresh function
+      if (currentPath === 'Treatment Record' && window.refreshTreatmentRecords) {
+        await window.refreshTreatmentRecords();
+      } else if (currentPath === 'Lab Results' && window.refreshLabResults) {
+        await window.refreshLabResults();
+      } else {
+        await forceRefreshAllData();
+      }
     } catch (error) {
       console.error('Failed to refresh data:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [forceRefreshAllData]);
+  }, [forceRefreshAllData, currentPath]);
 
   // Handle FPS monitor toggle
   const handleFPSToggle = useCallback(() => {
@@ -161,16 +184,21 @@ const PatientLayout = () => {
           {...componentProps}
           viewType={currentPath}
         />;
-      case 'Treatment Records':
-      case 'Dental Records':
       case 'Immunizations':
-      case 'Lab Results':
+        return <PatientImmunizationHistory 
+          {...componentProps}
+          onBack={() => handleNavigation('Dashboard')}
+        />;
+      case 'Treatment Records':
       case 'Treatment Record':
-      case 'Dental Record':
       case 'Immunization Record':
         return <PatientMedicalRecords 
           {...componentProps}
           recordType={currentPath}
+        />;
+      case 'Lab Results':
+        return <PatientLabResults 
+          {...componentProps}
         />;
       case 'Prescriptions':
       case 'Active Prescriptions':
@@ -180,23 +208,7 @@ const PatientLayout = () => {
           {...componentProps}
           viewType={currentPath}
         />;
-      case 'Health Tracking':
-      case 'Vital Signs':
-      case 'Health Goals':
-      case 'Symptoms Tracker':
-        return <PatientHealthTracking 
-          {...componentProps}
-          trackingType={currentPath}
-        />;
-      case 'Messages':
-      case 'Notifications':
-      case 'Emergency Contact':
-        return <PatientCommunication 
-          {...componentProps}
-          communicationType={currentPath}
-        />;
       case 'Settings':
-      case 'History & Customizations':
         return <PatientSettings {...componentProps} />;
       default:
         return <PatientAppointments 
@@ -230,6 +242,8 @@ const PatientLayout = () => {
         showFPSMonitor={showFPSMonitor}
         handleFPSToggle={handleFPSToggle}
         user={user}
+        showComingSoonModal={showComingSoonModal}
+        setShowComingSoonModal={setShowComingSoonModal}
       />
 
       {/* Main Content Area */}
@@ -241,6 +255,8 @@ const PatientLayout = () => {
           currentPath={currentPath}
           onRefresh={handleRefreshData}
           isLoading={isLoading}
+          notificationCount={notificationCount}
+          onNotificationClick={handleNotificationClick}
         />
 
         {/* Content Area */}
@@ -287,6 +303,13 @@ const PatientLayout = () => {
           </div>
         </div>
       )}
+
+      {/* Coming Soon Modal */}
+      <ComingSoonModal
+        isOpen={showComingSoonModal}
+        onClose={() => setShowComingSoonModal(false)}
+        featureName={modalFeatureName}
+      />
     </div>
   );
 };

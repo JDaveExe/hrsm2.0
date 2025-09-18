@@ -1,0 +1,355 @@
+﻿/* ManagementSidebar.css */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 260px;
+  background: #ffffff;
+  z-index: 100;
+  transition: all 0.5s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar.closed {
+  width: 78px;
+}
+
+/* Sidebar Header */
+.sidebar-header {
+  padding: 20px 15px;
+  background: rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.management-logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.management-seal-image {
+  width: 66px;
+  height: 66px;
+  object-fit: contain;
+  transition: all 0.3s ease;
+}
+
+.sidebar.closed .management-seal-image {
+  width: 44px;
+  height: 44px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 1.5rem;
+  color: #000000;
+  font-weight: 700;
+  text-align: center;
+}
+
+.brand i {
+  font-size: 1.5rem;
+  color: #000000;
+}
+
+.sidebar.closed .brand .text {
+  display: none;
+}
+
+/* Sidebar Menu */
+.sidebar-menu {
+  flex: 1;
+  padding: 15px 0;
+  overflow-y: auto;
+}
+
+.sidebar-menu ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-menu ul li {
+  padding: 0;
+  position: relative;
+}
+
+.sidebar-menu ul li a {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  color: #ffffff;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  background: linear-gradient(135deg, #28a745, #17a2b8);
+  margin: 5px 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-menu ul li a:hover,
+.sidebar-menu ul li.active > a {
+  background: linear-gradient(135deg, #34ce57, #20c5dc);
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.sidebar-menu ul li a i:not(.dropdown-icon) {
+  margin-right: 10px;
+  font-size: 1.2rem;
+  width: 22px;
+  text-align: center;
+  color: #ffffff;
+}
+
+.sidebar.closed .sidebar-menu ul li a span,
+.sidebar.closed .dropdown-icon {
+  display: none;
+}
+
+.dropdown-icon {
+  margin-left: auto;
+  font-size: 0.8rem;
+  transition: transform 0.3s ease;
+  color: #ffffff;
+}
+
+.dropdown.active .dropdown-icon {
+  transform: rotate(90deg);
+}
+
+/* Dropdown menus */
+.dropdown-menu {
+  position: relative;
+  margin: 0 10px;
+  padding: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  margin-top: 5px;
+}
+
+.dropdown-menu.show {
+  max-height: 500px;
+}
+
+.dropdown-menu li a {
+  padding-left: 30px;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.8), rgba(23, 162, 184, 0.8));
+  margin: 2px 5px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.dropdown-menu li a:hover {
+  background: linear-gradient(135deg, rgba(52, 206, 87, 0.9), rgba(32, 197, 220, 0.9));
+  transform: translateX(5px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-menu li a i {
+  margin-right: 10px;
+  font-size: 1.1rem;
+  width: 22px;
+  text-align: center;
+}
+
+/* Sidebar Toggle Section */
+.sidebar-toggle-section {
+  margin-top: auto;
+  padding: 15px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-toggle-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #28a745, #17a2b8);
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-toggle-btn:hover {
+  background: linear-gradient(135deg, #34ce57, #20c5dc);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+.sidebar.closed .sidebar-toggle-btn {
+  padding: 10px;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+  padding: 15px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Logout Button */
+.logout-btn {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  border: none;
+  border-radius: 10px;
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: 600;
+  box-shadow: 0 3px 6px rgba(220, 53, 69, 0.3);
+  gap: 8px;
+}
+
+.logout-btn:hover {
+  background: linear-gradient(135deg, #e85b6b, #d32f3f);
+  box-shadow: 0 5px 10px rgba(220, 53, 69, 0.4);
+  transform: translateY(-2px);
+}
+
+.sidebar.closed .logout-btn {
+  padding: 10px;
+}
+
+.sidebar.closed .logout-btn span {
+  display: none;
+}
+
+/* Logout Modal Styles */
+.logout-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.logout-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  min-width: 400px;
+  max-width: 90vw;
+}
+
+.logout-modal-header {
+  padding: 20px 24px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.logout-modal-header i {
+  font-size: 1.5rem;
+  color: #ffc107;
+}
+
+.logout-modal-header h4 {
+  margin: 0;
+  color: #333;
+  font-weight: 600;
+}
+
+.logout-modal-body {
+  padding: 20px 24px;
+}
+
+.logout-modal-body p {
+  margin: 0;
+  color: #666;
+  line-height: 1.5;
+}
+
+.logout-modal-footer {
+  padding: 16px 24px 20px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.logout-cancel-btn,
+.logout-confirm-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logout-cancel-btn {
+  background: linear-gradient(135deg, #6c757d, #545b62);
+  color: #ffffff;
+}
+
+.logout-cancel-btn:hover {
+  background: linear-gradient(135deg, #7a8288, #60676d);
+  transform: translateY(-1px);
+}
+
+.logout-confirm-btn {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  color: #ffffff;
+}
+
+.logout-confirm-btn:hover {
+  background: linear-gradient(135deg, #e85b6b, #d32f3f);
+  transform: translateY(-1px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 250px;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  
+  .sidebar.closed {
+    transform: translateX(-100%);
+    width: 250px;
+  }
+}

@@ -120,6 +120,10 @@ export const AuthProvider = ({ children }) => {
 
   // The login function now accepts user data and stores it in state.
   const login = useCallback((data) => {
+    console.log('🔐 AuthContext login called with:', data);
+    console.log('🔐 Data token:', data?.token);
+    console.log('🔐 Data user:', data?.user);
+    
     setAuthData(data);
     setIsLoading(false);
     setShowWarning(false);
@@ -129,15 +133,17 @@ export const AuthProvider = ({ children }) => {
       const expiryTime = Date.now() + INACTIVITY_TIMEOUT;
       sessionStorage.setItem('authData', JSON.stringify(data));
       sessionStorage.setItem('authExpiry', expiryTime.toString());
+      console.log('🔐 Stored in sessionStorage:', data);
     } catch (error) {
       console.error('Error saving auth to sessionStorage:', error);
     }
     
     // Set up global auth token for API interceptor
     window.__authToken = data?.token;
+    console.log('🔐 Set global token:', data?.token);
   }, []);
 
-  // The logout function clears the user data from state.
+  // The logout function clears the user data from state and redirects to homepage.
   const logout = useCallback(() => {
     // PREVENT LOOP: Only logout if there is a user session
     if (!authData) {
@@ -160,7 +166,13 @@ export const AuthProvider = ({ children }) => {
     // Clear global auth token
     window.__authToken = null;
     
-    console.log('User logged out due to inactivity or manual logout');
+    console.log('User logged out - redirecting to homepage');
+    
+    // CONSISTENT REDIRECT: Always redirect to homepage after logout
+    // This ensures consistent behavior across all dashboards
+    setTimeout(() => {
+      window.location.href = '/';
+    }, 100); // Small delay to ensure state updates complete
   }, [authData, clearTimers]);
 
   // Set up activity listeners
@@ -214,6 +226,7 @@ export const AuthProvider = ({ children }) => {
   const value = useMemo(() => ({
     user: authData?.user, // The user object from state
     token: authData?.token, // Convenience access to token
+    authData, // Provide full authData for debugging
     isLoading, // Loading state
     showWarning, // Inactivity warning state
     warningTimeLeft, // Time left before auto-logout
@@ -221,8 +234,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     extendSession, // Function to extend session
     setIsLoading, // Expose setIsLoading for auth operations
-    // Check if the user is authenticated based on the presence of a token.
-    isAuthenticated: !!authData?.token,
+    // Fix: Ensure isAuthenticated matches authData existence - require both token AND user
+    isAuthenticated: !!(authData?.token && authData?.user),
   }), [authData, isLoading, showWarning, warningTimeLeft, login, logout, extendSession]);
 
   return (

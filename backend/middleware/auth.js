@@ -10,42 +10,48 @@ const JWT_SECRET = process.env.JWT_SECRET || (() => {
 
 const auth = async (req, res, next) => {
   try {
+    console.log('🔐 Auth middleware started');
+    console.log('🔐 Headers received:', Object.keys(req.headers));
+    console.log('🔐 x-auth-token:', req.header('x-auth-token'));
+    console.log('🔐 Authorization header:', req.header('Authorization'));
+    
     // Check for token in various places
     const token = 
       req.header('x-auth-token') || 
       req.header('Authorization')?.replace('Bearer ', '') ||
       req.cookies?.token;
 
+    console.log('🔐 Final extracted token:', token ? `${token.substring(0, 20)}...` : 'None');
+
     if (!token) {
+      console.log('🔐 No token found, authorization denied');
       return res.status(401).json({ msg: 'No token, authorization denied' });
     }
 
     // TEMPORARY bypass for development - REMOVE IN PRODUCTION
     if (token === 'temp-admin-token' && process.env.NODE_ENV !== 'production') {
+      console.log('🔐 Using temporary admin token');
       req.user = {
-        id: 1,
-        email: 'admin@maybunga.health',
-        role: 'Admin'
+        id: 10020, // Use actual admin user ID from database
+        email: 'admin@brgymaybunga.health',
+        role: 'admin'
       };
       return next();
     }
 
     try {
+      console.log('🔐 Attempting to verify JWT token');
       const decoded = jwt.verify(token, JWT_SECRET);
+      console.log('🔐 JWT decoded successfully:', decoded.user);
       req.user = decoded.user;
       next();
     } catch (jwtError) {
-      // Only log JWT errors in development to reduce spam
-      if (process.env.NODE_ENV === 'development') {
-        console.error('JWT verification failed:', jwtError.message);
-        if (token !== 'temp-admin-token') {
-          console.log('Token received:', token.substring(0, 20) + '...');
-        }
-      }
+      console.error('🔐 JWT verification failed:', jwtError.message);
+      console.log('🔐 Failed token:', token.substring(0, 50) + '...');
       return res.status(401).json({ msg: 'Token is not valid' });
     }
   } catch (err) {
-    console.error('Auth middleware error:', err.message);
+    console.error('🔐 Auth middleware error:', err.message);
     res.status(401).json({ msg: 'Token is not valid' });
   }
 };

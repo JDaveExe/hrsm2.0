@@ -72,7 +72,7 @@ const Reports = ({ simulationMode }) => {
         checkup.status === 'in-progress' || checkup.status === 'checked-in'
       ).length,
       completedCheckups: todaysCheckups.filter(checkup => 
-        checkup.status === 'completed'
+        checkup.status === 'completed' || checkup.status === 'vaccination-completed'
       ).length,
       malePatients: allPatients.filter(p => p.gender === 'Male').length,
       femalePatients: allPatients.filter(p => p.gender === 'Female').length

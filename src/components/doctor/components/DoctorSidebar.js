@@ -120,22 +120,6 @@ const DoctorSidebar = memo(({
             </Link>
           </li>
           
-          {/* Inventory */}
-          <li className={currentPath === 'Inventory' ? 'active' : ''} onClick={() => handleNavigationClick('Inventory')}>
-            <Link to="#">
-              <i className="bi bi-box-seam"></i>
-              <span>Inventory</span>
-            </Link>
-          </li>
-          
-          {/* Reports */}
-          <li className={currentPath === 'Reports' ? 'active' : ''} onClick={() => handleNavigationClick('Reports')}>
-            <Link to="#">
-              <i className="bi bi-file-earmark-bar-graph"></i>
-              <span>Reports</span>
-            </Link>
-          </li>
-          
           {/* Settings */}
           <li className={currentPath === 'Settings' ? 'active' : ''} onClick={() => handleNavigationClick('Settings')}>
             <Link to="#">

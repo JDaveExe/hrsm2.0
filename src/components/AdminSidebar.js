@@ -61,20 +61,6 @@ const AdminSidebar = ({ sidebarOpen, toggleSidebar, handleNavigation, currentPat
             <li><Link to="#" className="link_name" onClick={() => handleNavigation('Checkup')}>Checkup</Link></li>
           </ul>
         </li>
-        <li className={activeDropdown === 'reports' ? 'active' : ''}>
-          <div className="iocn-link" onClick={() => handleDropdownToggle('reports')}>
-            <Link to="#">
-              <i className="bi bi-file-earmark-bar-graph"></i>
-              <span className="link_name">Reports</span>
-            </Link>
-            <i className={`bi bi-chevron-down arrow ${activeDropdown === 'reports' ? 'open' : ''}`}></i>
-          </div>
-          <ul className={`sub-menu ${activeDropdown === 'reports' ? 'show' : ''}`}>
-            <li><Link className="link_name" to="#">Reports</Link></li>
-            <li><Link to="#" onClick={() => handleNavigation('Generate Reports')}>Generate Reports</Link></li>
-            <li><Link to="#" onClick={() => handleNavigation('Report History')}>Report History</Link></li>
-          </ul>
-        </li>
         <li>
           <Link to="#" onClick={() => handleNavigation('Appointments')} className={currentPath === 'Appointments' ? 'active' : ''}>
             <i className="bi bi-calendar-check"></i>
@@ -82,19 +68,6 @@ const AdminSidebar = ({ sidebarOpen, toggleSidebar, handleNavigation, currentPat
           </Link>
           <ul className="sub-menu blank">
             <li><Link to="#" className="link_name" onClick={() => handleNavigation('Appointments')}>Appointments</Link></li>
-          </ul>
-        </li>
-        <li className={activeDropdown === 'inventory' ? 'active' : ''}>
-          <div className="iocn-link" onClick={() => handleDropdownToggle('inventory')}>
-            <Link to="#">
-              <i className="bi bi-box-seam"></i>
-              <span className="link_name">Inventory</span>
-            </Link>
-            <i className={`bi bi-chevron-down arrow ${activeDropdown === 'inventory' ? 'open' : ''}`}></i>
-          </div>
-          <ul className={`sub-menu ${activeDropdown === 'inventory' ? 'show' : ''}`}>
-            <li><Link className="link_name" to="#">Inventory</Link></li>
-            <li><Link to="#" onClick={() => handleNavigation('Manage Inventories')}>Manage Inventories</Link></li>
           </ul>
         </li>
         <li className={activeDropdown === 'users' ? 'active' : ''}>

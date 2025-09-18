@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clear Session Storage</title>
+</head>
+<body>
+    <h1>Session Storage Cleaner</h1>
+    <button onclick="clearBackupData()">Clear Appointment Backup Data</button>
+    <div id="result"></div>
+
+    <script>
+        function clearBackupData() {
+            console.log('🔍 Checking sessionStorage...');
+            
+            // Check what's in backup_appointments
+            const backupData = sessionStorage.getItem('backup_appointments');
+            if (backupData) {
+                try {
+                    const parsed = JSON.parse(backupData);
+                    console.log('📦 Found backup appointments:', parsed);
+                    console.log('📊 Number of appointments:', parsed.length);
+                    
+                    // Clear the backup data
+                    sessionStorage.removeItem('backup_appointments');
+                    console.log('✅ Cleared backup_appointments from sessionStorage');
+                    
+                    document.getElementById('result').innerHTML = 
+                        `<p style="color: green;">✅ Cleared ${parsed.length} appointments from sessionStorage backup!</p>
+                         <p>Please refresh your appointments page to see the changes.</p>`;
+                } catch (e) {
+                    console.error('Error parsing backup data:', e);
+                    sessionStorage.removeItem('backup_appointments');
+                    document.getElementById('result').innerHTML = 
+                        '<p style="color: orange;">⚠️ Cleared corrupted backup data</p>';
+                }
+            } else {
+                console.log('✅ No backup data found in sessionStorage');
+                document.getElementById('result').innerHTML = 
+                    '<p style="color: blue;">ℹ️ No backup data found in sessionStorage</p>';
+            }
+            
+            // Also clear any other related storage
+            sessionStorage.removeItem('appointments_cache');
+            localStorage.removeItem('appointments_cache');
+            localStorage.removeItem('backup_appointments');
+            
+            console.log('🧹 Cleared all appointment-related storage');
+        }
+        
+        // Auto-run on page load
+        window.onload = function() {
+            clearBackupData();
+        };
+    </script>
+</body>
+</html>

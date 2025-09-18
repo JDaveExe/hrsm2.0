@@ -298,15 +298,51 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* Responsive Design */
+/* Enhanced Responsive Design */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 240px;
+  }
+  
+  .sidebar.closed {
+    width: 70px;
+  }
+}
+
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
     transition: transform 0.3s ease;
+    width: 280px;
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.2);
   }
   
   .sidebar.open {
     transform: translateX(0);
+  }
+  
+  .sidebar.closed {
+    transform: translateX(-100%);
+    width: 280px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    width: 100%;
+    max-width: 300px;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  
+  .sidebar-header {
+    padding: 15px;
+  }
+  
+  .patient-logo-section {
+    gap: 10px;
   }
 }
 

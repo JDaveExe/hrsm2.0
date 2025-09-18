@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form } from 'react-bootstrap';
+import { useAuth } from '../../../context/AuthContext';
 import appointmentService from '../../../services/appointmentService';
 import patientService from '../../../services/patientService';
 import userService from '../../../services/userService';
 import './AppointmentManager.css';
 import './AppointmentManager_overlay.css';
+import './AppointmentRequestsModal.css';
 
 const AppointmentManager = () => {
+  const { authData, isAuthenticated, user, token } = useAuth();
   const [appointments, setAppointments] = useState([]);
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [patients, setPatients] = useState([]);
@@ -23,8 +26,8 @@ const AppointmentManager = () => {
   
   // Calendar-specific states
   const [selectedDayAppointments, setSelectedDayAppointments] = useState([]);
-  const [showDayAppointments, setShowDayAppointments] = useState(false);
   const [clickedDate, setClickedDate] = useState(null);
+  const [showDayModal, setShowDayModal] = useState(false);
   
   // Form-specific states
   const [patientSearch, setPatientSearch] = useState('');
@@ -35,6 +38,24 @@ const AppointmentManager = () => {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(0);
   const cardsPerPage = 4;
+  
+  // Appointment requests states
+  const [showAppointmentRequests, setShowAppointmentRequests] = useState(false);
+  const [appointmentRequests, setAppointmentRequests] = useState([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [requestCount, setRequestCount] = useState(0);
+  
+  // Confirmation and rejection states
+  const [showApproveConfirmation, setShowApproveConfirmation] = useState(false);
+  const [showRejectConfirmation, setShowRejectConfirmation] = useState(false);
+  const [selectedRequestId, setSelectedRequestId] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [selectedRequest, setSelectedRequest] = useState(null);
+
+  // Search and sorting states for appointment requests
+  const [requestSearchTerm, setRequestSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('date'); // 'date', 'patient', 'type'
+  const [sortOrder, setSortOrder] = useState('asc'); // 'asc', 'desc'
 
   // Mock data removed - using real data from database
 
@@ -44,17 +65,160 @@ const AppointmentManager = () => {
 
   const [formData, setFormData] = useState({
     patientId: '',
-    doctorId: '',
+    doctorId: '1', // Default to first doctor (admin scheduling)
     appointmentDate: '',
     appointmentTime: '',
     duration: 30,
-    type: 'Consultation',
-    status: 'Scheduled',
-    priority: 'Normal',
+    type: '',
+    status: 'approved', // Admin appointments are auto-approved
     notes: '',
     symptoms: ''
   });
 
+  // Function to fetch appointment requests
+  const fetchAppointmentRequests = async () => {
+    try {
+      setRequestsLoading(true);
+      const requests = await appointmentService.getAppointmentRequests();
+      setAppointmentRequests(requests || []);
+      setRequestCount(requests?.length || 0);
+    } catch (err) {
+      console.error('Error fetching appointment requests:', err);
+      setError('Failed to load appointment requests');
+    } finally {
+      setRequestsLoading(false);
+    }
+  };
+
+  // Filter and sort appointment requests
+  const getFilteredAndSortedRequests = () => {
+    let filteredRequests = appointmentRequests.filter(request => {
+      const patientName = request.patientName || 
+        `${patients.find(p => p.id === request.patientId)?.firstName || ''} 
+        ${patients.find(p => p.id === request.patientId)?.lastName || ''}`.trim();
+      return patientName.toLowerCase().includes(requestSearchTerm.toLowerCase());
+    });
+
+    return filteredRequests.sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case 'patient':
+          aValue = a.patientName || `${patients.find(p => p.id === a.patientId)?.firstName || ''} ${patients.find(p => p.id === a.patientId)?.lastName || ''}`.trim();
+          bValue = b.patientName || `${patients.find(p => p.id === b.patientId)?.firstName || ''} ${patients.find(p => p.id === b.patientId)?.lastName || ''}`.trim();
+          break;
+        case 'type':
+          aValue = a.appointmentType || a.type || 'Consultation';
+          bValue = b.appointmentType || b.type || 'Consultation';
+          break;
+        case 'date':
+        default:
+          aValue = new Date(a.requestedDate || a.appointmentDate);
+          bValue = new Date(b.requestedDate || b.appointmentDate);
+          break;
+      }
+
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+  };
+  
+  // Function to initiate approval confirmation
+  const initiateApproval = (request) => {
+    setSelectedRequest(request);
+    setSelectedRequestId(request.id);
+    setShowApproveConfirmation(true);
+  };
+  
+  // Function to initiate rejection confirmation
+  const initiateRejection = (request) => {
+    setSelectedRequest(request);
+    setSelectedRequestId(request.id);
+    setRejectionReason('');
+    setShowRejectConfirmation(true);
+  };
+  
+  // Function to confirm and execute approval
+  const confirmApproval = async () => {
+    try {
+      console.log('Approving appointment request:', selectedRequestId);
+      await appointmentService.approveAppointmentRequest(selectedRequestId);
+      setSuccess('Appointment request approved successfully - refreshing appointments...');
+      
+      // Close confirmation modal
+      setShowApproveConfirmation(false);
+      
+      // Refresh appointment requests first
+      await fetchAppointmentRequests();
+      
+      // Update request count for the badge
+      try {
+        const requestsCount = await appointmentService.getAppointmentRequestsCount();
+        setRequestCount(requestsCount || 0);
+      } catch (countError) {
+        console.error('Error updating request count:', countError);
+      }
+      
+      // Wait a moment for backend processing
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Directly refresh appointments to show the newly approved appointment
+      try {
+        const updatedAppointments = await appointmentService.getAppointments();
+        setAppointments(updatedAppointments || []);
+        
+        // Filter today's appointments
+        const today = new Date().toDateString();
+        const todaysAppts = (updatedAppointments || []).filter(apt => {
+          const aptDate = new Date(apt.appointmentDate || apt.date).toDateString();
+          return aptDate === today;
+        });
+        setTodayAppointments(todaysAppts);
+        
+        console.log('Updated appointments after approval:', updatedAppointments?.length || 0);
+        
+        // Backup system removed - appointments now come directly from database
+      } catch (refreshError) {
+        console.error('Error refreshing appointments after approval:', refreshError);
+        // Fallback to full data reload
+        await loadInitialData();
+      }
+      
+      console.log('Appointment approval completed, data refreshed');
+    } catch (err) {
+      console.error('Error approving appointment request:', err);
+      setError('Failed to approve appointment request');
+      setShowApproveConfirmation(false);
+    }
+  };
+  
+  // Function to confirm and execute rejection
+  const confirmRejection = async () => {
+    if (!rejectionReason.trim()) {
+      setError('Please provide a reason for rejection');
+      return;
+    }
+    
+    try {
+      await appointmentService.rejectAppointmentRequest(selectedRequestId, rejectionReason);
+      setSuccess('Appointment request rejected');
+      
+      // Close confirmation modal
+      setShowRejectConfirmation(false);
+      setRejectionReason('');
+      
+      // Refresh the requests list
+      await fetchAppointmentRequests();
+    } catch (err) {
+      console.error('Error rejecting appointment request:', err);
+      setError('Failed to reject appointment request');
+      setShowRejectConfirmation(false);
+    }
+  };
+  
   // Functions for service scheduling
   const isDateTimeSelected = () => {
     return formData.appointmentDate && formData.appointmentTime;
@@ -115,66 +279,102 @@ const AppointmentManager = () => {
     loadInitialData();
   }, []);
 
+  // Handle clicking outside patient dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showPatientDropdown && !event.target.closest('.patient-search-container')) {
+        setShowPatientDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPatientDropdown]);
+
+  // Handle authentication changes
+  useEffect(() => {
+    const hasValidAuth = isAuthenticated && authData?.token && authData?.user;
+    
+    if (hasValidAuth) {
+      console.log('🔐 Valid authentication detected, reloading data...');
+      loadInitialData();
+    } else if (!isAuthenticated) {
+      console.log('🔓 Authentication lost, clearing data...');
+      setAppointments([]);
+      setPatients([]);
+      setDoctors([]);
+      setTodayAppointments([]);
+    }
+  }, [isAuthenticated, authData]);
+
   const loadInitialData = async () => {
     if (loading) return;
     
     try {
       setLoading(true);
       setError('');
-      console.log('Starting to load initial data...');
+      console.log('🚀 Starting to load initial data...');
       
-      const token = localStorage.getItem('token');
-      const user = localStorage.getItem('user');
+      // FORCE CLEAR SESSION STORAGE - Remove cached sample data
+      console.log('🧹 Clearing sessionStorage backup_appointments...');
+      sessionStorage.removeItem('backup_appointments');
+      console.log('✅ SessionStorage cleared');
       
-      console.log('Auth check - token:', !!token, 'user:', !!user);
+      // Enhanced auth check - require all components for valid auth
+      const hasValidAuth = isAuthenticated && authData?.token && authData?.user;
       
-      if (!token || !user) {
-        console.log('No authentication found, using empty data');
-        // Use empty data when not authenticated
+      console.log('🔍 Enhanced Auth Check:', {
+        isAuthenticated,
+        hasAuthData: !!authData,
+        hasToken: !!authData?.token,
+        hasUser: !!authData?.user,
+        userRole: authData?.user?.role,
+        hasValidAuth,
+        fullAuthData: authData // For debugging
+      });
+      
+      if (!hasValidAuth) {
+        console.warn('⚠️  Invalid authentication state - clearing appointments');
         setAppointments([]);
-        setPatients([
-          { id: 1, name: 'Maria Santos', email: 'maria@example.com' },
-          { id: 2, name: 'Carlos Mendoza', email: 'carlos@example.com' },
-          { id: 3, name: 'Ana Reyes', email: 'ana@example.com' },
-          { id: 4, name: 'Pedro Garcia', email: 'pedro@example.com' },
-          { id: 5, name: 'Sofia Lopez', email: 'sofia@example.com' },
-          { id: 6, name: 'Miguel Torres', email: 'miguel@example.com' }
-        ]);
-        setDoctors([
-          { id: 1, name: 'Dr. Santos', role: 'doctor', email: 'santos@example.com' },
-          { id: 2, name: 'Dr. Martinez', role: 'doctor', email: 'martinez@example.com' },
-          { id: 3, name: 'Dr. Garcia', role: 'doctor', email: 'garcia@example.com' }
-        ]);
-        setTodayAppointments([]);
+        setError('Please log in to access appointments.');
+        setLoading(false);
+        return;
         return;
       }
 
-      try {
-        const userData = JSON.parse(user);
-        console.log('User data:', userData);
-        if (!userData || (userData.role !== 'admin' && userData.role !== 'doctor')) {
-          setError('Access denied. Admin or doctor privileges required.');
-          return;
-        }
-      } catch (parseError) {
-        console.error('Error parsing user data:', parseError);
-        setError('Invalid session data. Please log in again.');
+      // Check user role using AuthContext
+      const userData = authData?.user;
+      console.log('User data from AuthContext:', userData);
+      if (!userData || (userData.role !== 'admin' && userData.role !== 'doctor')) {
+        setError('Access denied. Admin or doctor privileges required.');
         return;
       }
 
       // Try to load data gracefully
-      console.log('Attempting to load data from APIs...');
+      console.log('🔄 Attempting to load data from APIs with authentication...');
       const results = await Promise.allSettled([
-        appointmentService.getAppointments().catch(err => {
-          console.error('Appointments API failed:', err);
+        appointmentService.getAppointments().then(result => {
+          console.log('✅ Appointments API succeeded:', result?.length || 0, 'appointments');
+          return result;
+        }).catch(err => {
+          console.error('❌ Appointments API failed:', err.message || err);
+          console.error('Full error:', err);
           return [];
         }),
-        patientService.getPatients().catch(err => {
-          console.error('Patients API failed:', err);
+        patientService.getPatients().then(result => {
+          console.log('✅ Patients API succeeded:', result?.length || 0, 'patients');
+          return result;
+        }).catch(err => {
+          console.error('❌ Patients API failed:', err.message || err);
           return [];
         }),
-        userService.getUsers().catch(err => {
-          console.error('Users API failed:', err);
+        userService.getUsers().then(result => {
+          console.log('✅ Users API succeeded:', result?.length || 0, 'users');
+          return result;
+        }).catch(err => {
+          console.error('❌ Users API failed:', err.message || err);
           return [];
         })
       ]);
@@ -187,11 +387,25 @@ const AppointmentManager = () => {
       });
 
       // Use real data from API
-      const appointmentsData = appointmentsResult.status === 'fulfilled' && appointmentsResult.value.length > 0 
+      const appointmentsData = appointmentsResult.status === 'fulfilled' && appointmentsResult.value?.length > 0 
         ? appointmentsResult.value 
         : [];
+
+      console.log('📋 Processing appointments data:', {
+        apiStatus: appointmentsResult.status,
+        apiValue: appointmentsResult.value,
+        finalCount: appointmentsData.length,
+        sampleData: appointmentsData.slice(0, 2)
+      });
+
+      if (appointmentsData.length === 0) {
+        console.warn('⚠️  NO APPOINTMENTS FOUND - This is likely why they disappear on refresh!');
+        if (appointmentsResult.status === 'rejected') {
+          console.error('API rejection reason:', appointmentsResult.reason);
+        }
+      }
       
-      const patientsData = patientsResult.status === 'fulfilled' && patientsResult.value.length > 0
+      const patientsData = patientsResult.status === 'fulfilled' && patientsResult.value?.length > 0
         ? patientsResult.value
         : [
             { id: 1, name: 'Maria Santos', email: 'maria@example.com' },
@@ -217,6 +431,8 @@ const AppointmentManager = () => {
         doctors: usersData.filter(user => user.role === 'Doctor' || user.role === 'doctor' || user.role === 'Admin' || user.role === 'admin').length
       });
 
+      // Use appointments data directly from API (no backup system)
+      console.log('� Using appointments directly from database:', appointmentsData.length);
       setAppointments(appointmentsData);
       setPatients(patientsData);
       
@@ -241,6 +457,15 @@ const AppointmentManager = () => {
       
       console.log('Today\'s appointments found:', todayAppts.length);
       setTodayAppointments(todayAppts);
+      
+      // Also fetch appointment requests count
+      try {
+        const requestsCount = await appointmentService.getAppointmentRequestsCount();
+        setRequestCount(requestsCount || 0);
+      } catch (reqErr) {
+        console.error('Error getting appointment requests count:', reqErr);
+        // Not critical, so just log error but don't show to user
+      }
       
     } catch (err) {
       console.error('Error loading data:', err);
@@ -282,22 +507,24 @@ const AppointmentManager = () => {
           setSuccess('Appointment updated successfully (local)');
         }
       } else {
-        // Create new appointment
+        // Create new appointment - Admin scheduling (auto-approved)
         const appointmentData = {
           id: Date.now(), // Generate temporary ID
-          patient: patients.find(p => p.id === parseInt(formData.patientId))?.name || 'Unknown Patient',
-          doctor: doctors.find(d => d.id === parseInt(formData.doctorId))?.name || 'Unknown Doctor',
-          date: formData.appointmentDate,
-          time: formData.appointmentTime,
+          patientId: formData.patientId,
+          patientName: patients.find(p => p.id === parseInt(formData.patientId))?.name || 
+                      `${patients.find(p => p.id === parseInt(formData.patientId))?.firstName || ''} ${patients.find(p => p.id === parseInt(formData.patientId))?.lastName || ''}`.trim() || 
+                      'Unknown Patient',
+          doctor: 'Admin Scheduled', // Admin is scheduling for patient
+          appointmentDate: formData.appointmentDate,
+          appointmentTime: formData.appointmentTime,
           type: formData.type,
-          status: formData.status,
-          priority: formData.priority,
+          status: 'approved', // Auto-approved by admin
           duration: formData.duration,
           notes: formData.notes,
           symptoms: formData.symptoms,
-          statusColor: formData.status === 'Scheduled' ? '#007bff' : 
-                      formData.status === 'In Progress' ? '#ffc107' : 
-                      formData.status === 'Completed' ? '#28a745' : '#6c757d'
+          createdBy: 'admin',
+          needsPatientAcceptance: true,
+          statusColor: '#28a745' // Green for approved
         };
 
         try {
@@ -336,13 +563,12 @@ const AppointmentManager = () => {
     console.log('resetForm called, current showForm:', showForm);
     setFormData({
       patientId: '',
-      doctorId: '',
+      doctorId: '1', // Default to first doctor (admin scheduling)
       appointmentDate: '',
       appointmentTime: '',
       duration: 30,
-      type: 'Consultation',
-      status: 'Scheduled',
-      priority: 'Normal',
+      type: '',
+      status: 'approved', // Admin appointments are auto-approved
       notes: '',
       symptoms: ''
     });
@@ -527,25 +753,15 @@ const AppointmentManager = () => {
 
   const handleDayClick = (date) => {
     if (!date || !appointments) return;
-    
     try {
       const dayAppointments = getAppointmentsForDate(date);
-      
       if (dayAppointments.length > 0) {
-        // Show appointments for this day
         setSelectedDayAppointments(dayAppointments);
         setClickedDate(date);
-        setShowDayAppointments(true);
-      } else {
-        // No appointments, show quick schedule form for this date
-        setSelectedDate(date);
-        setShowForm(true);
+        setShowDayModal(true);
       }
     } catch (error) {
       console.warn('Error in handleDayClick:', error);
-      // Fallback to showing quick schedule form
-      setSelectedDate(date);
-      setShowForm(true);
     }
   };
 
@@ -564,10 +780,31 @@ const AppointmentManager = () => {
     }
   };
 
-  const getPatientName = (patientId) => {
-    if (!patientId || !patients) return 'Unknown Patient';
-    const patient = patients.find(p => p && p.id === patientId);
-    return patient ? `${patient.firstName || ''} ${patient.lastName || ''}`.trim() : 'Unknown Patient';
+  const getPatientName = (appointment) => {
+    // Handle different data structures for patient names
+    if (!appointment) return 'Unknown Patient';
+    
+    // If appointment has direct patientName property (from requests)
+    if (appointment.patientName && appointment.patientName.trim()) {
+      return appointment.patientName.trim();
+    }
+    
+    // If appointment has patientId, look up in patients array
+    const patientId = appointment.patientId || appointment.patient_id;
+    if (patientId && patients && patients.length > 0) {
+      const patient = patients.find(p => p && (p.id === patientId || p.id === parseInt(patientId)));
+      if (patient) {
+        return `${patient.firstName || ''} ${patient.lastName || ''}`.trim() || patient.name || 'Unknown Patient';
+      }
+    }
+    
+    // If appointment has patient object embedded
+    if (appointment.patient) {
+      const patient = appointment.patient;
+      return `${patient.firstName || ''} ${patient.lastName || ''}`.trim() || patient.name || 'Unknown Patient';
+    }
+    
+    return 'Unknown Patient';
   };
 
   const getDoctorName = (doctorId) => {
@@ -576,19 +813,51 @@ const AppointmentManager = () => {
     return doctor ? `Dr. ${doctor.lastName || doctor.firstName || 'Unknown'}` : 'Unknown Doctor';
   };
 
+  // Get status color based on status
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'approved':
+        return { backgroundColor: '#28a745', color: 'white' }; // Green
+      case 'pending':
+        return { backgroundColor: '#fd7e14', color: 'black' }; // Dark orange with black text
+      case 'accepted':
+        return { backgroundColor: '#ffc107', color: 'black' }; // Yellow with black text
+      case 'completed':
+        return { backgroundColor: '#6c757d', color: 'white' }; // Gray
+      case 'cancelled':
+        return { backgroundColor: '#dc3545', color: 'white' }; // Red
+      default:
+        return { backgroundColor: '#007bff', color: 'white' }; // Blue (default)
+    }
+  };
+
   // Patient search functions
   const handlePatientSearch = (searchValue) => {
     setPatientSearch(searchValue);
     
-    if (searchValue.length > 0) {
+    // Clear form patientId if user is typing something new
+    if (formData.patientId && searchValue !== `${formData.patientName} (ID: ${formData.patientId})`) {
+      setFormData({
+        ...formData,
+        patientId: '',
+        patientName: ''
+      });
+    }
+    
+    if (searchValue.length > 1) { // Show results after 2 characters
       const filtered = patients.filter(patient => {
         const fullName = `${patient.firstName} ${patient.lastName}`.toLowerCase();
         const patientId = patient.id.toString();
+        const email = patient.email?.toLowerCase() || '';
+        const phone = patient.contactNumber || '';
+        
         return fullName.includes(searchValue.toLowerCase()) || 
-               patientId.includes(searchValue);
+               patientId.includes(searchValue) ||
+               email.includes(searchValue.toLowerCase()) ||
+               phone.includes(searchValue);
       });
-      setFilteredPatients(filtered.slice(0, 10)); // Limit to 10 results
-      setShowPatientDropdown(true);
+      setFilteredPatients(filtered.slice(0, 8)); // Limit to 8 results
+      setShowPatientDropdown(filtered.length > 0);
     } else {
       setFilteredPatients([]);
       setShowPatientDropdown(false);
@@ -673,20 +942,36 @@ const AppointmentManager = () => {
         </button>
         
         <div className="tab-actions">
-          <input
-            type="text"
-            className="search-input"
-            placeholder="Search appointments..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <button className="btn btn-primary" onClick={() => {
-            console.log('Quick Schedule button clicked, showForm:', showForm);
-            setShowForm(true);
-            console.log('showForm set to true');
+          <button className="btn btn-primary me-2" onClick={() => {
+            console.log('Add Appointment button clicked, navigating to Patient Database');
+            // Navigate to Patient Database with Individual Members tab active
+            if (window.navigateToPatientDatabase) {
+              window.navigateToPatientDatabase('Patient Database', 'members');
+            } else {
+              // Fallback navigation method
+              console.log('Global navigation function not available, using fallback');
+              window.dispatchEvent(new CustomEvent('navigate-to-patient-database', {
+                detail: { path: 'Patient Database', tab: 'members' }
+              }));
+            }
           }}>
-            <i className="bi bi-lightning-charge me-2"></i>
-            Quick Schedule
+            <i className="bi bi-person-plus me-2"></i>
+            Add Appointment
+          </button>
+          <button 
+            className="btn btn-info me-2" 
+            onClick={() => {
+              console.log('Appointment Requests button clicked');
+              fetchAppointmentRequests();
+              setShowAppointmentRequests(true);
+              console.log('Modal should be showing now');
+            }}
+          >
+            <i className="bi bi-bell me-2"></i>
+            Appointment Requests
+            {requestCount > 0 && (
+              <span className="badge">{requestCount}</span>
+            )}
           </button>
           <button className="btn btn-secondary" onClick={loadInitialData}>
             <i className="bi bi-arrow-clockwise me-2"></i>
@@ -726,7 +1011,7 @@ const AppointmentManager = () => {
                       <div className="doctor-name">{appointment.doctor}</div>
                     </div>
                     <div className="card-status">
-                      <span className={`status-indicator ${appointment.status.toLowerCase().replace(' ', '-')}`}>
+                      <span className={`status-indicator`} style={{ backgroundColor: getStatusColor(appointment.status) }}>
                         {appointment.status}
                       </span>
                     </div>
@@ -809,16 +1094,16 @@ const AppointmentManager = () => {
                       </thead>
                       <tbody>
                         {appointments.filter(appointment =>
-                          (getPatientName(appointment.patientId).toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          (getPatientName(appointment).toLowerCase().includes(searchTerm.toLowerCase()) ||
                           (appointment.type && appointment.type.toLowerCase().includes(searchTerm.toLowerCase())))
                         ).map((appointment) => (
                           <tr key={appointment.id}>
-                            <td>{getPatientName(appointment.patientId)}</td>
+                            <td>{getPatientName(appointment)}</td>
                             <td>{new Date(appointment.appointmentDate).toLocaleDateString()}</td>
                             <td>{formatTime(appointment.appointmentTime)}</td>
                             <td>{appointment.type || 'Consultation'}</td>
                             <td>
-                              <span className={`status-indicator ${appointment.status.toLowerCase().replace(' ', '-')}`}>
+                              <span className={`status-indicator`} style={{ backgroundColor: getStatusColor(appointment.status) }}>
                                 {appointment.status}
                               </span>
                             </td>
@@ -962,7 +1247,7 @@ const AppointmentManager = () => {
                     </td>
                     <td>Dr. Santos</td>
                     <td>
-                      <span className={`status-badge ${appointment.status.toLowerCase().replace(' ', '-')}`}>
+                      <span className={`status-badge`} style={{ backgroundColor: getStatusColor(appointment.status) }}>
                         {appointment.status}
                       </span>
                     </td>
@@ -1160,23 +1445,31 @@ const AppointmentManager = () => {
                   <div className="form-field">
                     <label>Patient *</label>
                     <div className="patient-search-container">
-                      <input
-                        type="text"
-                        placeholder="Search by patient name or ID..."
-                        value={patientSearch}
-                        onChange={(e) => handlePatientSearch(e.target.value)}
-                        onFocus={() => setShowPatientDropdown(filteredPatients.length > 0)}
-                        className="patient-search-input"
-                      />
-                      {patientSearch && (
-                        <button
-                          type="button"
-                          className="clear-search-btn"
-                          onClick={clearPatientSelection}
-                        >
-                          <i className="bi bi-x"></i>
-                        </button>
-                      )}
+                      <div className="search-bar">
+                        <i className="bi bi-search search-icon"></i>
+                        <input
+                          type="text"
+                          placeholder="Search by patient name, ID, email, or phone..."
+                          value={patientSearch}
+                          onChange={(e) => handlePatientSearch(e.target.value)}
+                          onFocus={() => {
+                            if (filteredPatients.length > 0) {
+                              setShowPatientDropdown(true);
+                            }
+                          }}
+                          className="search-input patient-search-input"
+                          required
+                        />
+                        {patientSearch && (
+                          <button
+                            type="button"
+                            className="clear-search-btn"
+                            onClick={clearPatientSelection}
+                          >
+                            <i className="bi bi-x"></i>
+                          </button>
+                        )}
+                      </div>
                       {showPatientDropdown && filteredPatients.length > 0 && (
                         <div className="patient-dropdown">
                           {filteredPatients.map(patient => (
@@ -1186,34 +1479,35 @@ const AppointmentManager = () => {
                               onClick={() => selectPatient(patient)}
                             >
                               <div className="patient-info">
-                                <span className="patient-name">
+                                <div className="patient-name">
                                   {`${patient.firstName} ${patient.lastName}`}
-                                </span>
-                                <span className="patient-id">ID: {patient.id}</span>
+                                </div>
+                                <div className="patient-details">
+                                  <span className="patient-id">ID: {patient.id}</span>
+                                  {patient.email && (
+                                    <span className="patient-email">• {patient.email}</span>
+                                  )}
+                                </div>
                               </div>
                               {patient.contactNumber && (
-                                <span className="patient-contact">{patient.contactNumber}</span>
+                                <span className="patient-contact">
+                                  <i className="bi bi-telephone"></i>
+                                  {patient.contactNumber}
+                                </span>
                               )}
                             </div>
                           ))}
                         </div>
                       )}
+                      {patientSearch.length > 1 && filteredPatients.length === 0 && showPatientDropdown && (
+                        <div className="patient-dropdown no-results">
+                          <div className="no-results-message">
+                            <i className="bi bi-search"></i>
+                            <span>No patients found matching "{patientSearch}"</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  
-                  <div className="form-field">
-                    <label>Doctor *</label>
-                    <select value={formData.doctorId} onChange={(e) => setFormData({...formData, doctorId: e.target.value})} required>
-                      <option value="">Select Doctor</option>
-                      {doctors.map(doctor => (
-                        <option key={doctor.id} value={doctor.id}>
-                          {doctor.firstName && doctor.lastName 
-                            ? `Dr. ${doctor.firstName} ${doctor.lastName}`
-                            : `Dr. ${doctor.username || doctor.email}`
-                          }
-                        </option>
-                      ))}
-                    </select>
                   </div>
 
                   <div className="form-field">
@@ -1223,7 +1517,6 @@ const AppointmentManager = () => {
                       value={formData.appointmentDate}
                       onChange={(e) => {
                         setFormData({...formData, appointmentDate: e.target.value});
-                        updateAvailableServices(e.target.value, formData.appointmentTime);
                       }}
                       required
                     />
@@ -1236,54 +1529,44 @@ const AppointmentManager = () => {
                       value={formData.appointmentTime}
                       onChange={(e) => {
                         setFormData({...formData, appointmentTime: e.target.value});
-                        updateAvailableServices(formData.appointmentDate, e.target.value);
                       }}
                       required
                     />
                   </div>
 
                   <div className="form-field">
-                    <label>Type</label>
+                    <label>Type *</label>
                     <select 
                       value={formData.type} 
                       onChange={(e) => setFormData({...formData, type: e.target.value})}
-                      disabled={!isDateTimeSelected()}
+                      required
                     >
-                      <option value="">
-                        {isDateTimeSelected() ? 'Select consultation type...' : 'Please select date and time first'}
-                      </option>
-                      {availableServices.map(service => (
-                        <option key={service} value={service}>{service}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="form-field">
-                    <label>Priority</label>
-                    <select value={formData.priority} onChange={(e) => setFormData({...formData, priority: e.target.value})}>
-                      {priorityLevels.map(priority => (
-                        <option key={priority} value={priority}>{priority}</option>
-                      ))}
+                      <option value="">Select appointment type</option>
+                      <option value="Follow-up">Follow-up</option>
+                      {(() => {
+                        // Show Vaccination option only during specific times and days
+                        if (formData.appointmentDate && formData.appointmentTime) {
+                          const selectedDate = new Date(formData.appointmentDate);
+                          const dayOfWeek = selectedDate.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                          const hour = parseInt(formData.appointmentTime.split(':')[0]);
+                          
+                          // Vaccination available Monday-Friday, 8AM-4PM
+                          if (dayOfWeek >= 1 && dayOfWeek <= 5 && hour >= 8 && hour < 16) {
+                            return <option value="Vaccination">Vaccination</option>;
+                          }
+                        }
+                        return null;
+                      })()}
                     </select>
                   </div>
 
                   <div className="form-field form-field-wide">
-                    <label>Reason for Visit</label>
-                    <textarea
-                      value={formData.notes}
-                      onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                      rows="2"
-                      placeholder="Enter the reason for this appointment..."
-                    />
-                  </div>
-
-                  <div className="form-field form-field-wide">
-                    <label>Symptoms (Optional)</label>
+                    <label>Additional Notes (Optional)</label>
                     <textarea
                       value={formData.symptoms}
                       onChange={(e) => setFormData({...formData, symptoms: e.target.value})}
-                      rows="2"
-                      placeholder="Describe any symptoms the patient is experiencing..."
+                      rows="3"
+                      placeholder="Add any additional notes or patient information..."
                     />
                   </div>
                 </div>
@@ -1302,101 +1585,357 @@ const AppointmentManager = () => {
         </>
       )}
 
-      {/* Day Appointments Accordion */}
-      {showDayAppointments && (
-        <div className="day-appointments-accordion">
-          <div className="accordion-header" onClick={() => setShowDayAppointments(false)}>
-            <div className="accordion-title">
-              <i className="bi bi-calendar-day me-2"></i>
-              Appointments for {clickedDate?.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                month: 'long', 
-                day: 'numeric', 
-                year: 'numeric' 
-              })}
-              <span className="appointment-count-badge">{selectedDayAppointments.length}</span>
-            </div>
-            <i className="bi bi-chevron-up accordion-toggle"></i>
-          </div>
-          
-          <div className="accordion-content">
-            {selectedDayAppointments.length > 0 ? (
-              <div className="appointments-timeline">
-                {selectedDayAppointments.map((appointment, index) => (
-                  <div key={appointment.id} className="timeline-appointment">
-                    <div className="appointment-time">
-                      {formatTime(appointment.appointmentTime)}
+      {/* Day Appointments Modal */}
+      <Modal show={showDayModal} onHide={() => setShowDayModal(false)} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            Appointments for {clickedDate && clickedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+            <span className="appointment-count-badge ms-2">{selectedDayAppointments.length}</span>
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedDayAppointments.length > 0 ? (
+            <div className="appointments-timeline">
+              {selectedDayAppointments.map((appointment, index) => (
+                <div key={appointment.id} className="timeline-appointment">
+                  <div className="appointment-time">
+                    {formatTime(appointment.appointmentTime)}
+                  </div>
+                  <div className="appointment-details">
+                    <div className="appointment-header">
+                      <h4>{getPatientName(appointment)}</h4>
+                      <span className={`status-badge`} style={{ backgroundColor: getStatusColor(appointment.status) }}>
+                        {appointment.status}
+                      </span>
                     </div>
-                    <div className="appointment-details">
-                      <div className="appointment-header">
-                        <h4>{getPatientName(appointment.patientId)}</h4>
-                        <span className={`status-badge status-${appointment.status.toLowerCase()}`}>
-                          {appointment.status}
-                        </span>
+                    <div className="appointment-info">
+                      <div className="info-row">
+                        <i className="bi bi-person-check me-2"></i>
+                        <span>{getDoctorName(appointment.doctorId)}</span>
                       </div>
-                      <div className="appointment-info">
-                        <div className="info-row">
-                          <i className="bi bi-person-check me-2"></i>
-                          <span>{getDoctorName(appointment.doctorId)}</span>
-                        </div>
-                        <div className="info-row">
-                          <i className="bi bi-clipboard-heart me-2"></i>
-                          <span>{appointment.type}</span>
-                        </div>
-                        <div className="info-row">
-                          <i className="bi bi-clock me-2"></i>
-                          <span>{appointment.duration || 30} minutes</span>
-                        </div>
-                        {appointment.notes && (
-                          <div className="info-row">
-                            <i className="bi bi-journal-text me-2"></i>
-                            <span>{appointment.notes}</span>
-                          </div>
-                        )}
-                        {appointment.urgencyLevel && (
-                          <div className="info-row">
-                            <i className="bi bi-exclamation-triangle me-2"></i>
-                            <span className={`urgency-${appointment.urgencyLevel}`}>
-                              {appointment.urgencyLevel.charAt(0).toUpperCase() + appointment.urgencyLevel.slice(1)} Priority
-                            </span>
-                          </div>
-                        )}
+                      <div className="info-row">
+                        <i className="bi bi-clipboard-heart me-2"></i>
+                        <span>{appointment.type}</span>
                       </div>
-                    </div>
-                    <div className="appointment-actions">
-                      <button 
-                        className="btn-sm btn-outline"
-                        onClick={() => {
-                          setEditingAppointment(appointment);
-                          setShowDayAppointments(false);
-                          setShowForm(true);
-                        }}
-                      >
-                        <i className="bi bi-pencil"></i>
-                      </button>
+                      <div className="info-row">
+                        <i className="bi bi-clock me-2"></i>
+                        <span>{appointment.duration || 30} minutes</span>
+                      </div>
+                      {appointment.notes && (
+                        <div className="info-row">
+                          <i className="bi bi-journal-text me-2"></i>
+                          <span>{appointment.notes}</span>
+                        </div>
+                      )}
+                      {appointment.urgencyLevel && (
+                        <div className="info-row">
+                          <i className="bi bi-exclamation-triangle me-2"></i>
+                          <span className={`urgency-${appointment.urgencyLevel}`}>
+                            {appointment.urgencyLevel.charAt(0).toUpperCase() + appointment.urgencyLevel.slice(1)} Priority
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="no-appointments">
-                <i className="bi bi-calendar-x"></i>
-                <p>No appointments scheduled for this day</p>
-              </div>
-            )}
-            
-            <div className="day-appointments-footer">
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="no-appointments">
+              <i className="bi bi-calendar-x"></i>
+              <p>No appointments scheduled for this day</p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDayModal(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Appointment Requests Modal */}
+      {showAppointmentRequests && (
+        <div className="appointment-requests-modal-overlay" style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div className="appointment-requests-modal" style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            width: '90%',
+            maxWidth: '1000px',
+            maxHeight: '90vh',
+            overflow: 'hidden',
+            boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)'
+          }}>
+            <div className="appointment-requests-modal-header">
+              <h3>
+                <i className="bi bi-calendar-check me-2"></i>
+                Appointment Requests
+              </h3>
               <button 
-                className="btn-secondary"
-                onClick={() => {
-                  setSelectedDate(clickedDate);
-                  setShowDayAppointments(false);
-                  setShowForm(true);
-                }}
+                className="appointment-requests-modal-close" 
+                onClick={() => setShowAppointmentRequests(false)}
               >
-                <i className="bi bi-plus-circle me-2"></i>
-                Add New Appointment
+                <i className="bi bi-x-lg"></i>
               </button>
+            </div>
+            <div className="appointment-requests-modal-body">
+              {requestsLoading ? (
+                <div className="requests-loading">
+                  <i className="bi bi-hourglass-split spin-animation"></i>
+                  <p>Loading appointment requests...</p>
+                </div>
+              ) : appointmentRequests.length === 0 ? (
+                <div className="no-requests">
+                  <i className="bi bi-calendar-check"></i>
+                  <p>No pending appointment requests</p>
+                </div>
+              ) : (
+                <div className="requests-list">
+                  <div className="requests-controls">
+                    <div className="search-section">
+                      <input
+                        type="text"
+                        className="search-input"
+                        placeholder="Search by patient name..."
+                        value={requestSearchTerm}
+                        onChange={(e) => setRequestSearchTerm(e.target.value)}
+                      />
+                    </div>
+                    <div className="sort-section">
+                      <select
+                        className="sort-select"
+                        value={`${sortBy}-${sortOrder}`}
+                        onChange={(e) => {
+                          const [newSortBy, newSortOrder] = e.target.value.split('-');
+                          setSortBy(newSortBy);
+                          setSortOrder(newSortOrder);
+                        }}
+                      >
+                        <option value="date-asc">Date (Oldest First)</option>
+                        <option value="date-desc">Date (Newest First)</option>
+                        <option value="patient-asc">Patient (A-Z)</option>
+                        <option value="patient-desc">Patient (Z-A)</option>
+                        <option value="type-asc">Type (A-Z)</option>
+                        <option value="type-desc">Type (Z-A)</option>
+                      </select>
+                    </div>
+                  </div>
+                  <h4>Pending Requests ({getFilteredAndSortedRequests().length})</h4>
+                  <div className="requests-table-container">
+                    <table className="requests-table">
+                      <thead>
+                        <tr>
+                          <th>Patient</th>
+                          <th>Date & Time</th>
+                          <th>Type</th>
+                          <th>Details</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {getFilteredAndSortedRequests().map(request => (
+                          <tr key={request.id}>
+                            <td>
+                              {request.patientName || 
+                                `${patients.find(p => p.id === request.patientId)?.firstName || ''} 
+                                ${patients.find(p => p.id === request.patientId)?.lastName || ''}`}
+                            </td>
+                            <td className="datetime-cell">
+                              {(() => {
+                                try {
+                                  const date = new Date(request.requestedDate || request.appointmentDate);
+                                  const time = request.requestedTime || request.appointmentTime;
+                                  if (isNaN(date.getTime())) {
+                                    return 'Invalid Date';
+                                  }
+                                  return `${date.toLocaleDateString()} at ${time}`;
+                                } catch (error) {
+                                  return 'Invalid Date';
+                                }
+                              })()}
+                            </td>
+                            <td>{request.appointmentType || request.type || 'Consultation'}</td>
+                            <td className="details-cell">
+                              <button 
+                                className="btn-details"
+                                onClick={() => {
+                                  const details = [];
+                                  if (request.symptoms) details.push(`Symptoms: ${request.symptoms}`);
+                                  if (request.notes) details.push(`Notes: ${request.notes}`);
+                                  const message = details.length > 0 ? details.join('\n\n') : 'No additional details provided';
+                                  alert(message);
+                                }}
+                              >
+                                <i className="bi bi-info-circle"></i>
+                                View Details
+                              </button>
+                            </td>
+                            <td className="actions-cell">
+                              <button 
+                                className="btn-approve"
+                                onClick={() => initiateApproval(request)}
+                              >
+                                <i className="bi bi-check-circle-fill"></i>
+                                Approve
+                              </button>
+                              <button 
+                                className="btn-reject"
+                                onClick={() => initiateRejection(request)}
+                              >
+                                <i className="bi bi-x-circle-fill"></i>
+                                Reject
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approval Confirmation Modal */}
+      {showApproveConfirmation && selectedRequest && (
+        <div className="appointment-approval-modal-overlay">
+          <div className="appointment-approval-modal">
+            <div className="appointment-approval-modal-header">
+              <h3>Confirm Appointment Approval</h3>
+              <button 
+                className="appointment-approval-modal-close" 
+                onClick={() => setShowApproveConfirmation(false)}
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div className="appointment-approval-modal-body">
+              <p>Are you sure you want to approve this appointment request?</p>
+              
+              <div className="request-details">
+                <div className="detail-row">
+                  <span className="detail-label">Patient:</span>
+                  <span className="detail-value">
+                    {selectedRequest.patientName || 
+                      `${patients.find(p => p.id === selectedRequest.patientId)?.firstName || ''} 
+                      ${patients.find(p => p.id === selectedRequest.patientId)?.lastName || ''}`}
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Date:</span>
+                  <span className="detail-value">
+                    {(() => {
+                      try {
+                        const date = new Date(selectedRequest.requestedDate || selectedRequest.appointmentDate);
+                        return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
+                      } catch (error) {
+                        return 'Invalid Date';
+                      }
+                    })()}
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Time:</span>
+                  <span className="detail-value">{selectedRequest.requestedTime || selectedRequest.appointmentTime || 'Not specified'}</span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Type:</span>
+                  <span className="detail-value">{selectedRequest.type || 'Consultation'}</span>
+                </div>
+              </div>
+
+              <div className="approval-actions">
+                <button className="btn-cancel" onClick={() => setShowApproveConfirmation(false)}>
+                  Cancel
+                </button>
+                <button className="btn-confirm-approve" onClick={confirmApproval}>
+                  <i className="bi bi-check-circle me-2"></i>
+                  Confirm Approval
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rejection Confirmation Modal */}
+      {showRejectConfirmation && selectedRequest && (
+        <div className="appointment-approval-modal-overlay">
+          <div className="appointment-approval-modal">
+            <div className="appointment-rejection-modal-header">
+              <h3>Confirm Appointment Rejection</h3>
+              <button 
+                className="appointment-approval-modal-close" 
+                onClick={() => setShowRejectConfirmation(false)}
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div className="appointment-approval-modal-body">
+              <p>Please provide a reason for rejecting this appointment request:</p>
+              
+              <div className="request-details">
+                <div className="detail-row">
+                  <span className="detail-label">Patient:</span>
+                  <span className="detail-value">
+                    {selectedRequest.patientName || 
+                      `${patients.find(p => p.id === selectedRequest.patientId)?.firstName || ''} 
+                      ${patients.find(p => p.id === selectedRequest.patientId)?.lastName || ''}`}
+                  </span>
+                </div>
+                <div className="detail-row">
+                  <span className="detail-label">Date:</span>
+                  <span className="detail-value">
+                    {(() => {
+                      try {
+                        const date = new Date(selectedRequest.requestedDate || selectedRequest.appointmentDate);
+                        return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
+                      } catch (error) {
+                        return 'Invalid Date';
+                      }
+                    })()}
+                  </span>
+                </div>
+              </div>
+
+              <div className="rejection-reason-container">
+                <label htmlFor="rejectionReason">Reason for Rejection:</label>
+                <textarea
+                  id="rejectionReason"
+                  className="rejection-reason-textarea"
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  placeholder="Please provide a reason for rejecting this appointment request..."
+                  required
+                />
+              </div>
+
+              <div className="rejection-actions">
+                <button className="btn-cancel" onClick={() => setShowRejectConfirmation(false)}>
+                  Cancel
+                </button>
+                <button 
+                  className="btn-confirm-reject" 
+                  onClick={confirmRejection}
+                  disabled={!rejectionReason.trim()}
+                >
+                  <i className="bi bi-x-circle me-2"></i>
+                  Confirm Rejection
+                </button>
+              </div>
             </div>
           </div>
         </div>

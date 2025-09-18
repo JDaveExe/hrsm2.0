@@ -1,0 +1,359 @@
+/* Appointment Requests Modal Styles */
+
+.appointment-requests-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.appointment-requests-modal {
+  background: white;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 1000px;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Modal Header */
+.appointment-requests-modal-header {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  color: white;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.appointment-requests-modal-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.appointment-requests-modal-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.appointment-requests-modal-close:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Modal Body */
+.appointment-requests-modal-body {
+  padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Loading and Empty States */
+.requests-loading, .no-requests {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+}
+
+.requests-loading i, .no-requests i {
+  font-size: 3rem;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.spin-animation {
+  animation: spin 1s linear infinite;
+}
+
+/* Requests List */
+.requests-list h4 {
+  margin: 0 0 20px 0;
+  color: #374151;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+/* Search and Sort Controls */
+.requests-controls {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-section {
+  flex: 1;
+  min-width: 200px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+.sort-section {
+  min-width: 180px;
+}
+
+.sort-select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background-color: white;
+  cursor: pointer;
+}
+
+.sort-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+/* Table Container */
+.requests-table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+/* Table Styles */
+.requests-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.requests-table th {
+  background-color: #f9fafb;
+  color: #374151;
+  font-weight: 600;
+  padding: 12px;
+  text-align: left;
+  border-bottom: 2px solid #e5e7eb;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.requests-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
+  text-align: left;
+}
+
+/* Specific column alignments */
+.requests-table th:first-child,
+.requests-table td:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+
+.requests-table th:nth-child(2),
+.requests-table td:nth-child(2) {
+  text-align: center;
+}
+
+.requests-table th:nth-child(3),
+.requests-table td:nth-child(3) {
+  text-align: center;
+}
+
+.requests-table th:nth-child(4),
+.requests-table td:nth-child(4) {
+  text-align: center;
+}
+
+.requests-table th:nth-child(5),
+.requests-table td:nth-child(5) {
+  text-align: center;
+}
+
+.requests-table tr:hover {
+  background-color: #f8fafc;
+}
+
+.requests-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Cell-specific styles */
+.datetime-cell {
+  white-space: nowrap;
+  font-weight: 500;
+  color: #374151;
+}
+
+.details-cell {
+  text-align: center;
+}
+
+.actions-cell {
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* Button Styles */
+.btn-details {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+}
+
+.btn-details:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+}
+
+.btn-approve {
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 8px;
+  transition: all 0.2s;
+}
+
+.btn-approve:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.btn-reject {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s;
+}
+
+.btn-reject:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .appointment-requests-modal {
+    width: 95%;
+    margin: 20px;
+  }
+
+  .requests-table {
+    font-size: 0.8rem;
+  }
+
+  .requests-table th,
+  .requests-table td {
+    padding: 8px;
+  }
+
+  .btn-approve,
+  .btn-reject,
+  .btn-details {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+  }
+
+  .actions-cell {
+    white-space: normal;
+  }
+
+  .btn-approve {
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Fix for table header alignment */
+.requests-table th:first-child {
+  width: 20%;
+}
+
+.requests-table th:nth-child(2) {
+  width: 25%;
+}
+
+.requests-table th:nth-child(3) {
+  width: 15%;
+}
+
+.requests-table th:nth-child(4) {
+  width: 15%;
+}
+
+.requests-table th:nth-child(5) {
+  width: 25%;
+}

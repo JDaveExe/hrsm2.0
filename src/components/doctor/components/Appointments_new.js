@@ -662,7 +662,7 @@ const Appointments = () => {
                       <option value="Consultation">Consultation</option>
                       <option value="Follow-up">Follow-up</option>
                       <option value="Check-up">Check-up</option>
-                      <option value="Medical Certificate">Medical Certificate</option>
+                      <option value="Vaccination">Vaccination</option>
                     </select>
                   </div>
                   

@@ -17,6 +17,8 @@ const ReferralFormModal = ({ show, onHide, selectedPatient, isDarkMode = false }
   });
   const [loading, setLoading] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [referralHistory, setReferralHistory] = useState([]);
 
   const getPatientFullName = (patient) => {
     if (!patient) return 'Unknown Patient';
@@ -64,14 +66,30 @@ const ReferralFormModal = ({ show, onHide, selectedPatient, isDarkMode = false }
   const handleSubmitReferral = async () => {
     setLoading(true);
     try {
-      // Here you would submit the referral to the backend
-      // await referralService.submitReferral(selectedPatient.id, referralData);
-      
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-        onHide();
-      }, 3000);
+      const response = await fetch('/api/lab-referrals/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${window.__authToken}`
+        },
+        body: JSON.stringify({
+          patientId: selectedPatient.id,
+          referralData: referralData,
+          referredBy: 'Dr. John Smith' // Get from current user context
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Referral submitted:', result.referralId);
+        setShowSuccess(true);
+        setTimeout(() => {
+          setShowSuccess(false);
+          onHide();
+        }, 3000);
+      } else {
+        throw new Error('Failed to submit referral');
+      }
     } catch (error) {
       console.error('Error submitting referral:', error);
       alert('Error submitting referral. Please try again.');
@@ -82,6 +100,59 @@ const ReferralFormModal = ({ show, onHide, selectedPatient, isDarkMode = false }
 
   const handlePrintReferral = () => {
     alert('Referral form printed successfully!');
+  };
+
+  const handleShowHistory = async () => {
+    if (!selectedPatient) return;
+    
+    try {
+      const response = await fetch(`/api/lab-referrals/patient/${selectedPatient.id}`, {
+        headers: {
+          'Authorization': `Bearer ${window.__authToken}`
+        }
+      });
+
+      if (response.ok) {
+        const history = await response.json();
+        setReferralHistory(history);
+        setShowHistory(true);
+      } else {
+        console.error('Failed to fetch referral history');
+      }
+    } catch (error) {
+      console.error('Error fetching referral history:', error);
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const formatTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getStatusBadge = (status) => {
+    const statusStyles = {
+      pending: 'bg-warning text-dark',
+      completed: 'bg-success text-white',
+      cancelled: 'bg-danger text-white'
+    };
+    
+    return (
+      <span className={`badge ${statusStyles[status] || 'bg-secondary'} me-2`}>
+        {status?.toUpperCase() || 'UNKNOWN'}
+      </span>
+    );
   };
 
   const facilityOptions = [
@@ -115,6 +186,7 @@ const ReferralFormModal = ({ show, onHide, selectedPatient, isDarkMode = false }
   ];
 
   return (
+    <>
     <Modal 
       show={show} 
       onHide={onHide}
@@ -133,7 +205,7 @@ const ReferralFormModal = ({ show, onHide, selectedPatient, isDarkMode = false }
       >
         <Modal.Title className="w-100 text-center fw-bold fs-4">
           <i className="bi bi-hospital me-2"></i>
-          Laboratory/Specialist Referral Form
+          Lab Referral Form
         </Modal.Title>
       </Modal.Header>
       
@@ -425,6 +497,17 @@ const ReferralFormModal = ({ show, onHide, selectedPatient, isDarkMode = false }
           Print Form
         </Button>
         <Button 
+          onClick={handleShowHistory}
+          style={{
+            background: '#3b82f6',
+            border: 'none',
+            color: '#ffffff'
+          }}
+        >
+          <i className="bi bi-clock-history me-2"></i>
+          Referral History
+        </Button>
+        <Button 
           onClick={handleSubmitReferral}
           disabled={loading || !referralData.referralType || !referralData.facility || !referralData.department || !referralData.reason}
           style={{
@@ -447,6 +530,228 @@ const ReferralFormModal = ({ show, onHide, selectedPatient, isDarkMode = false }
         </Button>
       </Modal.Footer>
     </Modal>
+
+    {/* Referral History Modal */}
+    <Modal 
+      show={showHistory} 
+      onHide={() => setShowHistory(false)}
+      dialogClassName="action-modal-wide"
+      centered
+      className="referral-history-modal"
+    >
+      <Modal.Header 
+        closeButton 
+        style={{
+          background: '#3b82f6', 
+          color: '#ffffff', 
+          border: 'none',
+          borderRadius: '12px 12px 0 0'
+        }}
+      >
+        <Modal.Title className="w-100 text-center fw-bold fs-4">
+          <i className="bi bi-clock-history me-2"></i>
+          Lab Referral History - {selectedPatient ? getPatientFullName(selectedPatient) : ''}
+        </Modal.Title>
+      </Modal.Header>
+      
+      <Modal.Body style={{
+        background: isDarkMode ? '#1e293b' : '#ffffff', 
+        color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+        padding: '24px',
+        maxHeight: '80vh',
+        overflowY: 'auto'
+      }}>
+        {referralHistory.length === 0 ? (
+          <div className="text-center py-5">
+            <i className="bi bi-clipboard-x" style={{ fontSize: '3rem', color: '#6b7280' }}></i>
+            <h5 className="mt-3 mb-2" style={{ color: isDarkMode ? '#e2e8f0' : '#2c3e50' }}>
+              No Referral History
+            </h5>
+            <p style={{ color: isDarkMode ? '#94a3b8' : '#6c757d' }}>
+              This patient has no previous lab referrals on record.
+            </p>
+          </div>
+        ) : (
+          <div className="referral-history-accordion">
+            <div className="accordion" id="referralHistoryAccordion">
+              {referralHistory.map((referral, index) => {
+                const accordionId = `history-${referral.id}`;
+                const referralDate = formatDate(referral.referralDate);
+                const referralTime = formatTime(referral.referralDate);
+                
+                return (
+                  <div key={referral.id} className="accordion-item mb-3" style={{
+                    border: `1px solid ${isDarkMode ? '#475569' : '#e0e6ed'}`,
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)'
+                  }}>
+                    <h2 className="accordion-header" id={`heading-${accordionId}`}>
+                      <button 
+                        className="accordion-button collapsed"
+                        type="button" 
+                        data-bs-toggle="collapse" 
+                        data-bs-target={`#collapse-${accordionId}`}
+                        aria-expanded="false"
+                        aria-controls={`collapse-${accordionId}`}
+                        style={{
+                          background: isDarkMode ? '#334155' : '#f8f9fa',
+                          color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                          border: 'none',
+                          borderRadius: '8px',
+                          padding: '1rem 1.25rem'
+                        }}
+                      >
+                        <div className="w-100 d-flex justify-content-between align-items-center">
+                          <div className="d-flex align-items-center gap-3">
+                            <span className="badge bg-primary">#{index + 1}</span>
+                            {getStatusBadge(referral.status)}
+                            <span>
+                              <i className="bi bi-calendar3 me-1"></i>
+                              {referralDate}
+                            </span>
+                            <span>
+                              <i className="bi bi-clock me-1"></i>
+                              {referralTime}
+                            </span>
+                          </div>
+                          <div className="text-end">
+                            <small style={{ color: isDarkMode ? '#94a3b8' : '#6c757d' }}>
+                              {referral.referralId}
+                            </small>
+                          </div>
+                        </div>
+                      </button>
+                    </h2>
+
+                    <div 
+                      id={`collapse-${accordionId}`}
+                      className="accordion-collapse collapse"
+                      aria-labelledby={`heading-${accordionId}`}
+                      data-bs-parent="#referralHistoryAccordion"
+                    >
+                      <div className="accordion-body" style={{
+                        background: isDarkMode ? '#1e293b' : '#ffffff',
+                        padding: '1.5rem',
+                        borderTop: `1px solid ${isDarkMode ? '#475569' : '#e0e6ed'}`
+                      }}>
+                        <div className="row">
+                          <div className="col-md-6">
+                            <h6 style={{ color: '#3b82f6', fontWeight: '600' }}>
+                              <i className="bi bi-hospital me-2"></i>
+                              Referral Details
+                            </h6>
+                            <div className="mb-3">
+                              <strong>Facility:</strong> {referral.facility}
+                            </div>
+                            <div className="mb-3">
+                              <strong>Department:</strong> {referral.department}
+                            </div>
+                            <div className="mb-3">
+                              <strong>Specialist:</strong> {referral.specialist || 'N/A'}
+                            </div>
+                            <div className="mb-3">
+                              <strong>Urgency:</strong> {referral.urgency?.toUpperCase()}
+                            </div>
+                            <div className="mb-3">
+                              <strong>Referred By:</strong> {referral.referredBy || 'N/A'}
+                            </div>
+                          </div>
+                          <div className="col-md-6">
+                            <h6 style={{ color: '#3b82f6', fontWeight: '600' }}>
+                              <i className="bi bi-clipboard-medical me-2"></i>
+                              Clinical Information
+                            </h6>
+                            <div className="mb-3">
+                              <strong>Reason:</strong>
+                              <div className="mt-1" style={{ 
+                                fontSize: '0.9rem',
+                                color: isDarkMode ? '#cbd5e1' : '#495057'
+                              }}>
+                                {referral.reason}
+                              </div>
+                            </div>
+                            <div className="mb-3">
+                              <strong>Clinical History:</strong>
+                              <div className="mt-1" style={{ 
+                                fontSize: '0.9rem',
+                                color: isDarkMode ? '#cbd5e1' : '#495057'
+                              }}>
+                                {referral.clinicalHistory || 'N/A'}
+                              </div>
+                            </div>
+                            <div className="mb-3">
+                              <strong>Additional Notes:</strong>
+                              <div className="mt-1" style={{ 
+                                fontSize: '0.9rem',
+                                color: isDarkMode ? '#cbd5e1' : '#495057'
+                              }}>
+                                {referral.additionalNotes || 'N/A'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Results Section */}
+                        {referral.resultsUploaded && (
+                          <div className="mt-4 pt-3" style={{
+                            borderTop: `1px solid ${isDarkMode ? '#475569' : '#e0e6ed'}`
+                          }}>
+                            <h6 style={{ color: '#10b981', fontWeight: '600' }}>
+                              <i className="bi bi-check-circle me-2"></i>
+                              Results Available
+                            </h6>
+                            <div className="row">
+                              <div className="col-md-6">
+                                <div className="mb-2">
+                                  <strong>Results Date:</strong> {formatDate(referral.resultsDate)}
+                                </div>
+                                <div className="mb-2">
+                                  <strong>File:</strong> {referral.resultsFile || 'N/A'}
+                                </div>
+                              </div>
+                              <div className="col-md-6">
+                                <div className="mb-2">
+                                  <strong>Notes:</strong>
+                                  <div className="mt-1" style={{ 
+                                    fontSize: '0.9rem',
+                                    color: isDarkMode ? '#cbd5e1' : '#495057'
+                                  }}>
+                                    {referral.resultsNotes || 'No additional notes'}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </Modal.Body>
+
+      <Modal.Footer style={{
+        background: isDarkMode ? '#1e293b' : '#f8f9fa',
+        border: 'none',
+        borderRadius: '0 0 12px 12px'
+      }}>
+        <Button 
+          onClick={() => setShowHistory(false)}
+          style={{
+            background: '#6b7280',
+            border: 'none',
+            color: '#ffffff'
+          }}
+        >
+          <i className="bi bi-x-circle me-2"></i>
+          Close
+        </Button>
+      </Modal.Footer>
+    </Modal>
+    </>
   );
 };
 

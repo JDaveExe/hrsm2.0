@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import adminService from '../services/adminService';
 import patientService from '../services/patientService';
+import { doctorSessionService } from '../services/doctorSessionService';
 
 // Create the context
 const DataContext = createContext();
@@ -516,7 +517,7 @@ export const DataProvider = ({ children }) => {
     );
   };
 
-  const syncCheckupStatus = (checkupId, status, source = 'unknown') => {
+  const syncCheckupStatus = (checkupId, status, source = 'unknown', additionalData = {}) => {
     const timestamp = new Date().toISOString();
     
     setSharedCheckupsData(prev => 
@@ -526,7 +527,8 @@ export const DataProvider = ({ children }) => {
               ...checkup, 
               status, 
               lastUpdated: timestamp,
-              lastUpdatedBy: source
+              lastUpdatedBy: source,
+              ...additionalData
             }
           : checkup
       )
@@ -720,6 +722,17 @@ export const DataProvider = ({ children }) => {
         const createdCheckup = await response.json();
         console.log('DataContext: Checkup session created successfully:', createdCheckup);
         
+        // Set doctor status to "busy" when starting a checkup
+        const currentUser = window.__authUser;
+        if (currentUser?.role === 'doctor' && currentUser?.id) {
+          try {
+            await doctorSessionService.updateDoctorStatus(currentUser.id, 'busy', patientData.patientId);
+            console.log('DataContext: Doctor status updated to busy');
+          } catch (error) {
+            console.warn('DataContext: Failed to update doctor status to busy:', error);
+          }
+        }
+        
         // Update with server response (replace temporary ID)
         setDoctorCheckupsData(prev => {
           const updated = prev.map(checkup => 
@@ -758,15 +771,15 @@ export const DataProvider = ({ children }) => {
   }, []);
 
   // Update checkup notes and prescriptions
-  const updateCheckupNotes = useCallback(async (checkupId, notes, prescriptions = []) => {
-    console.log('DataContext: updateCheckupNotes called', { checkupId, notes, prescriptions });
+  const updateCheckupNotes = useCallback(async (checkupId, notes, prescriptions = [], clinicalNotes = {}) => {
+    console.log('DataContext: updateCheckupNotes called', { checkupId, notes, prescriptions, clinicalNotes });
     
     try {
       // Update local state first for immediate UI feedback
       setDoctorCheckupsData(prev => 
         prev.map(checkup => 
           checkup.id === checkupId 
-            ? { ...checkup, notes, prescriptions }
+            ? { ...checkup, notes, prescriptions, ...clinicalNotes }
             : checkup
         )
       );
@@ -778,7 +791,7 @@ export const DataProvider = ({ children }) => {
           'Authorization': `Bearer ${window.__authToken}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ notes, prescriptions })
+        body: JSON.stringify({ notes, prescriptions, ...clinicalNotes })
       });
 
       if (response.ok) {
@@ -857,7 +870,9 @@ export const DataProvider = ({ children }) => {
         priority: patient.priority,
         vitalSigns: patient.vitalSigns,
         notes: patient.notes || '',
-        source: 'admin_checkup'
+        source: 'admin_checkup',
+        assignedDoctor: patient.assignedDoctor || null,
+        assignedDoctorName: patient.assignedDoctorName || null
       };
 
       // Update local queue state immediately
@@ -876,11 +891,18 @@ export const DataProvider = ({ children }) => {
         headers: {
           'Authorization': `Bearer ${window.__authToken}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          assignedDoctor: patient.assignedDoctor,
+          assignedDoctorName: patient.assignedDoctorName
+        })
       });
 
-      // Update checkups status
-      syncCheckupStatus(patient.id, 'doctor-notified', 'admin');
+      // Update checkups status with assigned doctor information
+      syncCheckupStatus(patient.id, 'ready-for-queue', 'admin', {
+        assignedDoctor: patient.assignedDoctor,
+        assignedDoctorName: patient.assignedDoctorName
+      });
 
       return { success: true, message: 'Patient added to queue successfully' };
     } catch (error) {

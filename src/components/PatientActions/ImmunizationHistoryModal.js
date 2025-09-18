@@ -29,65 +29,177 @@ const ImmunizationHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = 
     }
   }, [show, selectedPatient]);
 
+  // Helper function to calculate vaccination categories
+  const categorizeVaccines = (vaccines) => {
+    const categories = {
+      routineChildhood: 0,
+      covidSeries: 0,
+      annual: 0,
+      special: 0
+    };
+
+    vaccines.forEach(vaccine => {
+      const vaccineName = vaccine.vaccine.toLowerCase();
+      
+      // Routine Childhood vaccines
+      if (vaccineName.includes('bcg') || 
+          vaccineName.includes('hepatitis') || 
+          vaccineName.includes('pentavalent') || 
+          vaccineName.includes('dtp') || 
+          vaccineName.includes('mmr') || 
+          vaccineName.includes('pneumococcal') || 
+          vaccineName.includes('pcv')) {
+        categories.routineChildhood++;
+      }
+      // COVID-19 vaccines  
+      else if (vaccineName.includes('covid')) {
+        categories.covidSeries++;
+      }
+      // Annual vaccines
+      else if (vaccineName.includes('influenza') || 
+               vaccineName.includes('flu')) {
+        categories.annual++;
+      }
+      // Special vaccines (travel, occupational, etc.)
+      else {
+        categories.special++;
+      }
+    });
+
+    return categories;
+  };
+
+  // Helper function to calculate upcoming vaccinations based on age and existing vaccines
+  const calculateUpcomingVaccinations = (currentVaccines, patientAge) => {
+    const upcoming = [];
+    const currentVaccineNames = currentVaccines.map(v => v.vaccine.toLowerCase());
+    
+    // Age-based recommendations
+    if (patientAge >= 18) {
+      // Adult recommendations
+      if (!currentVaccineNames.some(v => v.includes('influenza') || v.includes('flu'))) {
+        upcoming.push({
+          name: 'Influenza Vaccine (2025)',
+          dueDate: 'October 2025',
+          description: 'Annual flu shot',
+          type: 'annual'
+        });
+      }
+      
+      // Tetanus booster every 10 years
+      const hasRecentTetanus = currentVaccines.some(v => {
+        const vaccineName = v.vaccine.toLowerCase();
+        const vaccineDate = new Date(v.dateGiven);
+        const tenYearsAgo = new Date();
+        tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
+        
+        return (vaccineName.includes('tetanus') || vaccineName.includes('td') || vaccineName.includes('tdap')) 
+               && vaccineDate > tenYearsAgo;
+      });
+      
+      if (!hasRecentTetanus) {
+        upcoming.push({
+          name: 'Tetanus-Diphtheria (Td)',
+          dueDate: 'March 2026',
+          description: '10-year booster',
+          type: 'booster'
+        });
+      }
+    }
+    
+    // Universal recommendations
+    if (!currentVaccineNames.some(v => v.includes('covid'))) {
+      upcoming.push({
+        name: 'COVID-19 Vaccine',
+        dueDate: 'As recommended',
+        description: 'Initial series or booster',
+        type: 'covid'
+      });
+    }
+
+    return upcoming;
+  };
+
+  // Helper function to calculate compliance rate
+  const calculateComplianceRate = (currentVaccines, patientAge) => {
+    let requiredVaccines = 0;
+    let completedVaccines = currentVaccines.length;
+
+    // Age-based required vaccines
+    if (patientAge >= 0) requiredVaccines += 2; // BCG, Hepatitis B birth dose
+    if (patientAge >= 1) requiredVaccines += 3; // Pentavalent series
+    if (patientAge >= 1) requiredVaccines += 2; // MMR series  
+    if (patientAge >= 1) requiredVaccines += 3; // PCV series
+    if (patientAge >= 18) requiredVaccines += 1; // Annual flu
+    if (patientAge >= 18) requiredVaccines += 1; // Tetanus booster
+    
+    // COVID vaccines (recommended for all ages 6 months+)
+    if (patientAge >= 0.5) requiredVaccines += 2; // COVID primary series
+    
+    return Math.min(100, Math.round((completedVaccines / Math.max(requiredVaccines, 1)) * 100));
+  };
+
   const fetchImmunizationHistory = async () => {
     setLoading(true);
     try {
-      // Sample data - replace with actual API call
-      const sampleHistory = [
-        {
-          id: 1,
-          vaccine: 'COVID-19 mRNA Vaccine (Pfizer)',
-          description: 'mRNA vaccine against SARS-CoV-2',
-          dateGiven: '2025-06-15',
-          dose: 'Booster',
-          provider: 'Dr. Juan Cruz',
-          status: 'Complete',
-          details: 'Vaccine: COVID-19 mRNA (Pfizer)\nLot Number: FK8891\nManufacturer: Pfizer-BioNTech\nExpiry Date: Dec 2025\nSite: Left arm\nNo adverse reactions reported'
-        },
-        {
-          id: 2,
-          vaccine: 'Hepatitis B Vaccine',
-          description: 'Protects against hepatitis B virus',
-          dateGiven: '2024-03-20',
-          dose: 'Series Complete',
-          provider: 'Dr. Maria Santos',
-          status: 'Complete',
-          details: 'Vaccine: Hepatitis B\nSeries: 3 doses completed\nDates: Birth, 1 month, 6 months\nAll doses administered properly\nImmunity: Lifetime protection'
-        },
-        {
-          id: 3,
-          vaccine: 'Measles, Mumps, and Rubella (MMR)',
-          description: 'Combined vaccine for MMR protection',
-          dateGiven: '2024-01-15',
-          dose: 'Dose 2',
-          provider: 'Dr. Ana Reyes',
-          status: 'Complete',
-          details: 'Vaccine: MMR (Measles, Mumps, Rubella)\nDose: 2 of 2\nFirst dose: 9 months\nSecond dose: 15 months\nProtection: Lifetime immunity expected'
-        },
-        {
-          id: 4,
-          vaccine: 'Pneumococcal Conjugate (PCV)',
-          description: 'Protects against pneumococcal disease',
-          dateGiven: '2023-12-10',
-          dose: 'Booster',
-          provider: 'Dr. Carlos Mendoza',
-          status: 'Complete',
-          details: 'Vaccine: Pneumococcal Conjugate (PCV)\nSchedule: 6, 10, 14 weeks + booster\nCurrent: Booster dose completed\nProtection: Against 13 pneumococcal strains\nNext due: Adult booster at age 65'
-        },
-        {
-          id: 5,
-          vaccine: 'Influenza Vaccine',
-          description: 'Annual flu protection',
-          dateGiven: '2024-10-20',
-          dose: 'Annual 2024',
-          provider: 'Dr. Maria Santos',
-          status: 'Due',
-          details: 'Vaccine: Influenza (Flu Shot)\nSeason: 2024-2025\nType: Quadrivalent inactivated\nNext dose: October 2025\nNote: Annual vaccination recommended'
+      // Get auth token
+      const authData = JSON.parse(sessionStorage.getItem('authData') || '{}');
+      const authToken = authData.token || window.__authToken;
+      
+      if (!authToken) {
+        console.error('No authentication token available');
+        setImmunizationHistory([]);
+        return;
+      }
+
+      // Fetch actual vaccination records for the patient
+      console.log('Fetching vaccination records for patient:', selectedPatient);
+      const patientId = selectedPatient.id || selectedPatient.patientId;
+      console.log('Using patient ID:', patientId);
+      
+      const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${baseURL}/api/vaccinations/patient/${patientId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json'
         }
-      ];
-      setImmunizationHistory(sampleHistory);
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Fetched vaccination records:', data);
+        
+        // Transform the vaccination records to match the expected format
+        // Note: data is an array directly, not wrapped in a vaccinations property
+        const formattedHistory = (Array.isArray(data) ? data : []).map(vaccination => ({
+          id: vaccination.id,
+          vaccine: vaccination.vaccineName,
+          description: vaccination.notes || 'Vaccination administered',
+          dateGiven: new Date(vaccination.administeredAt).toISOString().split('T')[0], // Format as YYYY-MM-DD
+          dose: vaccination.dose || 'Dose 1',
+          provider: vaccination.administeredBy || 'Healthcare Provider',
+          status: 'Complete',
+          category: vaccination.category || 'General', // Add category from database
+          details: `Vaccine: ${vaccination.vaccineName}\n` +
+                   `Batch Number: ${vaccination.batchNumber || 'Not specified'}\n` +
+                   `Expiry Date: ${vaccination.expiryDate ? new Date(vaccination.expiryDate).toLocaleDateString() : 'Not specified'}\n` +
+                   `Administration Site: ${vaccination.administrationSite || 'Not specified'}\n` +
+                   `Route: ${vaccination.administrationRoute || 'Not specified'}\n` +
+                   `Administered By: ${vaccination.administeredBy || 'Not specified'}\n` +
+                   `Date: ${new Date(vaccination.administeredAt).toLocaleString()}\n` +
+                   `Adverse Reactions: ${vaccination.adverseReactions || 'None reported'}\n` +
+                   `Notes: ${vaccination.notes || 'None'}`
+        })) || [];
+
+        setImmunizationHistory(formattedHistory);
+      } else {
+        console.error('Failed to fetch vaccination records:', response.status);
+        setImmunizationHistory([]);
+      }
     } catch (error) {
       console.error('Error fetching immunization history:', error);
+      setImmunizationHistory([]);
     } finally {
       setLoading(false);
     }
@@ -178,62 +290,69 @@ const ImmunizationHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = 
             {/* Vaccination Categories Tabs */}
             <div className="mb-4">
               <div className="row g-2">
-                <div className="col-md-3">
-                  <div 
-                    className="text-center p-2"
-                    style={{
-                      background: '#10b981',
-                      color: '#ffffff',
-                      borderRadius: '6px',
-                      fontSize: '0.85rem',
-                      fontWeight: '600'
-                    }}
-                  >
-                    Routine Childhood ({immunizationHistory.filter(v => ['Hepatitis B', 'MMR', 'PCV'].some(type => v.vaccine.includes(type))).length})
-                  </div>
-                </div>
-                <div className="col-md-3">
-                  <div 
-                    className="text-center p-2"
-                    style={{
-                      background: '#0ea5e9',
-                      color: '#ffffff',
-                      borderRadius: '6px',
-                      fontSize: '0.85rem',
-                      fontWeight: '600'
-                    }}
-                  >
-                    COVID-19 Series ({immunizationHistory.filter(v => v.vaccine.includes('COVID')).length})
-                  </div>
-                </div>
-                <div className="col-md-3">
-                  <div 
-                    className="text-center p-2"
-                    style={{
-                      background: '#f59e0b',
-                      color: '#ffffff',
-                      borderRadius: '6px',
-                      fontSize: '0.85rem',
-                      fontWeight: '600'
-                    }}
-                  >
-                    Annual Vaccines ({immunizationHistory.filter(v => v.vaccine.includes('Influenza')).length})
-                  </div>
-                </div>
-                <div className="col-md-3">
-                  <div 
-                    className="text-center p-2"
-                    style={{
-                      background: '#6b7280',
-                      color: '#ffffff',
-                      borderRadius: '6px',
-                      fontSize: '0.85rem',
-                      fontWeight: '600'
-                    }}
-                  >
-                    Special (0)
-                  </div>
-                </div>
+                {(() => {
+                  const categories = categorizeVaccines(immunizationHistory);
+                  return (
+                    <>
+                      <div className="col-md-3">
+                        <div 
+                          className="text-center p-2"
+                          style={{
+                            background: '#10b981',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            fontSize: '0.85rem',
+                            fontWeight: '600'
+                          }}
+                        >
+                          Routine Childhood ({categories.routineChildhood})
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div 
+                          className="text-center p-2"
+                          style={{
+                            background: '#0ea5e9',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            fontSize: '0.85rem',
+                            fontWeight: '600'
+                          }}
+                        >
+                          COVID-19 Series ({categories.covidSeries})
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div 
+                          className="text-center p-2"
+                          style={{
+                            background: '#f59e0b',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            fontSize: '0.85rem',
+                            fontWeight: '600'
+                          }}
+                        >
+                          Annual Vaccines ({categories.annual})
+                        </div>
+                      </div>
+                      <div className="col-md-3">
+                        <div 
+                          className="text-center p-2"
+                          style={{
+                            background: '#6b7280',
+                            color: '#ffffff',
+                            borderRadius: '6px',
+                            fontSize: '0.85rem',
+                            fontWeight: '600'
+                          }}
+                        >
+                          Special ({categories.special})
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             </div>
 
@@ -321,7 +440,24 @@ const ImmunizationHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = 
                       </tr>
                     </thead>
                     <tbody>
-                      {immunizationHistory.map((record) => (
+                      {immunizationHistory.length === 0 ? (
+                        <tr>
+                          <td 
+                            colSpan="6" 
+                            style={{
+                              color: isDarkMode ? '#94a3b8' : '#6c757d',
+                              padding: '32px 16px',
+                              textAlign: 'center',
+                              fontStyle: 'italic',
+                              border: 'none'
+                            }}
+                          >
+                            <i className="bi bi-info-circle me-2"></i>
+                            No vaccination records found for this patient.
+                          </td>
+                        </tr>
+                      ) : (
+                        immunizationHistory.map((record) => (
                         <tr key={record.id} style={{
                           borderBottom: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
                           backgroundColor: isDarkMode ? '#334155' : '#ffffff'
@@ -394,7 +530,8 @@ const ImmunizationHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = 
                             </Button>
                           </td>
                         </tr>
-                      ))}
+                        ))
+                      )}
                     </tbody>
                   </Table>
                 </div>
@@ -413,26 +550,39 @@ const ImmunizationHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = 
                       border: `1px solid ${isDarkMode ? '#475569' : '#ffeaa7'}`
                     }}
                   >
-                    <div className="row">
-                      <div className="col-md-6">
-                        <div style={{color: isDarkMode ? '#e2e8f0' : '#856404', fontWeight: '600', fontSize: '0.9rem'}}>
-                          <i className="bi bi-exclamation-triangle me-2"></i>
-                          Influenza Vaccine (2025)
+                    {(() => {
+                      const patientAge = getPatientAge(selectedPatient);
+                      const upcomingVaccines = calculateUpcomingVaccinations(immunizationHistory, patientAge);
+                      
+                      if (upcomingVaccines.length === 0) {
+                        return (
+                          <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', textAlign: 'center', fontStyle: 'italic'}}>
+                            <i className="bi bi-check-circle me-2"></i>
+                            No upcoming vaccinations required at this time.
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <div className="row">
+                          {upcomingVaccines.map((vaccine, index) => (
+                            <div key={index} className="col-md-6 mb-2">
+                              <div style={{color: isDarkMode ? '#e2e8f0' : '#856404', fontWeight: '600', fontSize: '0.9rem'}}>
+                                <i className={`bi ${
+                                  vaccine.type === 'annual' ? 'bi-exclamation-triangle' :
+                                  vaccine.type === 'booster' ? 'bi-info-circle' :
+                                  vaccine.type === 'covid' ? 'bi-shield-plus' : 'bi-calendar-plus'
+                                } me-2`}></i>
+                                {vaccine.name}
+                              </div>
+                              <small style={{color: isDarkMode ? '#94a3b8' : '#6c757d'}}>
+                                Due: {vaccine.dueDate} | {vaccine.description}
+                              </small>
+                            </div>
+                          ))}
                         </div>
-                        <small style={{color: isDarkMode ? '#94a3b8' : '#6c757d'}}>
-                          Due: October 2025 | Annual flu shot
-                        </small>
-                      </div>
-                      <div className="col-md-6">
-                        <div style={{color: isDarkMode ? '#e2e8f0' : '#856404', fontWeight: '600', fontSize: '0.9rem'}}>
-                          <i className="bi bi-info-circle me-2"></i>
-                          Tetanus-Diphtheria (Td)
-                        </div>
-                        <small style={{color: isDarkMode ? '#94a3b8' : '#6c757d'}}>
-                          Due: March 2026 | 10-year booster
-                        </small>
-                      </div>
-                    </div>
+                      );
+                    })()}
                   </div>
                 </div>
 
@@ -460,8 +610,17 @@ const ImmunizationHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = 
                         border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`
                       }}
                     >
-                      <div style={{color: '#0ea5e9', fontSize: '1.5rem', fontWeight: 'bold'}}>95%</div>
-                      <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.8rem'}}>Compliance</div>
+                      {(() => {
+                        const patientAge = getPatientAge(selectedPatient);
+                        const complianceRate = calculateComplianceRate(immunizationHistory, patientAge);
+                        const color = complianceRate >= 80 ? '#10b981' : complianceRate >= 60 ? '#f59e0b' : '#ef4444';
+                        return (
+                          <>
+                            <div style={{color, fontSize: '1.5rem', fontWeight: 'bold'}}>{complianceRate}%</div>
+                            <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.8rem'}}>Compliance</div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="col-md-3">
@@ -473,8 +632,16 @@ const ImmunizationHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = 
                         border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`
                       }}
                     >
-                      <div style={{color: '#f59e0b', fontSize: '1.5rem', fontWeight: 'bold'}}>2</div>
-                      <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.7rem'}}>Due Soon</div>
+                      {(() => {
+                        const patientAge = getPatientAge(selectedPatient);
+                        const upcomingCount = calculateUpcomingVaccinations(immunizationHistory, patientAge).length;
+                        return (
+                          <>
+                            <div style={{color: '#f59e0b', fontSize: '1.5rem', fontWeight: 'bold'}}>{upcomingCount}</div>
+                            <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.7rem'}}>Due Soon</div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="col-md-3">
@@ -486,8 +653,17 @@ const ImmunizationHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = 
                         border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`
                       }}
                     >
-                      <div style={{color: '#ef4444', fontSize: '1.5rem', fontWeight: 'bold'}}>0</div>
-                      <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.8rem'}}>Overdue</div>
+                      {(() => {
+                        // Calculate overdue vaccines (for now, show 0 since we don't track due dates)
+                        // This could be enhanced to check if required vaccines are missing based on age
+                        const overdueCount = 0;
+                        return (
+                          <>
+                            <div style={{color: '#ef4444', fontSize: '1.5rem', fontWeight: 'bold'}}>{overdueCount}</div>
+                            <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.8rem'}}>Overdue</div>
+                          </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </div>

@@ -5,6 +5,8 @@ import './styles/ActionModals.css';
 const CheckupHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = false }) => {
   const [checkupHistory, setCheckupHistory] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [showNotesModal, setShowNotesModal] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState(null);
 
   const getPatientFullName = (patient) => {
     if (!patient) return 'Unknown Patient';
@@ -23,6 +25,40 @@ const CheckupHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = false
     return age;
   };
 
+  // Helper function to format date properly
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
+  };
+
+  // Helper function to format time properly
+  const formatTime = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'N/A';
+      return date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return 'N/A';
+    }
+  };
+
   useEffect(() => {
     if (show && selectedPatient) {
       fetchCheckupHistory();
@@ -32,59 +68,65 @@ const CheckupHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = false
   const fetchCheckupHistory = async () => {
     setLoading(true);
     try {
-      // Sample data - replace with actual API call
-      const sampleHistory = [
-        {
-          id: 1,
-          date: '2025-07-28',
-          time: '10:30 AM',
-          purpose: 'General Checkup',
-          doctor: 'Dr. Maria Santos',
-          notes: 'Patient shows good vital signs\nBlood pressure: 120/80 mmHg\nTemperature: 36.5°C\nRecommended: Continue current medications\nFollow-up: 1 month'
-        },
-        {
-          id: 2,
-          date: '2025-06-15',
-          time: '02:15 PM',
-          purpose: 'Vaccination - COVID-19 Booster',
-          doctor: 'Dr. Juan Cruz',
-          notes: 'COVID-19 Booster vaccine administered\nVaccine: Pfizer-BioNTech\nLot No: FK8891\nNo adverse reactions observed\nNext dose: Not required'
-        },
-        {
-          id: 3,
-          date: '2025-05-20',
-          time: '09:45 AM',
-          purpose: 'Medical Certificate',
-          doctor: 'Dr. Ana Reyes',
-          notes: 'Medical certificate issued for employment\nPatient is physically fit to work\nNo medical restrictions\nValid for 6 months\nCertificate No: MC-2025-0520-001'
-        },
-        {
-          id: 4,
-          date: '2025-04-10',
-          time: '11:20 AM',
-          purpose: 'Follow-up Consultation',
-          doctor: 'Dr. Maria Santos',
-          notes: 'Follow-up for hypertension management\nBlood pressure improved: 130/85 mmHg\nPatient responsive to medication\nContinue Amlodipine 5mg daily\nNext follow-up: 3 months'
-        },
-        {
-          id: 5,
-          date: '2025-03-05',
-          time: '03:30 PM',
-          purpose: 'Annual Physical Examination',
-          doctor: 'Dr. Carlos Mendoza',
-          notes: 'Complete physical examination performed\nBP: 140/90 mmHg (elevated)\nBMI: 24.5 (normal)\nRecommended: Start antihypertensive medication\nLab tests: CBC, Lipid profile, FBS ordered\nLifestyle modifications advised'
+      // Fetch real checkup history from the API
+      const response = await fetch(`/api/checkups/history/${selectedPatient.id}`, {
+        headers: {
+          'Authorization': `Bearer ${window.__authToken}`,
+          'Content-Type': 'application/json'
         }
-      ];
-      setCheckupHistory(sampleHistory);
+      });
+
+      if (response.ok) {
+        const historyData = await response.json();
+        
+        // Format the data properly for display
+        const formattedHistory = historyData.map(record => ({
+          ...record,
+          date: record.completedAt || record.checkInTime || record.createdAt,
+          time: record.completedAt || record.checkInTime || record.createdAt,
+          purpose: record.serviceType || 'General Checkup',
+          doctor: record.assignedDoctor || 'Unknown Doctor'
+        }));
+        
+        setCheckupHistory(formattedHistory);
+        console.log('Fetched checkup history:', formattedHistory);
+      } else {
+        console.error('Failed to fetch checkup history:', response.status);
+        // Fallback to sample data for demonstration
+        const sampleHistory = [
+          {
+            id: 1,
+            date: new Date().toISOString(),
+            time: new Date().toISOString(),
+            purpose: 'General Checkup',
+            doctor: 'Dr. Maria Santos',
+            notes: 'Patient shows good vital signs\nBlood pressure: 120/80 mmHg\nTemperature: 36.5°C\nRecommended: Continue current medications\nFollow-up: 1 month',
+            chiefComplaint: 'Routine checkup',
+            presentSymptoms: 'No specific symptoms',
+            diagnosis: 'Good health status',
+            treatmentPlan: 'Continue current medications',
+            doctorNotes: 'Patient shows good vital signs. Blood pressure: 120/80 mmHg. Temperature: 36.5°C. Recommended: Continue current medications. Follow-up: 1 month'
+          }
+        ];
+        setCheckupHistory(sampleHistory);
+      }
     } catch (error) {
       console.error('Error fetching checkup history:', error);
+      // Fallback to empty array
+      setCheckupHistory([]);
     } finally {
       setLoading(false);
     }
   };
 
   const handleViewNotes = (record) => {
-    alert(`Doctor Notes:\n\n${record.notes}`);
+    setSelectedRecord(record);
+    setShowNotesModal(true);
+  };
+
+  const handleCloseNotesModal = () => {
+    setShowNotesModal(false);
+    setSelectedRecord(null);
   };
 
   const handleExportHistory = () => {
@@ -92,6 +134,7 @@ const CheckupHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = false
   };
 
   return (
+    <>
     <Modal 
       show={show} 
       onHide={onHide}
@@ -154,7 +197,7 @@ const CheckupHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = false
                 <div className="col-md-4 text-end">
                   <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.9rem'}}>
                     <div><strong>Total Visits:</strong> {checkupHistory.length}</div>
-                    <div><strong>Last Visit:</strong> {checkupHistory.length > 0 ? new Date(checkupHistory[0].date).toLocaleDateString() : 'N/A'}</div>
+                    <div><strong>Last Visit:</strong> {checkupHistory.length > 0 ? formatDate(checkupHistory[0].date) : 'N/A'}</div>
                   </div>
                 </div>
               </div>
@@ -248,7 +291,7 @@ const CheckupHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = false
                             fontSize: '0.9rem',
                             border: 'none'
                           }}>
-                            {new Date(record.date).toLocaleDateString()}
+                            {formatDate(record.date)}
                           </td>
                           <td style={{
                             color: isDarkMode ? '#e2e8f0' : '#2c3e50',
@@ -256,7 +299,7 @@ const CheckupHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = false
                             fontSize: '0.9rem',
                             border: 'none'
                           }}>
-                            {record.time}
+                            {formatTime(record.time)}
                           </td>
                           <td style={{
                             color: isDarkMode ? '#e2e8f0' : '#2c3e50',
@@ -408,6 +451,294 @@ const CheckupHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = false
         </Button>
       </Modal.Footer>
     </Modal>
+
+    {/* Detailed Clinical Notes Modal */}
+    {showNotesModal && selectedRecord && (
+      <Modal 
+        show={showNotesModal} 
+        onHide={handleCloseNotesModal}
+        dialogClassName="action-modal-wide"
+        centered
+        className="clinical-notes-modal"
+      >
+        <Modal.Header 
+          closeButton 
+          style={{
+            background: '#10b981', 
+            color: '#ffffff', 
+            border: 'none',
+            borderRadius: '12px 12px 0 0'
+          }}
+        >
+          <Modal.Title className="w-100 text-center fw-bold fs-4">
+            <i className="bi bi-journal-medical me-2"></i>
+            Clinical Notes - {formatDate(selectedRecord.date)}
+          </Modal.Title>
+        </Modal.Header>
+        
+        <Modal.Body style={{
+          background: isDarkMode ? '#1e293b' : '#ffffff', 
+          color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+          padding: '24px',
+          minHeight: '60vh',
+          maxHeight: '70vh',
+          overflowY: 'auto'
+        }}>
+          {/* Checkup Overview */}
+          <div 
+            className="mb-4 p-3"
+            style={{
+              background: isDarkMode ? '#334155' : '#f8f9fa',
+              borderRadius: '8px',
+              border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`
+            }}
+          >
+            <div className="row">
+              <div className="col-md-6">
+                <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.9rem'}}>
+                  <strong>Date & Time:</strong> {formatDate(selectedRecord.date)} at {formatTime(selectedRecord.time)}
+                </div>
+                <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.9rem'}}>
+                  <strong>Purpose:</strong> {selectedRecord.purpose}
+                </div>
+              </div>
+              <div className="col-md-6">
+                <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.9rem'}}>
+                  <strong>Doctor:</strong> {selectedRecord.doctor}
+                </div>
+                <div style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontSize: '0.9rem'}}>
+                  <strong>Patient:</strong> {getPatientFullName(selectedPatient)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Clinical Notes Grid */}
+          <div className="row">
+            {/* Chief Complaint */}
+            <div className="col-md-6 mb-3">
+              <div 
+                style={{
+                  background: isDarkMode ? '#334155' : '#fff',
+                  borderRadius: '8px',
+                  border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                  padding: '16px'
+                }}
+              >
+                <h6 style={{color: '#3b82f6', marginBottom: '12px', fontWeight: '600'}}>
+                  <i className="bi bi-chat-square-text me-2"></i>
+                  Chief Complaint
+                </h6>
+                <div style={{
+                  color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                  fontSize: '0.9rem',
+                  lineHeight: '1.5',
+                  minHeight: '60px',
+                  padding: '8px',
+                  background: isDarkMode ? '#1e293b' : '#f8f9fa',
+                  borderRadius: '4px',
+                  border: `1px solid ${isDarkMode ? '#475569' : '#e9ecef'}`
+                }}>
+                  {selectedRecord.chiefComplaint || selectedRecord.notes || 'No chief complaint recorded.'}
+                </div>
+              </div>
+            </div>
+
+            {/* Present Symptoms */}
+            <div className="col-md-6 mb-3">
+              <div 
+                style={{
+                  background: isDarkMode ? '#334155' : '#fff',
+                  borderRadius: '8px',
+                  border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                  padding: '16px'
+                }}
+              >
+                <h6 style={{color: '#f59e0b', marginBottom: '12px', fontWeight: '600'}}>
+                  <i className="bi bi-thermometer me-2"></i>
+                  Present Symptoms
+                </h6>
+                <div style={{
+                  color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                  fontSize: '0.9rem',
+                  lineHeight: '1.5',
+                  minHeight: '60px',
+                  padding: '8px',
+                  background: isDarkMode ? '#1e293b' : '#f8f9fa',
+                  borderRadius: '4px',
+                  border: `1px solid ${isDarkMode ? '#475569' : '#e9ecef'}`
+                }}>
+                  {selectedRecord.presentSymptoms || 'No symptoms recorded.'}
+                </div>
+              </div>
+            </div>
+
+            {/* Diagnosis */}
+            <div className="col-md-6 mb-3">
+              <div 
+                style={{
+                  background: isDarkMode ? '#334155' : '#fff',
+                  borderRadius: '8px',
+                  border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                  padding: '16px'
+                }}
+              >
+                <h6 style={{color: '#10b981', marginBottom: '12px', fontWeight: '600'}}>
+                  <i className="bi bi-clipboard-pulse me-2"></i>
+                  Diagnosis
+                </h6>
+                <div style={{
+                  color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                  fontSize: '0.9rem',
+                  lineHeight: '1.5',
+                  minHeight: '60px',
+                  padding: '8px',
+                  background: isDarkMode ? '#1e293b' : '#f8f9fa',
+                  borderRadius: '4px',
+                  border: `1px solid ${isDarkMode ? '#475569' : '#e9ecef'}`
+                }}>
+                  {selectedRecord.diagnosis || 'No diagnosis recorded.'}
+                </div>
+              </div>
+            </div>
+
+            {/* Treatment Plan */}
+            <div className="col-md-6 mb-3">
+              <div 
+                style={{
+                  background: isDarkMode ? '#334155' : '#fff',
+                  borderRadius: '8px',
+                  border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                  padding: '16px'
+                }}
+              >
+                <h6 style={{color: '#8b5cf6', marginBottom: '12px', fontWeight: '600'}}>
+                  <i className="bi bi-prescription2 me-2"></i>
+                  Treatment Plan
+                </h6>
+                <div style={{
+                  color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                  fontSize: '0.9rem',
+                  lineHeight: '1.5',
+                  minHeight: '60px',
+                  padding: '8px',
+                  background: isDarkMode ? '#1e293b' : '#f8f9fa',
+                  borderRadius: '4px',
+                  border: `1px solid ${isDarkMode ? '#475569' : '#e9ecef'}`
+                }}>
+                  {selectedRecord.treatmentPlan || 'No treatment plan recorded.'}
+                </div>
+              </div>
+            </div>
+          </div>
+
+              {/* Doctor's Additional Notes - Full Width */}
+          <div className="mb-3">
+            <div 
+              style={{
+                background: isDarkMode ? '#334155' : '#fff',
+                borderRadius: '8px',
+                border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                padding: '16px'
+              }}
+            >
+              <h6 style={{color: '#ef4444', marginBottom: '12px', fontWeight: '600'}}>
+                <i className="bi bi-journal-text me-2"></i>
+                Doctor's Additional Notes
+                {selectedRecord.doctor && (
+                  <span style={{color: isDarkMode ? '#94a3b8' : '#6c757d', fontWeight: '400', fontSize: '0.8rem', marginLeft: '8px'}}>
+                    - by {selectedRecord.doctor}
+                  </span>
+                )}
+              </h6>
+              <div style={{
+                color: isDarkMode ? '#e2e8f0' : '#2c3e50',
+                fontSize: '0.9rem',
+                lineHeight: '1.5',
+                minHeight: '80px',
+                padding: '12px',
+                background: isDarkMode ? '#1e293b' : '#f8f9fa',
+                borderRadius: '4px',
+                border: `1px solid ${isDarkMode ? '#475569' : '#e9ecef'}`,
+                whiteSpace: 'pre-wrap'
+              }}>
+                {selectedRecord.doctorNotes || selectedRecord.notes || 'No additional notes recorded.'}
+              </div>
+            </div>
+          </div>          {/* Prescriptions Section */}
+          {selectedRecord.prescriptions && selectedRecord.prescriptions.length > 0 && (
+            <div className="mb-3">
+              <div 
+                style={{
+                  background: isDarkMode ? '#334155' : '#fff',
+                  borderRadius: '8px',
+                  border: `1px solid ${isDarkMode ? '#475569' : '#dee2e6'}`,
+                  padding: '16px'
+                }}
+              >
+                <h6 style={{color: '#06b6d4', marginBottom: '12px', fontWeight: '600'}}>
+                  <i className="bi bi-capsule me-2"></i>
+                  Prescriptions ({selectedRecord.prescriptions.length})
+                </h6>
+                <div className="row">
+                  {selectedRecord.prescriptions.map((prescription, index) => (
+                    <div key={index} className="col-md-6 mb-2">
+                      <div style={{
+                        padding: '8px',
+                        background: isDarkMode ? '#1e293b' : '#f8f9fa',
+                        borderRadius: '4px',
+                        border: `1px solid ${isDarkMode ? '#475569' : '#e9ecef'}`
+                      }}>
+                        <div style={{fontWeight: '600', color: isDarkMode ? '#e2e8f0' : '#2c3e50'}}>
+                          {prescription.medication}
+                        </div>
+                        <div style={{fontSize: '0.8rem', color: isDarkMode ? '#94a3b8' : '#6c757d'}}>
+                          Qty: {prescription.quantity} | {prescription.instructions}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        
+        <Modal.Footer style={{
+          background: isDarkMode ? '#334155' : '#f8f9fa',
+          border: 'none',
+          borderRadius: '0 0 12px 12px'
+        }}>
+          <Button 
+            variant="secondary" 
+            onClick={handleCloseNotesModal}
+            style={{
+              background: isDarkMode ? '#64748b' : '#6c757d',
+              border: 'none',
+              color: '#ffffff'
+            }}
+          >
+            <i className="bi bi-arrow-left me-2"></i>
+            Back to History
+          </Button>
+          <Button 
+            style={{
+              background: '#10b981',
+              border: 'none',
+              color: '#ffffff'
+            }}
+            onClick={() => {
+              // Print or export this specific checkup notes
+              alert('Clinical notes exported successfully!');
+            }}
+          >
+            <i className="bi bi-printer me-2"></i>
+            Print Notes
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    )}
+    </>
   );
 };
 

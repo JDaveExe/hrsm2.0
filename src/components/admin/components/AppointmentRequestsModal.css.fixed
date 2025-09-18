@@ -1,0 +1,433 @@
+/* Appointment Requests Modal Styles - Unique class names to avoid conflicts */
+
+/* Main overlay */
+.appointment-requests-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1050;
+  padding: 20px;
+}
+
+/* Modal container */
+.appointment-requests-modal {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  width: 80%;
+  max-width: 950px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Modal header */
+.appointment-requests-modal-header {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #0056b3;
+}
+
+.appointment-requests-modal-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.appointment-requests-modal-close {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.appointment-requests-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Modal body */
+.appointment-requests-modal-body {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Loading state */
+.requests-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  color: #6c757d;
+}
+
+.requests-loading i {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+.spin-animation {
+  animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* No requests state */
+.no-requests {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  color: #6c757d;
+}
+
+.no-requests i {
+  font-size: 3rem;
+  margin-bottom: 15px;
+}
+
+/* Requests list */
+.requests-list h4 {
+  margin: 0 0 15px;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.requests-table-container {
+  overflow-x: auto;
+}
+
+.requests-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.requests-table th,
+.requests-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid #e9ecef;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.requests-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+  position: sticky;
+  top: 0;
+}
+
+.requests-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Column widths */
+.requests-table th:nth-child(1),
+.requests-table td:nth-child(1) {
+  width: 20%;
+}
+
+.requests-table th:nth-child(2),
+.requests-table td:nth-child(2),
+.requests-table th:nth-child(3),
+.requests-table td:nth-child(3) {
+  width: 15%;
+}
+
+.requests-table th:nth-child(4),
+.requests-table td:nth-child(4) {
+  width: 15%;
+}
+
+.symptoms-cell {
+  white-space: normal !important;
+  width: 20%;
+}
+
+.actions-cell {
+  width: 15%;
+  white-space: nowrap;
+}
+
+/* Button styles */
+.btn-approve,
+.btn-reject {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.2s;
+  margin-right: 5px;
+}
+
+.btn-approve {
+  background-color: #28a745;
+  color: white;
+}
+
+.btn-approve:hover {
+  background-color: #218838;
+}
+
+.btn-reject {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-reject:hover {
+  background-color: #c82333;
+}
+
+.btn-approve i,
+.btn-reject i {
+  margin-right: 5px;
+}
+
+/* Approval Confirmation Modal */
+.appointment-approval-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1060; /* Higher than requests modal */
+  padding: 20px;
+}
+
+.appointment-approval-modal {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  width: 90%;
+  max-width: 550px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.appointment-approval-modal-header {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #0056b3;
+}
+
+.appointment-approval-modal-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.appointment-approval-modal-close {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.appointment-approval-modal-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.appointment-approval-modal-body {
+  padding: 20px;
+}
+
+.appointment-approval-modal-body p {
+  margin: 0 0 15px;
+  color: #343a40;
+  font-size: 1rem;
+}
+
+/* Request details */
+.request-details {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.detail-row {
+  margin-bottom: 10px;
+  display: flex;
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #495057;
+  width: 100px;
+}
+
+.detail-value {
+  color: #212529;
+  flex: 1;
+}
+
+/* Rejection reason textarea */
+.rejection-reason-container {
+  margin-bottom: 20px;
+}
+
+.rejection-reason-container label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #495057;
+}
+
+.rejection-reason-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  resize: vertical;
+}
+
+.rejection-reason-textarea:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Action buttons */
+.approval-actions,
+.rejection-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-cancel,
+.btn-confirm-approve,
+.btn-confirm-reject {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.btn-cancel {
+  background-color: #f8f9fa;
+  color: #212529;
+  border: 1px solid #ced4da;
+}
+
+.btn-cancel:hover {
+  background-color: #e9ecef;
+}
+
+.btn-confirm-approve {
+  background-color: #28a745;
+  color: white;
+}
+
+.btn-confirm-approve:hover {
+  background-color: #218838;
+}
+
+.btn-confirm-reject {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-confirm-reject:hover {
+  background-color: #c82333;
+}
+
+.btn-confirm-reject:disabled {
+  background-color: #e9ecef;
+  color: #6c757d;
+  cursor: not-allowed;
+}
+
+/* Main appointment requests button in dashboard header */
+.tab-actions .btn-info {
+  position: relative;
+  background-color: #17a2b8;
+  border-color: #17a2b8;
+  color: white;
+  margin-right: 5px;
+  padding: 6px 15px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  height: 38px;
+  line-height: 1;
+}
+
+.tab-actions .btn-info:hover {
+  background-color: #138496;
+  border-color: #117a8b;
+}
+
+.tab-actions .btn-info .badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  font-size: 0.75rem;
+  padding: 3px 6px;
+  border-radius: 50%;
+  background-color: #dc3545;
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  line-height: 1;
+}

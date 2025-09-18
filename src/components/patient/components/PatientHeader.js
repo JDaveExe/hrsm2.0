@@ -30,7 +30,6 @@ const PatientHeader = memo(({
       case 'Book Appointment':
         return 'bi-calendar-check';
       case 'Treatment Record':
-      case 'Dental Record':
       case 'Immunization Record':
       case 'Lab Results':
         return 'bi-folder-plus';
@@ -53,15 +52,14 @@ const PatientHeader = memo(({
     }
   };
 
-  // Show refresh button for data-heavy sections
+  // Show refresh button for all patient pages
   const shouldShowRefresh = (path) => {
-    return [
-      'Upcoming Appointments',
-      'Active Prescriptions',
-      'Vital Signs',
-      'Messages',
-      'Notifications'
-    ].includes(path);
+    // Debug: log the current path to console
+    console.log('🔍 PatientHeader currentPath:', path, 'Type:', typeof path); 
+    // Show refresh button on all patient pages
+    const shouldShow = true;
+    console.log('🔍 Should show refresh button:', shouldShow);
+    return shouldShow;
   };
 
   return (

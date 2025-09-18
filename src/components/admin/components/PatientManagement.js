@@ -49,6 +49,17 @@ const PatientManagement = memo(() => {
   const [selectedFamilyForAssignment, setSelectedFamilyForAssignment] = useState(''); // For manual family assignment
   const [generatedPassword, setGeneratedPassword] = useState(null); // Store generated password for notice
 
+  // Appointment scheduling state
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [selectedPatientForAppointment, setSelectedPatientForAppointment] = useState(null);
+  const [appointmentFormData, setAppointmentFormData] = useState({
+    appointmentDate: '',
+    appointmentTime: '',
+    duration: 30,
+    type: '',
+    notes: ''
+  });
+
   // Sort configurations
   const [familySortConfig, setFamilySortConfig] = useState({ key: null, direction: 'ascending' });
   const [memberSortConfig, setMemberSortConfig] = useState({ key: null, direction: 'ascending' });
@@ -58,13 +69,23 @@ const PatientManagement = memo(() => {
   const [memberCurrentPage, setMemberCurrentPage] = useState(1);
   const itemsPerPage = 10;
   
-  // Check for active tab from session storage (for navigation from other components)
+  // Check for active tab from URL params or session storage (for navigation from other components)
   useEffect(() => {
-    const activeTab = sessionStorage.getItem('activeTab');
-    if (activeTab) {
-      setTabKey(activeTab);
-      // Clear the session storage to avoid persisting the tab selection
-      sessionStorage.removeItem('activeTab');
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlTab = urlParams.get('tab');
+    const urlAction = urlParams.get('action');
+    
+    if (urlTab === 'individual' && urlAction === 'schedule') {
+      setTabKey('members');
+      // Clear URL params to avoid persistent state
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+      const activeTab = sessionStorage.getItem('activeTab');
+      if (activeTab) {
+        setTabKey(activeTab);
+        // Clear the session storage to avoid persisting the tab selection
+        sessionStorage.removeItem('activeTab');
+      }
     }
   }, []);
 
@@ -475,6 +496,105 @@ const PatientManagement = memo(() => {
     setShowViewRegistrationModal(true);
     setShowManageDropdown(false);
   }, []);
+
+  // Appointment scheduling handlers
+  const handleScheduleAppointment = useCallback((patient) => {
+    setSelectedPatientForAppointment(patient);
+    setAppointmentFormData({
+      appointmentDate: '',
+      appointmentTime: '',
+      duration: 30,
+      type: '',
+      notes: ''
+    });
+    setShowAppointmentModal(true);
+  }, []);
+
+  const handleAppointmentFormChange = useCallback((field, value) => {
+    setAppointmentFormData(prev => {
+      const newData = {
+        ...prev,
+        [field]: value
+      };
+      
+      // Clear appointment type if date or time changes
+      if (field === 'appointmentDate' || field === 'appointmentTime') {
+        newData.type = '';
+      }
+      
+      return newData;
+    });
+  }, []);
+
+  const handleSaveAppointment = useCallback(async () => {
+    try {
+      setLoading(true);
+      
+      // Validate required fields
+      if (!appointmentFormData.appointmentDate || !appointmentFormData.appointmentTime || !appointmentFormData.type) {
+        setAlert({ type: 'danger', message: 'Please fill in all required fields (Date, Time, and Type).' });
+        return;
+      }
+
+      const appointmentData = {
+        patientId: selectedPatientForAppointment.id,
+        patientName: `${selectedPatientForAppointment.firstName} ${selectedPatientForAppointment.lastName}`,
+        appointmentDate: appointmentFormData.appointmentDate,
+        appointmentTime: appointmentFormData.appointmentTime,
+        duration: appointmentFormData.duration,
+        type: appointmentFormData.type,
+        notes: appointmentFormData.notes,
+        status: 'approved', // Admin appointments are auto-approved
+        needsPatientAcceptance: true,
+        createdBy: 'admin',
+        createdAt: new Date().toISOString()
+      };
+
+      // Here you would normally call an appointment service to save
+      console.log('Saving appointment:', appointmentData);
+      
+      // Create notification for the appointment
+      const notification = {
+        id: `notif_${Date.now()}`,
+        type: 'appointment_scheduled',
+        patientId: appointmentData.patientId,
+        patientName: appointmentData.patientName,
+        appointmentDate: appointmentData.appointmentDate,
+        appointmentTime: appointmentData.appointmentTime,
+        appointmentType: appointmentData.type,
+        notes: appointmentData.notes,
+        status: 'pending',
+        needsAcceptance: true,
+        createdAt: new Date().toISOString(),
+        createdBy: 'admin'
+      };
+
+      // Save notification to localStorage (use key that patient reads from)
+      try {
+        const existingNotifications = JSON.parse(localStorage.getItem('patientNotifications') || '[]');
+        const updatedNotifications = [...existingNotifications, notification];
+        localStorage.setItem('patientNotifications', JSON.stringify(updatedNotifications));
+        console.log('Patient notification saved:', notification);
+      } catch (error) {
+        console.error('Error saving notification:', error);
+      }
+      
+      // Show success message
+      setAlert({ 
+        type: 'success', 
+        message: `Appointment scheduled for ${selectedPatientForAppointment.firstName} ${selectedPatientForAppointment.lastName} on ${appointmentFormData.appointmentDate} at ${appointmentFormData.appointmentTime}. Patient will receive a notification to accept.` 
+      });
+      
+      setShowAppointmentModal(false);
+      setSelectedPatientForAppointment(null);
+      
+    } catch (error) {
+      console.error('Error saving appointment:', error);
+      setAlert({ type: 'danger', message: 'Failed to save appointment. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  }, [appointmentFormData, selectedPatientForAppointment]);
 
   const handleSaveEditPatient = useCallback(async () => {
     // Temporarily prevent logout during API operation
@@ -1087,10 +1207,10 @@ const PatientManagement = memo(() => {
                       <th style={{textAlign: 'left'}}>Contact Number</th>
                       <th 
                         style={{textAlign: 'left', cursor: 'pointer', userSelect: 'none'}}
-                        onClick={() => requestSort('lastCheckup', memberSortConfig, setMemberSortConfig)}
+                        onClick={() => requestSort('createdAt', memberSortConfig, setMemberSortConfig)}
                       >
-                        Last Checkup
-                        {memberSortConfig.key === 'lastCheckup' && (
+                        Registered at
+                        {memberSortConfig.key === 'createdAt' && (
                           <i className={`bi bi-arrow-${memberSortConfig.direction === 'ascending' ? 'up' : 'down'} ms-1`}></i>
                         )}
                       </th>
@@ -1109,10 +1229,10 @@ const PatientManagement = memo(() => {
                         <td style={{textAlign: 'left'}}>{patient.gender}</td>
                         <td style={{textAlign: 'left'}}>{getPatientContact(patient)}</td>
                         <td style={{textAlign: 'left'}}>
-                          {formatShortDate(patient.lastCheckup || patient.createdAt)}
+                          {formatShortDate(patient.createdAt)}
                         </td>
                         <td style={{textAlign: 'center'}} className="action-cell">
-                          <div className="d-flex gap-1 justify-content-center">
+                          <div className="d-flex gap-1 justify-content-center flex-wrap">
                             <Button 
                               variant="outline-primary" 
                               size="sm" 
@@ -1122,12 +1242,20 @@ const PatientManagement = memo(() => {
                               View Info
                             </Button>
                             <Button 
+                              variant="outline-warning" 
+                              size="sm" 
+                              onClick={() => handleScheduleAppointment(patient)}
+                            >
+                              <i className="bi bi-calendar-plus me-1"></i>
+                              Schedule Appointment
+                            </Button>
+                            <Button 
                               variant="outline-success" 
                               size="sm" 
                               onClick={() => handleAutoLogin(patient)}
                               disabled={todaysCheckups?.some(checkup => checkup.patientId === patient.id)}
                             >
-                              <i className="bi bi-calendar-plus me-1"></i>
+                              <i className="bi bi-calendar-check me-1"></i>
                               {todaysCheckups?.some(checkup => checkup.patientId === patient.id) ? 'Checked In' : 'Check In Today'}
                             </Button>
                           </div>
@@ -2132,7 +2260,7 @@ const PatientManagement = memo(() => {
                     <th style={{textAlign: 'right'}}>Age</th>
                     <th style={{textAlign: 'left'}}>Gender</th>
                     <th style={{textAlign: 'left'}}>Contact Number</th>
-                    <th style={{textAlign: 'left'}}>Last Checkup</th>
+                    <th style={{textAlign: 'left'}}>Registered at</th>
                     <th style={{textAlign: 'center'}}>Actions</th>
                   </tr>
                 </thead>
@@ -2145,7 +2273,7 @@ const PatientManagement = memo(() => {
                         <td style={{textAlign: 'right'}}>{getPatientAge(member)}</td>
                         <td style={{textAlign: 'left'}}>{member.gender}</td>
                         <td style={{textAlign: 'left'}}>{getPatientContact(member)}</td>
-                        <td style={{textAlign: 'left'}}>{formatShortDate(member.lastCheckup || member.createdAt)}</td>
+                        <td style={{textAlign: 'left'}}>{formatShortDate(member.createdAt)}</td>
                         <td style={{textAlign: 'center'}} className="action-cell">
                           <Button 
                             variant="outline-primary" 
@@ -2872,6 +3000,156 @@ const PatientManagement = memo(() => {
           >
             <i className="bi bi-check2 me-2"></i>
             Confirm Assignment{autosortResults?.sorted?.length > 0 ? ` (${autosortResults.sorted.length})` : ''}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Schedule Appointment Modal */}
+      <Modal 
+        show={showAppointmentModal} 
+        onHide={() => {
+          setShowAppointmentModal(false);
+          setSelectedPatientForAppointment(null);
+        }}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-calendar-plus me-2"></i>
+            Schedule Appointment
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedPatientForAppointment && (
+            <>
+              {/* Patient Info Display */}
+              <div className="alert alert-info mb-4">
+                <div className="d-flex align-items-center">
+                  <i className="bi bi-person-circle fs-4 me-3"></i>
+                  <div>
+                    <h6 className="mb-1">
+                      {selectedPatientForAppointment.firstName} {selectedPatientForAppointment.lastName}
+                    </h6>
+                    <small className="text-muted">
+                      Patient ID: PT-{String(selectedPatientForAppointment.id).padStart(4, '0')} | 
+                      Age: {selectedPatientForAppointment.age || 'N/A'} | 
+                      Contact: {selectedPatientForAppointment.contactNumber}
+                    </small>
+                  </div>
+                </div>
+              </div>
+
+              {/* Appointment Form */}
+              <Form>
+                <Row className="mb-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>Appointment Date <span className="text-danger">*</span></Form.Label>
+                      <Form.Control 
+                        type="date" 
+                        value={appointmentFormData.appointmentDate}
+                        onChange={(e) => handleAppointmentFormChange('appointmentDate', e.target.value)}
+                        min={new Date().toISOString().split('T')[0]}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>Appointment Time <span className="text-danger">*</span></Form.Label>
+                      <Form.Control 
+                        type="time" 
+                        value={appointmentFormData.appointmentTime}
+                        onChange={(e) => handleAppointmentFormChange('appointmentTime', e.target.value)}
+                        required
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Row className="mb-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>Appointment Type <span className="text-danger">*</span></Form.Label>
+                      <Form.Select
+                        value={appointmentFormData.type}
+                        onChange={(e) => handleAppointmentFormChange('type', e.target.value)}
+                        disabled={!appointmentFormData.appointmentDate || !appointmentFormData.appointmentTime}
+                        required
+                      >
+                        <option value="">
+                          {!appointmentFormData.appointmentDate || !appointmentFormData.appointmentTime 
+                            ? 'Please select date and time first' 
+                            : 'Select appointment type'}
+                        </option>
+                        {appointmentFormData.appointmentDate && appointmentFormData.appointmentTime && (
+                          <>
+                            <option value="Follow-up">Follow-up</option>
+                            <option value="Vaccination">Vaccination</option>
+                          </>
+                        )}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>Duration (minutes)</Form.Label>
+                      <Form.Select
+                        value={appointmentFormData.duration}
+                        onChange={(e) => handleAppointmentFormChange('duration', parseInt(e.target.value))}
+                      >
+                        <option value={15}>15 minutes</option>
+                        <option value={30}>30 minutes</option>
+                        <option value={45}>45 minutes</option>
+                        <option value={60}>1 hour</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <Row className="mb-3">
+                  <Col md={12}>
+                    <Form.Group>
+                      <Form.Label>Additional Notes (Optional)</Form.Label>
+                      <Form.Control
+                        as="textarea"
+                        rows={2}
+                        value={appointmentFormData.notes}
+                        onChange={(e) => handleAppointmentFormChange('notes', e.target.value)}
+                        placeholder="Any additional notes or special instructions..."
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                <div className="alert alert-warning">
+                  <i className="bi bi-info-circle me-2"></i>
+                  <small>
+                    <strong>Note:</strong> This appointment will be automatically approved and the patient will receive a notification to accept it.
+                  </small>
+                </div>
+              </Form>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="secondary" 
+            onClick={() => {
+              setShowAppointmentModal(false);
+              setSelectedPatientForAppointment(null);
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleSaveAppointment}
+            disabled={loading}
+          >
+            <i className="bi bi-calendar-check me-2"></i>
+            {loading ? 'Scheduling...' : 'Schedule Appointment'}
           </Button>
         </Modal.Footer>
       </Modal>

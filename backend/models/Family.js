@@ -21,7 +21,7 @@ const Family = sequelize.define('Family', {
   },
   contactNumber: {
     type: DataTypes.STRING,
-    unique: true,
+    // unique: true, // Temporarily removed to fix index issue
     allowNull: true,
     validate: {
       len: [11, 11], // Exactly 11 digits

@@ -1,6 +1,7 @@
 import React, { useState, useCallback, memo } from 'react';
 import { Link } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import ComingSoonModal from './ComingSoonModal';
 import '../styles/PatientSidebar.css';
 
 const PatientSidebar = memo(({ 
@@ -15,6 +16,8 @@ const PatientSidebar = memo(({
   user
 }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
+  const [showComingSoonModal, setShowComingSoonModal] = useState(false);
+  const [modalFeatureName, setModalFeatureName] = useState('');
 
   const handleDropdownToggle = useCallback((dropdown) => {
     if (activeDropdown === dropdown) {
@@ -70,12 +73,6 @@ const PatientSidebar = memo(({
                   <span>Treatment Records</span>
                 </Link>
               </li>
-              <li onClick={() => handleNavigationClick('Dental Records')}>
-                <Link to="#" aria-label="Dental Records">
-                  <i className="bi bi-teeth"></i>
-                  <span>Dental Records</span>
-                </Link>
-              </li>
               <li onClick={() => handleNavigationClick('Immunizations')}>
                 <Link to="#" aria-label="Immunization Records">
                   <i className="bi bi-shield-plus"></i>
@@ -99,48 +96,6 @@ const PatientSidebar = memo(({
             </Link>
           </li>
 
-          {/* Health Tracking - Single Content with AI */}
-          <li className={currentPath === 'Health Tracking' ? 'active' : ''} onClick={() => handleNavigationClick('Health Tracking')}>
-            <Link to="#" aria-label="Health Tracking">
-              <i className="bi bi-heart-pulse"></i>
-              <span>Health Tracking</span>
-            </Link>
-          </li>
-
-          {/* Communication Dropdown - Unchanged */}
-          <li className={activeDropdown === 'communication' ? 'dropdown active' : 'dropdown'}>
-            <Link to="#" onClick={() => handleDropdownToggle('communication')}>
-              <i className="bi bi-chat-dots"></i>
-              <span>Communication</span>
-              {getNotificationCount() > 0 && (
-                <span className="notification-badge">
-                  {getNotificationCount()}
-                </span>
-              )}
-              <i className={`bi ${activeDropdown === 'communication' ? 'bi-chevron-down' : 'bi-chevron-right'} dropdown-icon`}></i>
-            </Link>
-            <ul className={activeDropdown === 'communication' ? 'dropdown-menu show' : 'dropdown-menu'}>
-              <li onClick={() => handleNavigationClick('Messages')}>
-                <Link to="#" aria-label="Messages">
-                  <i className="bi bi-envelope"></i>
-                  <span>Messages</span>
-                </Link>
-              </li>
-              <li onClick={() => handleNavigationClick('Notifications')}>
-                <Link to="#" aria-label="Notifications">
-                  <i className="bi bi-bell"></i>
-                  <span>Notifications</span>
-                </Link>
-              </li>
-              <li onClick={() => handleNavigationClick('Emergency Contact')}>
-                <Link to="#" aria-label="Emergency Contact">
-                  <i className="bi bi-telephone-plus"></i>
-                  <span>Emergency Contact</span>
-                </Link>
-              </li>
-            </ul>
-          </li>
-
           {/* Settings Dropdown - New Structure */}
           <li className={activeDropdown === 'settings' ? 'dropdown active' : 'dropdown'}>
             <Link to="#" onClick={() => handleDropdownToggle('settings')}>
@@ -155,10 +110,10 @@ const PatientSidebar = memo(({
                   <span>My Profile</span>
                 </Link>
               </li>
-              <li onClick={() => handleNavigationClick('History & Customizations')}>
-                <Link to="#" aria-label="History & Customizations">
-                  <i className="bi bi-clock-history"></i>
-                  <span>History & Customizations</span>
+              <li onClick={() => handleNavigationClick('Settings')}>
+                <Link to="#" aria-label="Settings">
+                  <i className="bi bi-gear"></i>
+                  <span>Custom & History</span>
                 </Link>
               </li>
             </ul>
@@ -205,6 +160,13 @@ const PatientSidebar = memo(({
           </button>
         </div>
       </div>
+      
+      {/* Coming Soon Modal */}
+      <ComingSoonModal 
+        isOpen={showComingSoonModal}
+        onClose={() => setShowComingSoonModal(false)}
+        featureName={modalFeatureName}
+      />
     </div>
   );
 });

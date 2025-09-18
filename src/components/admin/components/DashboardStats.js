@@ -1,6 +1,6 @@
 import React, { useMemo, memo, useState, useEffect } from 'react';
-import { Card, Row, Col, Tabs, Tab, Spinner, Alert } from 'react-bootstrap';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, BarElement, ArcElement } from 'chart.js';
+import { Card, Row, Col, Tabs, Tab, Spinner, Alert, Modal, Button, ButtonGroup, Table, Badge } from 'react-bootstrap';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, BarElement, ArcElement, Filler } from 'chart.js';
 import { Line, Bar, Pie } from 'react-chartjs-2';
 import { useData } from '../../../context/DataContext';
 import { useDashboardStats } from '../../../hooks/useDashboard';
@@ -8,6 +8,7 @@ import { useSimulation } from '../../../hooks/useSimulation';
 import { useCommonAlerts } from './AlertUtils';
 import ForecastingDashboard from './ForecastingDashboard';
 import StatCards from './StatCards';
+import inventoryService from '../../../services/inventoryService';
 import '../styles/DashboardStats.css';
 
 // Register ChartJS components
@@ -20,7 +21,8 @@ ChartJS.register(
   ArcElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
@@ -30,6 +32,17 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
     error: false,
     success: false
   });
+  
+  // Add state for real medicine usage analytics
+  const [medicineUsageData, setMedicineUsageData] = useState([]);
+  const [prescriptionAnalytics, setPrescriptionAnalytics] = useState(null);
+  const [loadingMedicineData, setLoadingMedicineData] = useState(false);
+  
+  // Chart interaction states
+  const [medicineUsageMetric, setMedicineUsageMetric] = useState('units'); // 'units' or 'prescriptions'
+  const [showDetailModal, setShowDetailModal] = useState(null); // 'checkupTrends', 'demographics', 'medicineUsage', 'vaccineUsage'
+  const [checkupTrendsPeriod, setCheckupTrendsPeriod] = useState('days'); // 'days', 'weeks', 'months', 'years'
+  const [checkupTrendsApiData, setCheckupTrendsApiData] = useState(null); // Store API data for current period
   
   const {
     showDataRefreshAlert,
@@ -61,6 +74,75 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
     error: statsError,
     refetch: refetchStats 
   } = useDashboardStats();
+
+  // Load real medicine usage analytics - same as management dashboard
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadMedicineUsageAnalytics = async () => {
+      try {
+        setLoadingMedicineData(true);
+        console.log('💊 Admin Dashboard: Loading medicine usage analytics...');
+        
+        // Use the same API calls as management dashboard
+        const [medicineUsage, prescriptionAnalyticsData] = await Promise.all([
+          inventoryService.getMedicineUsageAnalytics(),
+          inventoryService.getPrescriptionAnalytics('30days')
+        ]);
+        
+        if (isMounted) {
+          setMedicineUsageData(medicineUsage);
+          setPrescriptionAnalytics(prescriptionAnalyticsData);
+          console.log('✅ Admin Dashboard: Medicine usage analytics loaded:', {
+            medicineCount: medicineUsage.length,
+            totalPrescriptions: prescriptionAnalyticsData?.summary?.totalPrescriptions
+          });
+        }
+      } catch (error) {
+        console.error('❌ Admin Dashboard: Error loading medicine usage analytics:', error);
+        if (isMounted) {
+          // Set empty arrays to avoid showing hardcoded data
+          setMedicineUsageData([]);
+          setPrescriptionAnalytics(null);
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingMedicineData(false);
+        }
+      }
+    };
+
+    loadMedicineUsageAnalytics();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []); // Load once on component mount
+
+  // Fetch checkup trends data when period changes
+  useEffect(() => {
+    const fetchCheckupTrendsForPeriod = async () => {
+      try {
+        console.log(`🔄 Fetching checkup trends for period: ${checkupTrendsPeriod}`);
+        
+        const response = await fetch(`/api/dashboard/checkup-trends/${checkupTrendsPeriod}`);
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`✅ Checkup trends data received for ${checkupTrendsPeriod}:`, data);
+          setCheckupTrendsApiData(data);
+        } else {
+          console.error(`❌ Failed to fetch checkup trends for ${checkupTrendsPeriod}:`, response.statusText);
+          setCheckupTrendsApiData(null);
+        }
+      } catch (error) {
+        console.error('Error fetching checkup trends for period:', error);
+        setCheckupTrendsApiData(null);
+      }
+    };
+
+    fetchCheckupTrendsForPeriod();
+  }, [checkupTrendsPeriod]);
 
   // Memoized calculations for performance
   const dashboardStats = useMemo(() => {
@@ -126,11 +208,114 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
         checkup.status === 'in-progress' || checkup.status === 'checked-in'
       ).length,
       completedToday: todaysCheckups.filter(checkup => 
-        checkup.status === 'completed' && 
+        (checkup.status === 'completed' || checkup.status === 'vaccination-completed') && 
         new Date(checkup.updatedAt || checkup.completedAt).toDateString() === new Date().toDateString()
       ).length
     };
   }, [patientsData, familiesData, appointmentsData, sharedCheckupsData, unsortedMembersData, dbStats]);
+
+  // Generate checkup trends chart data based on selected period (similar to InventoryAnalysis)
+  const checkupTrendsChartData = useMemo(() => {
+    if (!checkupTrendsApiData?.data) {
+      return {
+        labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+        data: [0, 0, 0, 0, 0, 0, 0],
+        title: 'This Week'
+      };
+    }
+
+    const generateTrendsForPeriod = (period) => {
+      const today = new Date();
+      
+      switch (period) {
+        case 'days':
+          const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+          const dayData = weekDays.map(dayName => {
+            const trend = checkupTrendsApiData.data.find(t => t.dayName === dayName);
+            return trend ? trend.completedCheckups : 0;
+          });
+          
+          return {
+            labels: weekDays,
+            data: dayData,
+            title: 'This Week'
+          };
+
+        case 'weeks':
+          // Show last 4 weeks from API data
+          const apiWeeksData = checkupTrendsApiData.data || [];
+          const lastFourWeeks = apiWeeksData.slice(-4);
+          
+          const weekLabels = lastFourWeeks.map((week, index) => `Week ${index + 1}`);
+          const weekData = lastFourWeeks.map(week => week.completedCheckups);
+          
+          return {
+            labels: weekLabels,
+            data: weekData,
+            title: 'Last 4 Weeks'
+          };
+
+        case 'months':
+          // Show months from API data
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 
+                             'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          
+          // Generate last 6 months labels
+          const monthLabels = [];
+          const monthData = [];
+          
+          for (let i = 5; i >= 0; i--) {
+            const monthDate = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            const monthIndex = monthDate.getMonth();
+            const year = monthDate.getFullYear();
+            const monthLabel = monthNames[monthIndex];
+            
+            monthLabels.push(monthLabel);
+            
+            // Find matching data from API
+            const apiMonth = checkupTrendsApiData.data.find(m => 
+              m.year === year && m.month === monthIndex + 1
+            );
+            monthData.push(apiMonth ? apiMonth.completedCheckups : 0);
+          }
+          
+          return {
+            labels: monthLabels,
+            data: monthData,
+            title: 'Last 6 Months'
+          };
+
+        case 'years':
+          // Show years from API data
+          const years = [];
+          const yearData = [];
+          
+          for (let i = 4; i >= 0; i--) {
+            const year = today.getFullYear() - i;
+            years.push(year.toString());
+            
+            // Find matching data from API
+            const apiYear = checkupTrendsApiData.data.find(y => y.year === year);
+            yearData.push(apiYear ? apiYear.completedCheckups : 0);
+          }
+          
+          return {
+            labels: years,
+            data: yearData,
+            title: 'Last 5 Years'
+          };
+
+        default:
+          return {
+            labels: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+            data: [0, 0, 0, 0, 0, 0, 0],
+            title: 'This Week'
+          };
+      }
+    };
+
+    return generateTrendsForPeriod(checkupTrendsPeriod);
+  }, [checkupTrendsApiData, checkupTrendsPeriod]);
 
   // Chart data calculations
   const chartData = useMemo(() => {
@@ -178,19 +363,7 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
       };
     }
 
-    // Process checkup trends data from database
-    let checkupTrendsData = [0, 0, 0, 0, 0, 0, 0]; // Default for Mon-Sun
-    const weekDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    
-    if (dbStats?.checkupTrends) {
-      // Map database results to weekdays
-      dbStats.checkupTrends.forEach(trend => {
-        const dayIndex = weekDays.indexOf(trend.dayName);
-        if (dayIndex !== -1) {
-          checkupTrendsData[dayIndex] = trend.completedCheckups;
-        }
-      });
-    }
+
     
     // Calculate real gender data - prioritize database stats
     let genderData = { male: 0, female: 0 };
@@ -286,19 +459,68 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
       });
     }
 
-    // Process prescription medicine usage data from database for pie chart
-    let medicineUsageData = [];
+    // Process prescription medicine usage data with toggle support
+    let medicineUsageDataValues = [];
     let medicineLabels = [];
+    let medicineMetricLabel = 'Medicine Usage';
     
-    if (dbStats?.prescriptions?.medicineUsage && dbStats.prescriptions.medicineUsage.length > 0) {
-      medicineLabels = dbStats.prescriptions.medicineUsage.map(item => 
-        item.medicine_name.replace(/"/g, '') // Remove quotes from JSON extract
+    // Prepare both datasets for toggle functionality
+    let unitsData = [];
+    let prescriptionsData = [];
+    
+    if (prescriptionAnalytics?.topMedications && prescriptionAnalytics.topMedications.length > 0) {
+      // Get data from prescription analytics (has both metrics)
+      const topMedicines = prescriptionAnalytics.topMedications.slice(0, 5);
+      medicineLabels = topMedicines.map(item => 
+        item.name.length > 20 ? item.name.substring(0, 20) + '...' : item.name
       );
-      medicineUsageData = dbStats.prescriptions.medicineUsage.map(item => item.usage_count);
+      unitsData = topMedicines.map(item => item.totalQuantity || 0);
+      prescriptionsData = topMedicines.map(item => item.prescriptionCount || 0);
+      
+      console.log('📊 Admin Dashboard: Using prescription analytics data:', { 
+        medicineLabels, 
+        unitsData, 
+        prescriptionsData 
+      });
+    } else if (medicineUsageData && medicineUsageData.length > 0) {
+      // Fallback to medicine usage data
+      const topMedicines = medicineUsageData.slice(0, 5);
+      medicineLabels = topMedicines.map(item => 
+        item.medicine_name.replace(/"/g, '') 
+      );
+      unitsData = topMedicines.map(item => item.total_quantity || 0);
+      prescriptionsData = topMedicines.map(item => item.usage_count || 0);
+      
+      console.log('📊 Admin Dashboard: Using medicine usage data:', { 
+        medicineLabels, 
+        unitsData, 
+        prescriptionsData 
+      });
+    } else if (dbStats?.prescriptions?.medicineUsage && dbStats.prescriptions.medicineUsage.length > 0) {
+      // Basic dashboard stats fallback
+      medicineLabels = dbStats.prescriptions.medicineUsage.map(item => 
+        item.medicine_name.replace(/"/g, '') 
+      );
+      prescriptionsData = dbStats.prescriptions.medicineUsage.map(item => item.usage_count);
+      unitsData = prescriptionsData.map(count => count * 3); // Estimate units (3 per prescription avg)
+      
+      console.log('📊 Admin Dashboard: Using dbStats medicine usage data');
     } else {
-      // Default/simulation data if no real data available
+      // Only use fallback data if absolutely no real data is available
       medicineLabels = ['Paracetamol', 'Amoxicillin', 'Ibuprofen', 'Cetirizine', 'Aspirin'];
-      medicineUsageData = [25, 18, 15, 12, 8];
+      prescriptionsData = [8, 6, 4, 3, 2];
+      unitsData = [24, 18, 12, 9, 6];
+      
+      console.log('⚠️ Admin Dashboard: Using fallback medicine usage data');
+    }
+    
+    // Select data based on toggle
+    if (medicineUsageMetric === 'units') {
+      medicineUsageDataValues = unitsData;
+      medicineMetricLabel = 'Total Units Dispensed';
+    } else {
+      medicineUsageDataValues = prescriptionsData;
+      medicineMetricLabel = 'Number of Prescriptions';
     }
 
     const prescriptionData = prescriptionTrendsData.length > 0 ? prescriptionTrendsData : 
@@ -325,10 +547,10 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
 
     return {
       checkupTrends: {
-        labels: weekDays,
+        labels: checkupTrendsChartData.labels,
         datasets: [{
-          label: 'Checkups Completed',
-          data: checkupTrendsData,
+          label: `Checkups Completed (${checkupTrendsChartData.title})`,
+          data: checkupTrendsChartData.data,
           backgroundColor: 'rgba(59, 130, 246, 0.1)',
           borderColor: '#3b82f6',
           borderWidth: 3,
@@ -363,8 +585,8 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
       prescriptions: {
         labels: medicineLabels,
         datasets: [{
-          label: 'Medicine Usage',
-          data: medicineUsageData,
+          label: medicineMetricLabel,
+          data: medicineUsageDataValues,
           backgroundColor: [
             '#FF6384',
             '#36A2EB',
@@ -403,7 +625,7 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
         }]
       }
     };
-  }, [dashboardStats.totalPatients, patientsData, unsortedMembersData, shouldSimulateCharts, generateSimulatedData]);
+  }, [dashboardStats.totalPatients, patientsData, unsortedMembersData, shouldSimulateCharts, generateSimulatedData, medicineUsageData, prescriptionAnalytics, dbStats, medicineUsageMetric, checkupTrendsChartData]);
 
   // Alert management effects - with proper state tracking to prevent continuous alerts
   useEffect(() => {
@@ -494,7 +716,7 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
               totalPatients: dashboardStats.totalPatients || 3,
               totalFamilies: dashboardStats.totalFamilies || 50,
               activeCheckups: dashboardStats.activeCheckups || 0,
-              completedToday: dashboardStats.todaysCheckups || 0
+              completedToday: dashboardStats.completedToday || 0
             }} />
 
             {/* Charts Section */}
@@ -502,8 +724,50 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
               <Col lg={6} className="mb-4 d-flex">
                 <Card className="chart-card flex-fill">
                   <Card.Header>
-                    <h5><i className="bi bi-graph-up me-2"></i>Patient Checkup Trends</h5>
-                    <small>Weekly tracking of completed patient checkups</small>
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <div>
+                        <h5><i className="bi bi-graph-up me-2"></i>Patient Checkup Trends</h5>
+                        <small>Tracking of completed patient checkups</small>
+                      </div>
+                      <Button 
+                        variant="outline-secondary" 
+                        size="sm"
+                        onClick={() => setShowDetailModal('checkupTrends')}
+                        title="View detailed trends analysis"
+                      >
+                        <i className="bi bi-arrows-fullscreen"></i>
+                      </Button>
+                    </div>
+                    
+                    {/* Time Period Buttons */}
+                    <div className="d-flex justify-content-center">
+                      <ButtonGroup size="sm">
+                        <Button 
+                          variant={checkupTrendsPeriod === 'days' ? 'primary' : 'outline-primary'}
+                          onClick={() => setCheckupTrendsPeriod('days')}
+                        >
+                          Days
+                        </Button>
+                        <Button 
+                          variant={checkupTrendsPeriod === 'weeks' ? 'primary' : 'outline-primary'}
+                          onClick={() => setCheckupTrendsPeriod('weeks')}
+                        >
+                          Weeks
+                        </Button>
+                        <Button 
+                          variant={checkupTrendsPeriod === 'months' ? 'primary' : 'outline-primary'}
+                          onClick={() => setCheckupTrendsPeriod('months')}
+                        >
+                          Months
+                        </Button>
+                        <Button 
+                          variant={checkupTrendsPeriod === 'years' ? 'primary' : 'outline-primary'}
+                          onClick={() => setCheckupTrendsPeriod('years')}
+                        >
+                          Years
+                        </Button>
+                      </ButtonGroup>
+                    </div>
                   </Card.Header>
                   <Card.Body className="d-flex flex-column">
                     <div className="chart-stats-summary mb-3">
@@ -534,6 +798,7 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
                         options={{
                           responsive: true,
                           maintainAspectRatio: false,
+                          animation: false, // Disable animations
                           plugins: {
                             legend: { 
                               position: 'top',
@@ -600,8 +865,20 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
               <Col lg={6} className="mb-4 d-flex">
                 <Card className="chart-card flex-fill">
                   <Card.Header>
-                    <h5><i className="bi bi-pie-chart me-2"></i>Patient Demographics</h5>
-                    <small>Distribution of patients by gender and age</small>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        <h5><i className="bi bi-pie-chart me-2"></i>Patient Demographics</h5>
+                        <small>Distribution of patients by gender and age</small>
+                      </div>
+                      <Button 
+                        variant="outline-secondary" 
+                        size="sm"
+                        onClick={() => setShowDetailModal('demographics')}
+                        title="View detailed demographics analysis"
+                      >
+                        <i className="bi bi-arrows-fullscreen"></i>
+                      </Button>
+                    </div>
                   </Card.Header>
                   <Card.Body className="d-flex flex-column">
                     <Row className="flex-grow-1">
@@ -683,42 +960,96 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
               <Col lg={6} className="mb-4 d-flex">
                 <Card className="chart-card flex-fill">
                   <Card.Header>
-                    <h5><i className="bi bi-capsule me-2"></i>Medicine Usage</h5>
-                    <small>Most frequently prescribed medicines</small>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        <h5><i className="bi bi-capsule me-2"></i>Medicine Usage</h5>
+                        <small>{medicineUsageMetric === 'units' ? 'Total units dispensed' : 'Number of prescriptions'}</small>
+                      </div>
+                      <div className="d-flex gap-2">
+                        {/* Toggle Button */}
+                        <ButtonGroup size="sm">
+                          <Button 
+                            variant={medicineUsageMetric === 'prescriptions' ? 'primary' : 'outline-primary'}
+                            onClick={() => setMedicineUsageMetric('prescriptions')}
+                            title="Show number of prescriptions"
+                          >
+                            <i className="bi bi-file-medical me-1"></i>
+                            Prescriptions
+                          </Button>
+                          <Button 
+                            variant={medicineUsageMetric === 'units' ? 'primary' : 'outline-primary'}
+                            onClick={() => setMedicineUsageMetric('units')}
+                            title="Show total units dispensed"
+                          >
+                            <i className="bi bi-capsule me-1"></i>
+                            Units
+                          </Button>
+                        </ButtonGroup>
+                        
+                        {/* Zoom Button */}
+                        <Button 
+                          variant="outline-secondary" 
+                          size="sm"
+                          onClick={() => setShowDetailModal('medicineUsage')}
+                          title="View detailed analysis"
+                        >
+                          <i className="bi bi-arrows-fullscreen"></i>
+                        </Button>
+                      </div>
+                    </div>
                   </Card.Header>
                   <Card.Body className="d-flex flex-column">
                     <div className="chart-container flex-grow-1">
-                      <Pie 
-                        data={chartData.prescriptions} 
-                        options={{
-                          responsive: true,
-                          maintainAspectRatio: false,
-                          plugins: {
-                            legend: { 
-                              position: 'right',
-                              display: true,
-                              labels: {
-                                color: '#333',
-                                font: {
-                                  size: 12
-                                },
-                                usePointStyle: true,
-                                padding: 15
-                              }
-                            },
-                            title: { display: false },
-                            tooltip: {
-                              callbacks: {
-                                label: function(context) {
-                                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                  const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                  return `${context.label}: ${context.parsed} (${percentage}%)`;
+                      {loadingMedicineData ? (
+                        <div className="d-flex align-items-center justify-content-center h-100">
+                          <div className="text-center">
+                            <Spinner animation="border" variant="primary" />
+                            <p className="mt-2 text-muted">Loading real medicine usage data...</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <Pie 
+                          data={chartData.prescriptions} 
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                              legend: { 
+                                position: 'right',
+                                display: true,
+                                labels: {
+                                  color: '#333',
+                                  font: {
+                                    size: 12
+                                  },
+                                  usePointStyle: true,
+                                  padding: 15
+                                }
+                              },
+                              title: { display: false },
+                              tooltip: {
+                                callbacks: {
+                                  label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return `${context.label}: ${context.parsed} units (${percentage}%)`;
+                                  }
                                 }
                               }
                             }
-                          }
-                        }} 
-                      />
+                          }}
+                        />
+                      )}
+                    </div>
+                    {/* Add data source indicator */}
+                    <div className="text-center mt-2">
+                      <small className="text-muted">
+                        {prescriptionAnalytics?.topMedications?.length > 0
+                          ? `Total units dispensed from ${prescriptionAnalytics.topMedications.length} medicines`
+                          : medicineUsageData && medicineUsageData.length > 0 
+                            ? `Real data from ${medicineUsageData.length} prescribed medicines` 
+                            : 'Using fallback data'}
+                      </small>
                     </div>
                   </Card.Body>
                 </Card>
@@ -727,8 +1058,20 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
               <Col lg={6} className="mb-4 d-flex">
                 <Card className="chart-card flex-fill">
                   <Card.Header>
-                    <h5><i className="bi bi-shield-check me-2"></i>Vaccine Usage</h5>
-                    <small>Most frequently administered vaccines</small>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <div>
+                        <h5><i className="bi bi-shield-check me-2"></i>Vaccine Usage</h5>
+                        <small>Most frequently administered vaccines</small>
+                      </div>
+                      <Button 
+                        variant="outline-secondary" 
+                        size="sm"
+                        onClick={() => setShowDetailModal('vaccineUsage')}
+                        title="View detailed vaccine analysis"
+                      >
+                        <i className="bi bi-arrows-fullscreen"></i>
+                      </Button>
+                    </div>
                   </Card.Header>
                   <Card.Body className="d-flex flex-column">
                     <div className="chart-container flex-grow-1">
@@ -780,6 +1123,309 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
           <ForecastingDashboard />
         </Tab>
       </Tabs>
+
+      {/* Detailed Analysis Modals */}
+      <Modal 
+        show={showDetailModal !== null} 
+        onHide={() => setShowDetailModal(null)} 
+        size="xl" 
+        centered
+        className="chart-detail-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {showDetailModal === 'checkupTrends' && (
+              <><i className="bi bi-graph-up me-2"></i>Patient Checkup Trends - Detailed Analysis</>
+            )}
+            {showDetailModal === 'demographics' && (
+              <><i className="bi bi-pie-chart me-2"></i>Patient Demographics - Detailed Analysis</>
+            )}
+            {showDetailModal === 'medicineUsage' && (
+              <><i className="bi bi-capsule me-2"></i>Medicine Usage - Detailed Analysis</>
+            )}
+            {showDetailModal === 'vaccineUsage' && (
+              <><i className="bi bi-shield-check me-2"></i>Vaccine Usage - Detailed Analysis</>
+            )}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          {showDetailModal === 'checkupTrends' && (
+            <Row>
+              <Col md={8}>
+                <Card className="border-0 shadow-sm mb-4">
+                  <Card.Header className="bg-light">
+                    <h6 className="mb-0">Weekly Checkup Trends (Expanded)</h6>
+                  </Card.Header>
+                  <Card.Body style={{ height: '400px' }}>
+                    <Line 
+                      data={chartData.checkupTrends} 
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { position: 'top' },
+                          title: { display: true, text: 'Patient Checkups by Day of Week' }
+                        },
+                        scales: {
+                          y: { beginAtZero: true }
+                        }
+                      }}
+                    />
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col md={4}>
+                <Card className="border-0 shadow-sm">
+                  <Card.Header className="bg-light">
+                    <h6 className="mb-0">Trends Summary</h6>
+                  </Card.Header>
+                  <Card.Body>
+                    <div className="mb-3">
+                      <strong>Peak Days:</strong>
+                      <p className="text-muted small">Weekdays typically show higher activity</p>
+                    </div>
+                    <div className="mb-3">
+                      <strong>Weekly Total:</strong>
+                      <p className="text-muted small">{chartData.checkupTrends.datasets[0].data.reduce((a, b) => a + b, 0)} checkups</p>
+                    </div>
+                    <div className="mb-3">
+                      <strong>Daily Average:</strong>
+                      <p className="text-muted small">{(chartData.checkupTrends.datasets[0].data.reduce((a, b) => a + b, 0) / 7).toFixed(1)} checkups/day</p>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+          )}
+
+          {showDetailModal === 'demographics' && (
+            <Row>
+              <Col md={6}>
+                <Card className="border-0 shadow-sm mb-4">
+                  <Card.Header className="bg-light">
+                    <h6 className="mb-0">Gender Distribution (Expanded)</h6>
+                  </Card.Header>
+                  <Card.Body style={{ height: '300px' }}>
+                    <Pie 
+                      data={chartData.demographics} 
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { position: 'bottom' },
+                          title: { display: true, text: 'Patient Distribution by Gender' }
+                        }
+                      }}
+                    />
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col md={6}>
+                <Card className="border-0 shadow-sm mb-4">
+                  <Card.Header className="bg-light">
+                    <h6 className="mb-0">Age Distribution (Expanded)</h6>
+                  </Card.Header>
+                  <Card.Body style={{ height: '300px' }}>
+                    <Bar 
+                      data={chartData.ageDistribution} 
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { display: false },
+                          title: { display: true, text: 'Patient Distribution by Age Group' }
+                        },
+                        scales: {
+                          y: { beginAtZero: true }
+                        }
+                      }}
+                    />
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col md={12}>
+                <Card className="border-0 shadow-sm">
+                  <Card.Header className="bg-light">
+                    <h6 className="mb-0">Demographics Summary</h6>
+                  </Card.Header>
+                  <Card.Body>
+                    <Table responsive>
+                      <thead>
+                        <tr>
+                          <th>Metric</th>
+                          <th>Count</th>
+                          <th>Percentage</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>Total Patients</td>
+                          <td>{dashboardStats.totalPatients}</td>
+                          <td>100%</td>
+                        </tr>
+                        <tr>
+                          <td>Male Patients</td>
+                          <td>{chartData.demographics.datasets[0].data[0] || 0}</td>
+                          <td>{dashboardStats.totalPatients > 0 ? ((chartData.demographics.datasets[0].data[0] || 0) / dashboardStats.totalPatients * 100).toFixed(1) : 0}%</td>
+                        </tr>
+                        <tr>
+                          <td>Female Patients</td>
+                          <td>{chartData.demographics.datasets[0].data[1] || 0}</td>
+                          <td>{dashboardStats.totalPatients > 0 ? ((chartData.demographics.datasets[0].data[1] || 0) / dashboardStats.totalPatients * 100).toFixed(1) : 0}%</td>
+                        </tr>
+                      </tbody>
+                    </Table>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+          )}
+
+          {showDetailModal === 'medicineUsage' && (
+            <Row>
+              <Col md={8}>
+                <Card className="border-0 shadow-sm mb-4">
+                  <Card.Header className="bg-light d-flex justify-content-between align-items-center">
+                    <h6 className="mb-0">Medicine Usage Distribution (Expanded)</h6>
+                    <ButtonGroup size="sm">
+                      <Button 
+                        variant={medicineUsageMetric === 'prescriptions' ? 'primary' : 'outline-primary'}
+                        onClick={() => setMedicineUsageMetric('prescriptions')}
+                      >
+                        Prescriptions
+                      </Button>
+                      <Button 
+                        variant={medicineUsageMetric === 'units' ? 'primary' : 'outline-primary'}
+                        onClick={() => setMedicineUsageMetric('units')}
+                      >
+                        Units
+                      </Button>
+                    </ButtonGroup>
+                  </Card.Header>
+                  <Card.Body style={{ height: '400px' }}>
+                    <Pie 
+                      data={chartData.prescriptions} 
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { position: 'right' },
+                          title: { 
+                            display: true, 
+                            text: `Medicine Usage by ${medicineUsageMetric === 'units' ? 'Total Units' : 'Prescription Count'}` 
+                          }
+                        }
+                      }}
+                    />
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col md={4}>
+                <Card className="border-0 shadow-sm">
+                  <Card.Header className="bg-light">
+                    <h6 className="mb-0">Usage Details</h6>
+                  </Card.Header>
+                  <Card.Body>
+                    <Table responsive size="sm">
+                      <thead>
+                        <tr>
+                          <th>Medicine</th>
+                          <th>{medicineUsageMetric === 'units' ? 'Units' : 'Prescriptions'}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {chartData.prescriptions.labels.map((label, index) => (
+                          <tr key={index}>
+                            <td className="small">{label}</td>
+                            <td>
+                              <Badge bg="primary">
+                                {chartData.prescriptions.datasets[0].data[index]}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                    <hr />
+                    <div className="text-center">
+                      <small className="text-muted">
+                        {medicineUsageData && medicineUsageData.length > 0 
+                          ? `Data from ${medicineUsageData.length} prescribed medicines` 
+                          : 'Using fallback data'}
+                      </small>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+          )}
+
+          {showDetailModal === 'vaccineUsage' && (
+            <Row>
+              <Col md={8}>
+                <Card className="border-0 shadow-sm mb-4">
+                  <Card.Header className="bg-light">
+                    <h6 className="mb-0">Vaccine Usage Distribution (Expanded)</h6>
+                  </Card.Header>
+                  <Card.Body style={{ height: '400px' }}>
+                    <Pie 
+                      data={chartData.vaccinations} 
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                          legend: { position: 'right' },
+                          title: { display: true, text: 'Vaccine Administration Distribution' }
+                        }
+                      }}
+                    />
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col md={4}>
+                <Card className="border-0 shadow-sm">
+                  <Card.Header className="bg-light">
+                    <h6 className="mb-0">Vaccination Summary</h6>
+                  </Card.Header>
+                  <Card.Body>
+                    <Table responsive size="sm">
+                      <thead>
+                        <tr>
+                          <th>Vaccine</th>
+                          <th>Count</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {chartData.vaccinations.labels.map((label, index) => (
+                          <tr key={index}>
+                            <td className="small">{label}</td>
+                            <td>
+                              <Badge bg="success">
+                                {chartData.vaccinations.datasets[0].data[index]}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                    <hr />
+                    <div className="text-center">
+                      <small className="text-muted">
+                        Total vaccines: {chartData.vaccinations.datasets[0].data.reduce((a, b) => a + b, 0)}
+                      </small>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDetailModal(null)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 });

@@ -121,6 +121,21 @@ const Appointment = sequelize.define('Appointment', {
       key: 'id'
     }
   },
+  acceptedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Timestamp when patient accepted the appointment'
+  },
+  rejectedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Timestamp when patient rejected the appointment'
+  },
+  completedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    comment: 'Timestamp when appointment was completed'
+  },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true

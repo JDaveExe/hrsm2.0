@@ -19,20 +19,10 @@ const Services = () => {
       hours: "8:00 AM - 12:00 PM, 1:00 PM - 4:00 PM",
       description: "Medical consultations and health advice"
     },
-    "Medical Certificate": { 
-      days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"], 
-      hours: "9:00 AM - 12:00 PM, 2:00 PM - 3:00 PM",
-      description: "Medical certificates for work, school, and other requirements"
-    },
     "Vaccination": { 
       days: ["Monday", "Wednesday", "Friday"], 
       hours: "9:00 AM - 12:00 PM, 2:00 PM - 3:00 PM",
       description: "Immunization programs for children and adults"
-    },
-    "Dental": { 
-      days: ["Tuesday", "Thursday"], 
-      hours: "9:00 AM - 12:00 PM, 2:00 PM - 4:00 PM",
-      description: "Dental checkups, cleanings, and basic dental services"
     },
     "Emergency": { 
       days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], 

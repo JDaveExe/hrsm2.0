@@ -8,18 +8,55 @@ class AppointmentService {
 
   // Helper method to get auth headers
   getAuthHeaders() {
-    // Temporary fix: use the temp token while we fix JWT issues
+    // TEMPORARY FIX: Use same auth approach as other services
+    // This matches patientService and userService authentication
+    console.log('🔑 AppointmentService using temp-admin-token (matching other services)');
+    
     return {
       'Content-Type': 'application/json',
-      'x-auth-token': 'temp-admin-token'
+      'x-auth-token': 'temp-admin-token',
+      // Override any Bearer token that might be set by interceptors
+      'Authorization': undefined
     };
+  }
+  
+  // Method to verify authentication setup
+  verifyAuth() {
+    const headers = this.getAuthHeaders();
+    const hasToken = !!headers.Authorization && headers.Authorization !== 'Bearer ';
     
-    // Original code (commented out for now):
-    // const token = localStorage.getItem('token');
-    // return {
-    //   'Content-Type': 'application/json',
-    //   'Authorization': token ? `Bearer ${token}` : ''
-    // };
+    console.log('🔍 AppointmentService Auth Verification:', {
+      hasValidToken: hasToken,
+      authorizationHeader: hasToken ? headers.Authorization.substring(0, 20) + '...' : 'Missing',
+      allTokenLocations: {
+        'localStorage.token': !!localStorage.getItem('token'),
+        'localStorage.authToken': !!localStorage.getItem('authToken'),
+        'localStorage.userToken': !!localStorage.getItem('userToken'),
+        'sessionStorage.token': !!sessionStorage.getItem('token'),
+        'sessionStorage.authData': !!sessionStorage.getItem('authData')
+      }
+    });
+    
+    return hasToken;
+  }
+  
+  // Helper method to identify token source for debugging
+  getTokenSource(token) {
+    if (localStorage.getItem('token') === token) return 'localStorage.token';
+    if (localStorage.getItem('authToken') === token) return 'localStorage.authToken';
+    if (localStorage.getItem('userToken') === token) return 'localStorage.userToken';
+    if (sessionStorage.getItem('token') === token) return 'sessionStorage.token';
+    
+    try {
+      const authData = sessionStorage.getItem('authData');
+      if (authData && JSON.parse(authData).token === token) {
+        return 'sessionStorage.authData';
+      }
+    } catch (e) {
+      // ignore
+    }
+    
+    return 'unknown';
   }
 
   // Helper method to handle API responses
@@ -264,6 +301,154 @@ class AppointmentService {
       return this.handleResponse(response);
     } catch (error) {
       console.error('Error fetching appointment statistics:', error);
+      throw error;
+    }
+  }
+
+  // ==================== APPOINTMENT REQUESTS METHODS ====================
+
+  // Submit appointment request (Patient booking)
+  async submitAppointmentRequest(requestData) {
+    try {
+      const response = await fetch(`${this.baseURL}/requests`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify(requestData)
+      });
+
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error('Error submitting appointment request:', error);
+      throw error;
+    }
+  }
+
+  // Get all appointment requests (Admin view)
+  async getAppointmentRequests(filters = {}) {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      Object.keys(filters).forEach(key => {
+        if (filters[key] !== undefined && filters[key] !== '') {
+          queryParams.append(key, filters[key]);
+        }
+      });
+
+      const response = await fetch(`${this.baseURL}/requests?${queryParams}`, {
+        method: 'GET',
+        headers: this.getAuthHeaders()
+      });
+
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error('Error fetching appointment requests:', error);
+      throw error;
+    }
+  }
+
+  // Approve appointment request (Admin action)
+  async approveAppointmentRequest(requestId) {
+    try {
+      const response = await fetch(`${this.baseURL}/requests/${requestId}/approve`, {
+        method: 'POST',
+        headers: this.getAuthHeaders()
+      });
+
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error('Error approving appointment request:', error);
+      throw error;
+    }
+  }
+
+  // Reject appointment request (Admin action)
+  async rejectAppointmentRequest(requestId, rejectionReason) {
+    try {
+      const response = await fetch(`${this.baseURL}/requests/${requestId}/reject`, {
+        method: 'POST',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ reason: rejectionReason })
+      });
+
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error('Error rejecting appointment request:', error);
+      throw error;
+    }
+  }
+
+  // Get appointment requests count for notifications
+  async getAppointmentRequestsCount() {
+    try {
+      const response = await fetch(`${this.baseURL}/requests/count`, {
+        method: 'GET',
+        headers: this.getAuthHeaders()
+      });
+
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error('Error fetching appointment requests count:', error);
+      throw error;
+    }
+  }
+
+  // Update overdue appointments status
+  async updateOverdueStatus() {
+    try {
+      const response = await fetch(`${this.baseURL}/update-overdue-status`, {
+        method: 'PUT',
+        headers: this.getAuthHeaders()
+      });
+
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error('Error updating overdue appointments:', error);
+      throw error;
+    }
+  }
+
+  // Mark appointment as completed (Patient action)
+  async markAppointmentCompleted(appointmentId) {
+    try {
+      const response = await fetch(`${this.baseURL}/${appointmentId}/mark-completed`, {
+        method: 'PUT',
+        headers: this.getAuthHeaders()
+      });
+
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error('Error marking appointment as completed:', error);
+      throw error;
+    }
+  }
+
+  // Accept admin-scheduled appointment
+  async acceptAppointment(appointmentId) {
+    try {
+      const response = await fetch(`${this.baseURL}/${appointmentId}/accept`, {
+        method: 'PUT',
+        headers: this.getAuthHeaders()
+      });
+
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error('Error accepting appointment:', error);
+      throw error;
+    }
+  }
+
+  // Reject admin-scheduled appointment
+  async rejectAppointment(appointmentId, reason) {
+    try {
+      const response = await fetch(`${this.baseURL}/${appointmentId}/reject`, {
+        method: 'PUT',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ reason })
+      });
+
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error('Error rejecting appointment:', error);
       throw error;
     }
   }

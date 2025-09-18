@@ -35,6 +35,9 @@ const TodaysCheckups = ({
 
   const filteredCheckups = sharedCheckupsData.filter(checkup => {
     if (filterStatus === 'all') return true;
+    if (filterStatus === 'completed') {
+      return checkup.status === 'completed' || checkup.status === 'vaccination-completed';
+    }
     return checkup.status === filterStatus;
   });
 
@@ -81,6 +84,7 @@ const TodaysCheckups = ({
       'started': { class: 'bg-warning', text: 'Started' },
       'transferred': { class: 'bg-secondary', text: 'Transferred' },
       'completed': { class: 'bg-success', text: 'Completed' },
+      'vaccination-completed': { class: 'bg-success', text: 'Vaccination Complete' },
       'cancelled': { class: 'bg-danger', text: 'Cancelled' }
     };
     
@@ -141,7 +145,7 @@ const TodaysCheckups = ({
           </div>
           <div className="stat-card completed">
             <div className="stat-number">
-              {sharedCheckupsData.filter(c => c.status === 'completed').length}
+              {sharedCheckupsData.filter(c => c.status === 'completed' || c.status === 'vaccination-completed').length}
             </div>
             <div className="stat-label">Completed</div>
           </div>

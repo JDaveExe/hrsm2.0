@@ -1,0 +1,193 @@
+/* Doctor Picker Modal Styles */
+.doctor-picker-modal .modal-dialog {
+  max-width: 800px;
+}
+
+.doctor-picker-modal .modal-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.doctor-picker-modal .modal-title {
+  font-weight: 600;
+  color: #495057;
+}
+
+/* Doctor Cards */
+.doctor-card {
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  background: #fff;
+}
+
+.doctor-card:hover {
+  border-color: #28a745;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
+}
+
+.doctor-card.selected {
+  border-color: #28a745;
+  background: linear-gradient(135deg, #f8fff9 0%, #e8f5e8 100%);
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+}
+
+.doctor-card.busy {
+  opacity: 0.7;
+  cursor: not-allowed;
+  background: #f8f9fa;
+}
+
+.doctor-card.busy:hover {
+  border-color: #e9ecef;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Card Content */
+.doctor-card .card-title {
+  color: #495057;
+  font-size: 1rem;
+}
+
+.doctor-card .card-text {
+  font-size: 0.875rem;
+}
+
+/* Status Indicators */
+.doctor-card .bi-circle-fill {
+  font-size: 0.5rem;
+  vertical-align: middle;
+}
+
+/* Select Button */
+.doctor-card .select-btn {
+  border-radius: 20px;
+  font-size: 0.8rem;
+  padding: 4px 12px;
+  transition: all 0.2s ease-in-out;
+}
+
+.doctor-card:hover .select-btn {
+  transform: scale(1.05);
+}
+
+/* Search Bar */
+.doctor-picker-modal .input-group {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.doctor-picker-modal .input-group-text {
+  background: #f8f9fa;
+  border: none;
+  color: #6c757d;
+}
+
+.doctor-picker-modal .form-control {
+  border: none;
+  padding: 12px;
+  font-size: 0.95rem;
+}
+
+.doctor-picker-modal .form-control:focus {
+  box-shadow: none;
+  border-color: transparent;
+}
+
+/* Section Headers */
+.doctor-picker-modal h6 {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid;
+}
+
+.doctor-picker-modal h6.text-success {
+  border-bottom-color: #28a745;
+}
+
+.doctor-picker-modal h6.text-warning {
+  border-bottom-color: #ffc107;
+}
+
+/* Status Badges */
+.doctor-card .badge {
+  font-size: 0.7rem;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+/* Loading States */
+.doctor-picker-modal .spinner-border {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* Empty State */
+.doctor-picker-modal .bi-person-x {
+  color: #6c757d;
+}
+
+/* Modal Footer */
+.doctor-picker-modal .modal-footer {
+  background: #f8f9fa;
+}
+
+.doctor-picker-modal .modal-footer .btn {
+  border-radius: 20px;
+  padding: 8px 20px;
+  font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .doctor-picker-modal .modal-dialog {
+    max-width: 95%;
+    margin: 10px auto;
+  }
+  
+  .doctor-card .select-btn {
+    font-size: 0.75rem;
+    padding: 3px 10px;
+  }
+  
+  .doctor-card .card-title {
+    font-size: 0.9rem;
+  }
+}
+
+/* Animation for modal entrance */
+.doctor-picker-modal.show .modal-dialog {
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  0% {
+    transform: translateY(-20px) scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Card stagger animation */
+.doctor-card {
+  animation: cardFadeIn 0.4s ease-out;
+}
+
+@keyframes cardFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -8,8 +8,6 @@ import TodaysCheckups from './components/TodaysCheckups';
 import Checkups from './components/Checkups';
 import PatientDatabase from './components/PatientDatabase';
 import Appointments from './components/Appointments';
-import Inventory from './components/Inventory';
-import Reports from './components/Reports';
 import DoctorSettings from './components/DoctorSettings';
 import LoadingSpinnerDoc from './components/LoadingSpinnerDoc';
 import { PerformanceIndicator } from '../../hooks/usePerformanceMonitor';
@@ -174,10 +172,6 @@ const DoctorLayout = () => {
         />;
       case 'Appointments':
         return <Appointments {...componentProps} />;
-      case 'Inventory':
-        return <Inventory {...componentProps} />;
-      case 'Reports':
-        return <Reports {...componentProps} />;
       case 'Settings':
         return <DoctorSettings {...componentProps} />;
       default:

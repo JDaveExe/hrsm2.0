@@ -213,7 +213,6 @@ const Appointments = () => {
         'Follow-up',
         'Check-up',
         'Vaccination',
-        'Medical Certificate',
         'Emergency',
         'Lab Test'
       ];
@@ -222,8 +221,8 @@ const Appointments = () => {
       if (conflictCheck && conflictCheck.hasConflict) {
         // Only allow quick appointments if there are conflicts
         const quickTypes = [
-          'Medical Certificate',
-          'Follow-up'
+          'Follow-up',
+          'Consultation'
         ];
         setAvailableTypes(quickTypes);
       } else {
@@ -237,8 +236,7 @@ const Appointments = () => {
       setAvailableTypes([
         'Consultation',
         'Follow-up',
-        'Check-up',
-        'Medical Certificate'
+        'Check-up'
       ]);
     } finally {
       setLoadingTypes(false);

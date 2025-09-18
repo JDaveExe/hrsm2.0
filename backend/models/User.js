@@ -29,7 +29,7 @@ const User = sequelize.define('User', {
     allowNull: false
   },
   role: {
-    type: DataTypes.ENUM('patient', 'doctor', 'admin', 'staff'),
+    type: DataTypes.ENUM('patient', 'doctor', 'admin', 'staff', 'management'),
     allowNull: false,
     defaultValue: 'patient'
   },
@@ -118,6 +118,17 @@ User.createDefaultUsers = async function() {
         firstName: 'Test',
         lastName: 'Patient',
         accessLevel: 1,
+        isActive: true
+      },
+      {
+        username: 'management',
+        email: 'management@brgymaybunga.health',
+        password: 'management123',
+        role: 'management',
+        firstName: 'Management',
+        lastName: 'Dashboard',
+        position: 'Inventory & Reports Manager',
+        accessLevel: 7,
         isActive: true
       }
     ];

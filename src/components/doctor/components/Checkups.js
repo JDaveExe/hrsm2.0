@@ -1,11 +1,123 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Accordion } from 'react-bootstrap';
 import { useData } from '../../../context/DataContext';
+import { doctorSessionService } from '../../../services/doctorSessionService';
 import LoadingSpinnerDoc from './LoadingSpinnerDoc';
 import '../styles/Checkups.css';
 
 // Medication Item Component
 import MedicationItem from './MedicationItem';
+
+// Secure Caching Utility
+const SecureCache = {
+  // Simple encryption for sensitive data
+  encrypt: (data, key) => {
+    const jsonString = JSON.stringify(data);
+    let encrypted = '';
+    for (let i = 0; i < jsonString.length; i++) {
+      encrypted += String.fromCharCode(jsonString.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    }
+    return btoa(encrypted);
+  },
+  
+  decrypt: (encryptedData, key) => {
+    try {
+      const encrypted = atob(encryptedData);
+      let decrypted = '';
+      for (let i = 0; i < encrypted.length; i++) {
+        decrypted += String.fromCharCode(encrypted.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+      }
+      return JSON.parse(decrypted);
+    } catch (error) {
+      console.warn('Failed to decrypt cache data:', error);
+      return null;
+    }
+  },
+  
+  // Generate session-based encryption key
+  getSessionKey: () => {
+    const sessionId = sessionStorage.getItem('hrsm_session_id') || 'default_session';
+    const timestamp = Math.floor(Date.now() / (1000 * 60 * 30)); // Changes every 30 minutes
+    return `${sessionId}_${timestamp}`;
+  },
+  
+  // Set cache with encryption and expiration
+  set: (key, data, expirationMinutes = 15) => {
+    const cacheKey = `hrsm_cache_${key}`;
+    const sessionKey = SecureCache.getSessionKey();
+    const expirationTime = Date.now() + (expirationMinutes * 60 * 1000);
+    
+    const cacheData = {
+      data: data,
+      expiration: expirationTime,
+      checksum: btoa(JSON.stringify(data)).slice(-10) // Simple integrity check
+    };
+    
+    const encrypted = SecureCache.encrypt(cacheData, sessionKey);
+    localStorage.setItem(cacheKey, encrypted);
+    
+    // Set automatic cleanup
+    setTimeout(() => {
+      SecureCache.remove(key);
+    }, expirationMinutes * 60 * 1000);
+  },
+  
+  // Get cache with decryption and validation
+  get: (key) => {
+    const cacheKey = `hrsm_cache_${key}`;
+    const encrypted = localStorage.getItem(cacheKey);
+    
+    if (!encrypted) return null;
+    
+    const sessionKey = SecureCache.getSessionKey();
+    const cacheData = SecureCache.decrypt(encrypted, sessionKey);
+    
+    if (!cacheData) {
+      SecureCache.remove(key);
+      return null;
+    }
+    
+    // Check expiration
+    if (Date.now() > cacheData.expiration) {
+      SecureCache.remove(key);
+      return null;
+    }
+    
+    // Validate integrity
+    const currentChecksum = btoa(JSON.stringify(cacheData.data)).slice(-10);
+    if (currentChecksum !== cacheData.checksum) {
+      SecureCache.remove(key);
+      return null;
+    }
+    
+    return cacheData.data;
+  },
+  
+  // Remove cache
+  remove: (key) => {
+    const cacheKey = `hrsm_cache_${key}`;
+    localStorage.removeItem(cacheKey);
+  },
+  
+  // Clear all expired caches
+  clearExpired: () => {
+    const keys = Object.keys(localStorage).filter(key => key.startsWith('hrsm_cache_'));
+    keys.forEach(key => {
+      const data = localStorage.getItem(key);
+      if (data) {
+        try {
+          const sessionKey = SecureCache.getSessionKey();
+          const cacheData = SecureCache.decrypt(data, sessionKey);
+          if (!cacheData || Date.now() > cacheData.expiration) {
+            localStorage.removeItem(key);
+          }
+        } catch (error) {
+          localStorage.removeItem(key);
+        }
+      }
+    });
+  }
+};
 
 const Checkups = ({ currentDateTime, user, secureApiCall }) => {
   const { 
@@ -23,11 +135,25 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
 
   // New state to manage active accordion keys
   const [activeKey, setActiveKey] = useState(null);
+  
+  // Ref for debouncing notes updates
+  const updateTimeoutRef = useRef(null);
+
+  // Track revealed finished checkups (for spoiler functionality)
+  const [revealedFinished, setRevealedFinished] = useState(new Set());
 
   // Pagination and sorting state
   const [currentPage, setCurrentPage] = useState(1);
   const [timeFilter, setTimeFilter] = useState('all');
   const itemsPerPage = 10;
+  
+  // Search state for finished section
+  const [finishedSearchTerm, setFinishedSearchTerm] = useState('');
+  const finishedItemsPerPage = 6; // Show 6 items (2 rows of 3) per page for finished section
+
+  // Doctor notes modal state
+  const [showDoctorNotesModal, setShowDoctorNotesModal] = useState(false);
+  const [selectedCheckupNotes, setSelectedCheckupNotes] = useState(null);
 
   // Reset accordion state when changing tabs
   useEffect(() => {
@@ -75,7 +201,7 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
         checkup.status === 'in-progress' || checkup.status === 'started' || checkup.status === 'transferred'
       );
     } else if (filterTab === 'finished') {
-      filtered = filtered.filter(checkup => checkup.status === 'completed');
+      filtered = filtered.filter(checkup => checkup.status === 'completed' || checkup.status === 'vaccination-completed');
       // Get only recent finished (last 24 hours)
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
@@ -83,8 +209,17 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
         const completedDate = new Date(checkup.completedAt || checkup.updatedAt);
         return completedDate >= yesterday;
       });
+      
+      // Apply search filter for finished section
+      if (finishedSearchTerm) {
+        filtered = filtered.filter(checkup => 
+          checkup.patientName.toLowerCase().includes(finishedSearchTerm.toLowerCase()) ||
+          checkup.patientId.toLowerCase().includes(finishedSearchTerm.toLowerCase()) ||
+          (checkup.familyId && checkup.familyId.toLowerCase().includes(finishedSearchTerm.toLowerCase()))
+        );
+      }
     } else if (filterTab === 'history') {
-      filtered = filtered.filter(checkup => checkup.status === 'completed');
+      filtered = filtered.filter(checkup => checkup.status === 'completed' || checkup.status === 'vaccination-completed');
       filtered = filterByTimeRange(filtered);
     }
     
@@ -98,16 +233,68 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
     return filtered;
   };
 
-  const filteredCheckups = getFilteredCheckups();
+  // Group checkups by patient for history section
+  const groupCheckupsByPatient = (checkups) => {
+    const grouped = {};
+    checkups.forEach(checkup => {
+      const patientKey = `${checkup.patientId}-${checkup.patientName}`;
+      if (!grouped[patientKey]) {
+        grouped[patientKey] = {
+          patientId: checkup.patientId,
+          patientName: checkup.patientName,
+          familyId: checkup.familyId,
+          age: checkup.age,
+          gender: checkup.gender,
+          contactNumber: checkup.contactNumber,
+          checkups: []
+        };
+      }
+      grouped[patientKey].checkups.push(checkup);
+    });
+    
+    // Sort checkups within each patient group by date (newest first)
+    Object.values(grouped).forEach(patient => {
+      patient.checkups.sort((a, b) => {
+        const dateA = new Date(a.completedAt || a.updatedAt || a.createdAt);
+        const dateB = new Date(b.completedAt || b.updatedAt || b.createdAt);
+        return dateB - dateA;
+      });
+    });
+    
+    return Object.values(grouped);
+  };
+
+  const filteredCheckups = useMemo(() => getFilteredCheckups(), [doctorCheckupsData, filterTab, finishedSearchTerm, timeFilter]);
   
-  // Pagination logic
-  const totalPages = Math.ceil(filteredCheckups.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedCheckups = filteredCheckups.slice(startIndex, startIndex + itemsPerPage);
+  // Pagination logic - different page sizes for different tabs
+  const paginationData = useMemo(() => {
+    let dataToProcess = filteredCheckups;
+    
+    // For history tab, group by patient first
+    if (filterTab === 'history') {
+      dataToProcess = groupCheckupsByPatient(filteredCheckups);
+    }
+    
+    const currentItemsPerPage = filterTab === 'finished' ? finishedItemsPerPage : itemsPerPage;
+    const totalPages = Math.ceil(dataToProcess.length / currentItemsPerPage);
+    const startIndex = (currentPage - 1) * currentItemsPerPage;
+    const paginatedData = dataToProcess.slice(startIndex, startIndex + currentItemsPerPage);
+    
+    return {
+      currentItemsPerPage,
+      totalPages,
+      startIndex,
+      paginatedData: filterTab === 'history' ? paginatedData : filteredCheckups.slice(startIndex, startIndex + currentItemsPerPage)
+    };
+  }, [filteredCheckups, filterTab, finishedItemsPerPage, itemsPerPage, currentPage]);
+
+  // Destructure pagination data
+  const { currentItemsPerPage, totalPages, startIndex, paginatedData } = paginationData;
+  const paginatedCheckups = filterTab === 'history' ? filteredCheckups : paginatedData;
 
   // Calculate enhanced stats for history sidebar
   const getHistoryStats = () => {
-    const allCompleted = doctorCheckupsData.filter(c => c.status === 'completed');
+    const allCompleted = doctorCheckupsData.filter(c => c.status === 'completed' || c.status === 'vaccination-completed');
     const today = new Date();
     const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     
@@ -161,8 +348,12 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
   const [showPrescriptionForm, setShowPrescriptionForm] = useState({});
 
   useEffect(() => {
-    setDoctorCheckupsData(initialDoctorCheckupsData);
-  }, [initialDoctorCheckupsData]);
+    // Simply update local state with server data - no complex merging that overwrites user input
+    // Only do this on initial load, not during user interaction
+    if (isInitialLoad) {
+      setDoctorCheckupsData(initialDoctorCheckupsData);
+    }
+  }, [initialDoctorCheckupsData, isInitialLoad]); // Only run on initial load
 
   // Load available medications on component mount
   useEffect(() => {
@@ -199,31 +390,57 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
   useEffect(() => {
     const loadInitialData = async () => {
       console.log('Checkups: Component mounted, loading initial checkups data...');
+      
+      // Generate a unique session ID for this session if not exists
+      if (!sessionStorage.getItem('hrsm_session_id')) {
+        const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        sessionStorage.setItem('hrsm_session_id', sessionId);
+      }
+      
+      // Clean up any expired cache entries on component mount
+      SecureCache.clearExpired();
+      
       await refreshDoctorCheckups();
       setIsInitialLoad(false);
     };
     loadInitialData();
+    
+    // Cleanup function to clear sensitive data when component unmounts
+    return () => {
+      // Clear all cache entries for this session when component unmounts
+      const keys = Object.keys(localStorage).filter(key => key.startsWith('hrsm_cache_checkup_'));
+      keys.forEach(key => localStorage.removeItem(key));
+    };
   }, [refreshDoctorCheckups]);
 
-  // Add debugging for doctorCheckupsData changes
-  useEffect(() => {
-    console.log('Checkups: doctorCheckupsData changed:', {
-      isArray: Array.isArray(doctorCheckupsData),
-      length: doctorCheckupsData?.length,
-      data: doctorCheckupsData
-    });
-  }, [doctorCheckupsData]);
-
-  // Auto-refresh checkups data every 30 seconds
+  // Auto-refresh checkups data every 30 seconds (only when not actively editing)
   useEffect(() => {
     const refreshInterval = setInterval(() => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && 
+          !showMedicationModal && 
+          !showDoctorNotesModal &&
+          !updateTimeoutRef.current) { // Only skip if user is actively typing (has pending update)
+        console.log('Auto-refreshing checkups data (no active editing detected)');
         refreshDoctorCheckups();
+        
+        // Also clean up expired caches periodically
+        SecureCache.clearExpired();
+      } else if (updateTimeoutRef.current) {
+        console.log('Skipping auto-refresh due to pending updates');
       }
     }, 30000);
 
     return () => clearInterval(refreshInterval);
-  }, [refreshDoctorCheckups]);
+  }, [refreshDoctorCheckups, showMedicationModal, showDoctorNotesModal]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (updateTimeoutRef.current) {
+        clearTimeout(updateTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -246,19 +463,51 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
   const handleCompleteCheckup = async (checkupId) => {
     setIsProcessing(true);
     try {
-      // Get the current checkup data to send prescriptions
+      // Get the current checkup data to send all clinical information
       const currentCheckup = doctorCheckupsData.find(c => c.id === checkupId);
       const prescriptions = currentCheckup?.prescriptions || [];
       
-      const result = await updateCheckupStatus(checkupId, 'completed', {
+      // Prepare comprehensive completion data
+      const completionData = {
         completedAt: new Date().toISOString(),
         completedBy: user?.id,
-        prescriptions: prescriptions
-      });
+        doctorId: user?.id,
+        doctorName: user?.firstName ? `Dr. ${user.firstName} ${user.lastName}` : 'Unknown Doctor',
+        prescriptions: prescriptions,
+        chiefComplaint: currentCheckup?.chiefComplaint || '',
+        presentSymptoms: currentCheckup?.presentSymptoms || '',
+        diagnosis: currentCheckup?.diagnosis || '',
+        treatmentPlan: currentCheckup?.treatmentPlan || '',
+        doctorNotes: currentCheckup?.doctorNotes || '',
+        notes: currentCheckup?.notes || ''
+      };
+      
+      console.log('🚀 Completing checkup with data:', { checkupId, completionData });
+      
+      const result = await updateCheckupStatus(checkupId, 'completed', completionData);
       
       if (result.success) {
+        // Show completion success message
+        console.log('✅ Checkup completed successfully with all clinical notes saved');
+        console.log('📊 Updated checkup data:', result.data);
+        
+        // Set doctor status back to "online" when checkup is completed
+        if (user?.id) {
+          try {
+            await doctorSessionService.updateDoctorStatus(user.id, 'online');
+            console.log('✅ Doctor status updated to online after completing checkup');
+          } catch (error) {
+            console.warn('Failed to update doctor status to online:', error);
+          }
+        }
+        
         // Refresh checkups to get latest data
         await refreshDoctorCheckups();
+        
+        // Add a small delay to ensure data is refreshed before filtering
+        setTimeout(() => {
+          console.log('🔄 Current doctorCheckupsData after refresh:', doctorCheckupsData);
+        }, 1000);
       } else {
         console.error('Failed to complete checkup:', result.error);
         // Show error to user if needed
@@ -273,27 +522,63 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
   };
 
   // Handler functions for the new checkup card functionality
-  const handleNotesChange = async (checkupId, notes) => {
-    // Update local state immediately
+  const handleNotesChange = (checkupId, field, value) => {
+    console.log(`handleNotesChange called: checkupId=${checkupId}, field=${field}, value length=${value?.length || 0}`);
+    
+    // Update local state immediately - this is the source of truth for the UI
     setDoctorCheckupsData(prev => 
       prev.map(checkup => 
         checkup.id === checkupId 
-          ? { ...checkup, notes }
+          ? { ...checkup, [field]: value }
           : checkup
       )
     );
     
-    // Debounce the API call to avoid too many requests
-    clearTimeout(window.notesTimeout);
-    window.notesTimeout = setTimeout(async () => {
+    // Store in secure cache as backup (but don't rely on it for UI state)
+    const backupKey = `checkup_${checkupId}_${field}`;
+    SecureCache.set(backupKey, value, 5);
+    
+    // Clear existing timeout
+    if (updateTimeoutRef.current) {
+      clearTimeout(updateTimeoutRef.current);
+    }
+    
+    // Debounced save to server (but don't change UI state based on server response)
+    updateTimeoutRef.current = setTimeout(async () => {
       try {
-        await updateCheckupNotes(checkupId, notes, 
-          doctorCheckupsData.find(c => c.id === checkupId)?.prescriptions || []
-        );
+        console.log(`Saving ${field} to server for checkup ${checkupId}...`);
+        
+        // Get the current value from our local state
+        const currentData = doctorCheckupsData;
+        const currentCheckup = currentData.find(c => c.id === checkupId);
+        if (!currentCheckup) return;
+        
+        if (field === 'doctorNotes' || field === 'chiefComplaint' || field === 'presentSymptoms' || field === 'diagnosis' || field === 'treatmentPlan') {
+          // For all clinical note fields, use the notes endpoint with all clinical data
+          await updateCheckupNotes(checkupId, currentCheckup.notes, currentCheckup?.prescriptions || [], {
+            chiefComplaint: currentCheckup.chiefComplaint || '',
+            presentSymptoms: currentCheckup.presentSymptoms || '',
+            diagnosis: currentCheckup.diagnosis || '',
+            treatmentPlan: currentCheckup.treatmentPlan || '',
+            doctorNotes: currentCheckup.doctorNotes || ''
+          });
+        } else {
+          // For other fields (like status changes), use the status endpoint
+          await updateCheckupStatus(checkupId, currentCheckup.status || 'in-progress', {
+            ...currentCheckup
+          });
+        }
+        
+        console.log(`Successfully saved ${field} to server for checkup ${checkupId}`);
+        
+        // Clear the backup since it's now saved
+        SecureCache.remove(backupKey);
+        
       } catch (error) {
-        console.error('Failed to update notes:', error);
+        console.error(`Failed to save ${field} for checkup ${checkupId}:`, error);
+        // Don't modify UI state on save failure - user input is preserved
       }
-    }, 1000);
+    }, 2000); // Save 2 seconds after user stops typing
   };
 
   const handleAddPrescription = (checkupId) => {
@@ -325,6 +610,24 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
           : checkup
       )
     );
+    
+    // Save to backend immediately
+    const updatePrescriptions = async () => {
+      try {
+        const checkup = doctorCheckupsData.find(c => c.id === selectedCheckupForMedication);
+        const updatedPrescriptions = [...(checkup?.prescriptions || []), newPrescription];
+        await updateCheckupNotes(selectedCheckupForMedication, checkup?.notes || '', updatedPrescriptions, {
+          chiefComplaint: checkup?.chiefComplaint || '',
+          presentSymptoms: checkup?.presentSymptoms || '',
+          diagnosis: checkup?.diagnosis || '',
+          treatmentPlan: checkup?.treatmentPlan || '',
+          doctorNotes: checkup?.doctorNotes || ''
+        });
+      } catch (error) {
+        console.error('Failed to save prescription:', error);
+      }
+    };
+    updatePrescriptions();
     
     setShowMedicationModal(false);
     setSelectedCheckupForMedication(null);
@@ -375,7 +678,13 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
     );
     
     try {
-      await updateCheckupNotes(checkupId, checkup.notes, updatedPrescriptions);
+      await updateCheckupNotes(checkupId, checkup.notes, updatedPrescriptions, {
+        chiefComplaint: checkup?.chiefComplaint || '',
+        presentSymptoms: checkup?.presentSymptoms || '',
+        diagnosis: checkup?.diagnosis || '',
+        treatmentPlan: checkup?.treatmentPlan || '',
+        doctorNotes: checkup?.doctorNotes || ''
+      });
     } catch (error) {
       console.error('Failed to update prescriptions:', error);
     }
@@ -390,6 +699,15 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
     // This will open the vital signs modal
     console.log('Viewing vital signs for:', checkup.patientName);
     // TODO: Implement vital signs modal
+  };
+
+  const handleViewDoctorNotes = (checkup) => {
+    setSelectedCheckupNotes(checkup);
+    setShowDoctorNotesModal(true);
+  };
+
+  const handleRevealFinished = (checkupId) => {
+    setRevealedFinished(prev => new Set([...prev, checkupId]));
   };
 
   const formatDuration = (startTime) => {
@@ -409,9 +727,6 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
   if (isInitialLoad) {
     return <LoadingSpinnerDoc message="Loading checkups..." />;
   }
-
-  console.log('Checkups: Rendering with doctorCheckupsData:', doctorCheckupsData);
-  console.log('Checkups: Filtered checkups length:', filteredCheckups.length);
 
   return (
     <div className="checkups-container">
@@ -436,7 +751,7 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
             </div>
             <div className="stat-card finished">
               <div className="stat-number">
-                {doctorCheckupsData.filter(c => c.status === 'completed').length}
+                {doctorCheckupsData.filter(c => c.status === 'completed' || c.status === 'vaccination-completed').length}
               </div>
               <div className="stat-label">Finished</div>
             </div>
@@ -462,6 +777,47 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
             </button>
           ))}
         </div>
+
+        {filterTab === 'finished' && (
+          <div className="controls-row">
+            <div className="search-filter">
+              <label htmlFor="finishedSearch">Search patients:</label>
+              <input
+                id="finishedSearch"
+                type="text"
+                value={finishedSearchTerm}
+                onChange={(e) => {
+                  setFinishedSearchTerm(e.target.value);
+                  setCurrentPage(1); // Reset to first page when searching
+                }}
+                placeholder="Search by name, ID, or family ID..."
+                className="search-input"
+              />
+            </div>
+
+            {totalPages > 1 && (
+              <div className="pagination-controls">
+                <button 
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <i className="bi bi-chevron-left"></i>
+                </button>
+                <span className="pagination-info">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button 
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  <i className="bi bi-chevron-right"></i>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {filterTab === 'history' && (
           <div className="controls-row">
@@ -521,52 +877,109 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
             </p>
           </div>
         ) : filterTab === 'ongoing' ? (
-          <div className="checkups-grid">
+          <div className="ongoing-checkups-container">
             {filteredCheckups.map((checkup, index) => (
               <div 
                 key={checkup.id} 
-                className="checkup-row"
+                className="ongoing-checkup-wrapper"
               >
-                <div className={`checkup-card ${checkup.status}`}>
-                  <div className="checkup-number">
+                <div className={`ongoing-checkup-card ${checkup.status}`}>
+                  <div className="ongoing-card-number">
                     {index + 1}
                   </div>
                   
-                  {/* Header */}
+                  {/* Header - Patient name with status beside, details below */}
                   <div className="card-header">
-                    <div className="patient-info">
-                      <h4>{checkup.patientName}</h4>
-                      <p className="patient-id">ID: {checkup.patientId}</p>
-                      <p className="patient-details">Family ID: {checkup.familyId}</p>
-                      <p className="patient-details">{checkup.age} years / {checkup.gender}</p>
+                    <div className="patient-header-layout">
+                      <div className="name-and-status">
+                        <h4 className="patient-name">{checkup.patientName}</h4>
+                        <div className="status-section">
+                          {getStatusBadge(checkup.status)}
+                        </div>
+                      </div>
+                      <div className="patient-details-row">
+                        <span className="patient-detail">PT-{String(checkup.patientId || '').padStart(4, '0')}</span>
+                        <span className="patient-detail">Fam: {checkup.familyId || 'N/A'}</span>
+                        <span className="patient-detail">{checkup.age} years old</span>
+                        <span className="patient-detail">{checkup.gender}</span>
+                      </div>
                     </div>
-                    {getStatusBadge(checkup.status)}
                   </div>
                   
-                  {/* Content Area - Notes */}
+                  {/* Content Area - Side by Side Layout like Treatment Record */}
                   <div className="card-content">
-                    <div className="notes-section">
-                      <label className="section-label">
-                        <i className="bi bi-journal-text"></i>
-                        Doctor's Notes
-                      </label>
-                      <textarea
-                        className="notes-textarea"
-                        placeholder="Enter your notes about the patient's condition, observations, diagnosis..."
-                        value={checkup.notes || ''}
-                        onChange={(e) => handleNotesChange(checkup.id, e.target.value)}
-                      />
+                    <div className="content-sections-row">
+                      {/* Left Side - Chief Complaint & History */}
+                      <div className="content-section">
+                        <h6 className="section-title">
+                          <i className="bi bi-chat-dots me-2"></i>
+                          Chief Complaint & History
+                        </h6>
+                        
+                        <div className="notes-section highlighted">
+                          <label className="form-label">Chief Complaint</label>
+                          <textarea
+                            className="notes-textarea small"
+                            placeholder="Patient's main concern or reason for visit..."
+                            value={checkup.chiefComplaint || ''}
+                            onChange={(e) => handleNotesChange(checkup.id, 'chiefComplaint', e.target.value)}
+                            rows="3"
+                          />
+                        </div>
+                        
+                        <div className="notes-section highlighted">
+                          <label className="form-label">Present Symptoms</label>
+                          <textarea
+                            className="notes-textarea small"
+                            placeholder="Detailed description of symptoms, duration, severity..."
+                            value={checkup.presentSymptoms || ''}
+                            onChange={(e) => handleNotesChange(checkup.id, 'presentSymptoms', e.target.value)}
+                            rows="4"
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Right Side - Diagnosis & Treatment */}
+                      <div className="content-section">
+                        <h6 className="section-title">
+                          <i className="bi bi-prescription2 me-2"></i>
+                          Diagnosis & Treatment
+                        </h6>
+                        
+                        <div className="notes-section highlighted">
+                          <label className="form-label">Diagnosis Notes</label>
+                          <textarea
+                            className="notes-textarea small"
+                            placeholder="Primary and secondary diagnoses..."
+                            value={checkup.diagnosis || ''}
+                            onChange={(e) => handleNotesChange(checkup.id, 'diagnosis', e.target.value)}
+                            rows="3"
+                          />
+                        </div>
+                        
+                        <div className="notes-section highlighted">
+                          <label className="form-label">Treatment Plan</label>
+                          <textarea
+                            className="notes-textarea small"
+                            placeholder="Treatment procedures, interventions planned..."
+                            value={checkup.treatmentPlan || ''}
+                            onChange={(e) => handleNotesChange(checkup.id, 'treatmentPlan', e.target.value)}
+                            rows="3"
+                          />
+                        </div>
+                      </div>
                     </div>
                     
-                    <div className="prescription-section">
+                    {/* Prescription Section - Full Width */}
+                    <div className="prescription-section-full">
                       <div className="prescription-header">
-                        <label className="section-label">
-                          <i className="bi bi-prescription2"></i>
+                        <h6 className="section-title">
+                          <i className="bi bi-prescription2 me-2"></i>
                           Prescriptions
                           {(checkup.prescriptions || []).length > 0 && (
                             <span className="prescription-count">({checkup.prescriptions.length})</span>
                           )}
-                        </label>
+                        </h6>
                         <button
                           className="btn btn-primary btn-sm"
                           onClick={() => {
@@ -582,39 +995,78 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
                             }
                           }}
                         >
+                          <i className="bi bi-plus-circle me-1"></i>
                           {showPrescriptionForm[checkup.id] ? 'Hide Prescriptions' : 'Add Prescription'}
                         </button>
                       </div>
                       
-                      {/* Always show existing prescriptions */}
-                      <div className="prescriptions-list">
+                      {/* Prescriptions Grid */}
+                      <div className="prescriptions-grid">
                         {(checkup.prescriptions || []).length > 0 ? (
                           checkup.prescriptions.map((prescription, idx) => (
-                            <div key={idx} className="prescription-item">
-                              <div className="prescription-details">
-                                <strong>{prescription.medication}</strong>
-                                <span className="quantity">Qty: {prescription.quantity}</span>
-                                <span className="instructions">{prescription.instructions}</span>
+                            <div key={idx} className="prescription-card">
+                              <div className="prescription-header-card">
+                                <strong className="medication-name">{prescription.medication}</strong>
+                                <button 
+                                  className="btn btn-danger btn-sm"
+                                  onClick={() => handleRemovePrescription(checkup.id, idx)}
+                                  title="Remove prescription"
+                                >
+                                  <i className="bi bi-trash"></i>
+                                </button>
                               </div>
-                              <button 
-                                className="btn btn-danger btn-sm"
-                                onClick={() => handleRemovePrescription(checkup.id, idx)}
-                              >
-                                <i className="bi bi-trash"></i>
-                              </button>
+                              <div className="prescription-details">
+                                <div className="detail-item">
+                                  <span className="detail-label">Quantity:</span>
+                                  <span className="detail-value">{prescription.quantity}</span>
+                                </div>
+                                <div className="detail-item">
+                                  <span className="detail-label">Instructions:</span>
+                                  <span className="detail-value">{prescription.instructions}</span>
+                                </div>
+                                {prescription.genericName && (
+                                  <div className="detail-item">
+                                    <span className="detail-label">Generic:</span>
+                                    <span className="detail-value">{prescription.genericName}</span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           ))
                         ) : (
-                          !showPrescriptionForm[checkup.id] && <p className="no-prescriptions">No prescriptions added yet</p>
+                          <div className="no-prescriptions-placeholder">
+                            <i className="bi bi-prescription2"></i>
+                            <p>No prescriptions added yet. Click "Add Prescription" to get started.</p>
+                          </div>
                         )}
                       </div>
                       
-                      {/* Only show medication selection when form is open */}
+                      {/* Medication selection prompt when form is open */}
                       {showPrescriptionForm[checkup.id] && (
-                        <div className="medication-selection-inner">
-                          <p className="select-medication-prompt">Select a medication to add to prescription:</p>
+                        <div className="medication-selection-prompt">
+                          <div className="prompt-content">
+                            <i className="bi bi-arrow-right-circle me-2"></i>
+                            <span>Select a medication from the panel on the right to add to prescription</span>
+                          </div>
                         </div>
                       )}
+                    </div>
+                    
+                    {/* Bottom Full Width - Doctor's Notes */}
+                    <div className="doctor-notes-section">
+                      <h6 className="section-title">
+                        <i className="bi bi-journal-text me-2"></i>
+                        Doctor's Additional Notes
+                      </h6>
+                      <div className="notes-section highlighted">
+                        <textarea
+                          className="notes-textarea full-width"
+                          placeholder="Additional clinical notes, observations, or instructions..."
+                          value={checkup.doctorNotes || ''}
+                          onChange={(e) => handleNotesChange(checkup.id, 'doctorNotes', e.target.value)}
+                          rows="3"
+                        />
+                      </div>
                     </div>
                   </div>
                   
@@ -622,15 +1074,9 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
                   <div className="card-actions">
                     <div className="action-buttons">
                       <button
-                        className="btn btn-info"
-                        onClick={() => handleViewPatientInfo(checkup)}
-                      >
-                        <i className="bi bi-person-circle"></i>
-                        View Info
-                      </button>
-                      <button
-                        className="btn btn-secondary"
+                        className="btn btn-warning"
                         onClick={() => handleViewVitalSigns(checkup)}
+                        title="View vital signs from admin examination"
                       >
                         <i className="bi bi-heart-pulse"></i>
                         Vital Signs
@@ -638,8 +1084,8 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
                       <button
                         className="btn btn-success"
                         onClick={() => handleCompleteCheckup(checkup.id)}
-                        disabled={isProcessing || (!checkup.notes && (!checkup.prescriptions || checkup.prescriptions.length === 0))}
-                        title={(!checkup.notes && (!checkup.prescriptions || checkup.prescriptions.length === 0)) ? "Please add notes or prescriptions before finishing" : "Complete checkup"}
+                        disabled={isProcessing || (!checkup.chiefComplaint && !checkup.diagnosis && (!checkup.prescriptions || checkup.prescriptions.length === 0))}
+                        title={(!checkup.chiefComplaint && !checkup.diagnosis && (!checkup.prescriptions || checkup.prescriptions.length === 0)) ? "Please add chief complaint, diagnosis, or prescriptions before finishing" : "Complete checkup"}
                       >
                         <i className="bi bi-check-circle"></i>
                         Finished
@@ -648,9 +1094,8 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
                   </div>
                 </div>
 
-                {/* Medication Selection Panel - Beside the card */}
-                {selectedCheckupForMedication === checkup.id && (
-                  <div className="medication-selection-panel">
+                {/* Medication Selection Panel - Always beside the card */}
+                <div className="medication-selection-panel">
                   <div className="medication-panel-header">
                     <h5>
                       <i className="bi bi-capsule"></i>
@@ -670,168 +1115,357 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
                       <i className="bi bi-x-lg"></i>
                     </button>
                   </div>
-                  <div className="search-box">
-                    <input
-                      type="text"
-                      placeholder="Search medications..."
-                      value={medicationSearch}
-                      onChange={(e) => setMedicationSearch(e.target.value)}
-                      className="form-control form-control-sm"
-                    />
-                    <i className="bi bi-search search-icon"></i>
-                  </div>
 
-                  <div className="medications-list">
-                    {loadingMedications ? (
-                      <div className="loading-medications">
-                        <i className="bi bi-hourglass-split"></i>
-                        Loading medications...
+                  {/* Transparent banner when Add Prescription not clicked */}
+                  {!showPrescriptionForm[checkup.id] && (
+                    <div className="prescription-inactive-banner">
+                      <div className="prescription-inactive-content">
+                        <i className="bi bi-info-circle"></i>
+                        <p>The "Add Prescription" button is not yet clicked</p>
+                        <small>Click the button in the prescription section to activate</small>
                       </div>
-                    ) : filteredMedications.length === 0 ? (
-                      <div className="no-medications">
-                        <i className="bi bi-exclamation-circle"></i>
-                        {medicationSearch ? 'No medications found' : 'No medications available'}
-                      </div>
-                    ) : (
-                      filteredMedications.map(medication => (
-                        <MedicationItem
-                          key={medication.id}
-                          medication={medication}
-                          onSelect={(med, quantity, instructions) => 
-                            handleAddMedicationToCheckup(checkup.id, med, quantity, instructions)
-                          }
+                    </div>
+                  )}
+
+                  {/* Active medication form - only show when prescription form is active */}
+                  {showPrescriptionForm[checkup.id] && (
+                    <>
+                      <div className="search-box">
+                        <input
+                          type="text"
+                          placeholder="Search medications..."
+                          value={medicationSearch}
+                          onChange={(e) => setMedicationSearch(e.target.value)}
+                          className="form-control form-control-sm"
                         />
-                      ))
-                    )}
-                  </div>
+                        <i className="bi bi-search search-icon"></i>
+                      </div>
+
+                      <div className="medications-list">
+                        {loadingMedications ? (
+                          <div className="loading-medications">
+                            <i className="bi bi-hourglass-split"></i>
+                            Loading medications...
+                          </div>
+                        ) : filteredMedications.length === 0 ? (
+                          <div className="no-medications">
+                            <i className="bi bi-exclamation-circle"></i>
+                            {medicationSearch ? 'No medications found' : 'No medications available'}
+                          </div>
+                        ) : (
+                          filteredMedications.map(medication => (
+                            <MedicationItem
+                              key={medication.id}
+                              medication={medication}
+                              onSelect={(med, quantity, instructions) => 
+                                handleAddMedicationToCheckup(checkup.id, med, quantity, instructions)
+                              }
+                            />
+                          ))
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
-                )}
               </div>
             ))}
           </div>
         ) : filterTab === 'finished' ? (
-          /* Finished - Compact Card Grid View */
-          <div className="finished-cards-grid">
-            {filteredCheckups.map((checkup) => (
-              <div key={checkup.id} className="finished-card compact">
-                <div className="finished-card-header">
-                  <div className="patient-info">
-                    <h5 className="patient-name">{checkup.patientName}</h5>
-                    <div className="patient-details-row">
-                      <span>ID: {checkup.patientId}</span>
-                      <span>Fam: {checkup.familyId || 'N/A'}</span>
-                      <span>{checkup.age}y / {checkup.gender}</span>
+          /* Finished - Same format as ongoing but read-only with spoiler */
+          <div className="checkups-grid finished-grid">
+            {paginatedCheckups.map((checkup, index) => {
+              const isRevealed = revealedFinished.has(checkup.id);
+              return (
+                <div 
+                  key={checkup.id} 
+                  className="checkup-row"
+                >
+                  <div className={`checkup-card finished ${checkup.status}`}>
+                    <div className="checkup-number">
+                      {(currentPage - 1) * currentItemsPerPage + index + 1}
                     </div>
-                  </div>
-                  <div className="completion-info">
-                    <div className="status-badge">
-                      {getStatusBadge(checkup.status)}
+                    
+                    {/* Read-only banner */}
+                    <div className="read-only-banner">
+                      <i className="bi bi-eye-slash me-2"></i>
+                      <span>Read-Only</span>
                     </div>
-                    <div className="completion-time">
-                      {new Date(checkup.completedAt || checkup.updatedAt).toLocaleTimeString()}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="finished-card-content">
-                  <div className="content-row compact">
-                    <div className="notes-section">
-                      <label className="section-label">
-                        <i className="bi bi-journal-text"></i>
-                        Notes
-                      </label>
-                      <div className="notes-content compact">
-                        {checkup.notes || 'No notes recorded.'}
+                    
+                    {/* Header - Patient name with status beside, details below */}
+                    <div className="patient-header-layout">
+                      <div className="name-and-status">
+                        <h4 className="patient-name">{checkup.patientName}</h4>
+                        <div className="status-badge-container">
+                          {getStatusBadge(checkup.status)}
+                        </div>
+                      </div>
+                      <div className="patient-details-row">
+                        <div className="patient-detail">
+                          <i className="bi bi-person-badge"></i>
+                          <span>ID: {checkup.patientId}</span>
+                        </div>
+                        <div className="patient-detail">
+                          <i className="bi bi-people"></i>
+                          <span>Fam: {checkup.familyId || 'N/A'}</span>
+                        </div>
+                        <div className="patient-detail">
+                          <i className="bi bi-calendar3"></i>
+                          <span>{checkup.age}y / {checkup.gender}</span>
+                        </div>
+                        <div className="patient-detail">
+                          <i className="bi bi-telephone"></i>
+                          <span>{checkup.contactNumber}</span>
+                        </div>
+                        <div className="patient-detail">
+                          <i className="bi bi-clock"></i>
+                          <span>Completed: {new Date(checkup.completedAt || checkup.updatedAt).toLocaleTimeString()}</span>
+                        </div>
                       </div>
                     </div>
                     
-                    <div className="prescription-section">
-                      <label className="section-label">
-                        <i className="bi bi-prescription2"></i>
-                        Prescriptions
-                      </label>
-                      <div className="prescriptions-list compact">
+                    {/* Content - Either blurred with spoiler button or revealed */}
+                    <div className={`content-sections-row ${!isRevealed ? 'spoiler-blurred' : ''}`}>
+                      {!isRevealed && (
+                        <div className="spoiler-overlay">
+                          <button 
+                            className="spoiler-reveal-btn"
+                            onClick={() => handleRevealFinished(checkup.id)}
+                          >
+                            <i className="bi bi-eye"></i>
+                            <span>Reveal Details</span>
+                          </button>
+                        </div>
+                      )}
+                      
+                      <div className="content-section left">
+                        <div className="section-card">
+                          <h6 className="section-title">
+                            <i className="bi bi-chat-square-text me-2"></i>
+                            Chief Complaint & History
+                          </h6>
+                          <div className="content-grid">
+                            <div className="content-item">
+                              <label className="content-label">Chief Complaint</label>
+                              <div className="content-display readonly">
+                                {checkup.chiefComplaint || 'No chief complaint recorded.'}
+                              </div>
+                            </div>
+                            <div className="content-item">
+                              <label className="content-label">Present Symptoms</label>
+                              <div className="content-display readonly">
+                                {checkup.presentSymptoms || 'No symptoms recorded.'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="content-section right">
+                        <div className="section-card">
+                          <h6 className="section-title">
+                            <i className="bi bi-clipboard-plus me-2"></i>
+                            Diagnosis & Treatment
+                          </h6>
+                          <div className="content-grid">
+                            <div className="content-item">
+                              <label className="content-label">Diagnosis Notes</label>
+                              <div className="content-display readonly">
+                                {checkup.diagnosis || 'No diagnosis recorded.'}
+                              </div>
+                            </div>
+                            <div className="content-item">
+                              <label className="content-label">Treatment Plan</label>
+                              <div className="content-display readonly">
+                                {checkup.treatmentPlan || 'No treatment plan recorded.'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Prescription Section - Full Width */}
+                    <div className={`prescription-section-full readonly ${!isRevealed ? 'spoiler-blurred' : ''}`}>
+                      <div className="prescription-header">
+                        <h6 className="section-title">
+                          <i className="bi bi-prescription2 me-2"></i>
+                          Prescriptions
+                          {(checkup.prescriptions || []).length > 0 && (
+                            <span className="prescription-count">{checkup.prescriptions.length}</span>
+                          )}
+                        </h6>
+                        <button
+                          className="doctor-notes-btn"
+                          onClick={() => handleViewDoctorNotes(checkup)}
+                          title="View Doctor's Notes"
+                        >
+                          <i className="bi bi-journal-medical"></i>
+                          Doctor's Notes
+                        </button>
+                      </div>
+                      
+                      <div className="prescriptions-grid">
                         {(checkup.prescriptions || []).length > 0 ? (
                           checkup.prescriptions.map((prescription, idx) => (
-                            <div key={idx} className="prescription-item read-only compact">
+                            <div key={idx} className="prescription-card readonly">
+                              <div className="prescription-header-card">
+                                <span className="medication-name">{prescription.medication}</span>
+                              </div>
                               <div className="prescription-details">
-                                <strong>{prescription.medication}</strong>
-                                <span className="quantity">Qty: {prescription.quantity}</span>
+                                <div className="detail-item">
+                                  <span className="detail-label">Quantity:</span>
+                                  <span className="detail-value">{prescription.quantity}</span>
+                                </div>
+                                <div className="detail-item">
+                                  <span className="detail-label">Instructions:</span>
+                                  <span className="detail-value">{prescription.instructions}</span>
+                                </div>
+                                {prescription.genericName && (
+                                  <div className="detail-item">
+                                    <span className="detail-label">Generic:</span>
+                                    <span className="detail-value">{prescription.genericName}</span>
+                                  </div>
+                                )}
                               </div>
                             </div>
                           ))
                         ) : (
-                          <p className="no-prescriptions">No prescriptions</p>
+                          <div className="no-prescriptions-placeholder">
+                            <i className="bi bi-prescription2"></i>
+                            <p>No prescriptions were prescribed for this checkup.</p>
+                          </div>
                         )}
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
-          /* History - List View with Enhanced Stats Sidebar */
+          /* History - Grouped by Patient with Multiple Checkups */
           <div className="history-layout">
             <div className="history-list">
-              {paginatedCheckups.map((checkup) => (
-                <div key={checkup.id} className="history-accordion-item">
+              {paginatedData.map((patientGroup) => (
+                <div key={`${patientGroup.patientId}-${patientGroup.patientName}`} className="history-patient-group">
                   <div 
-                    className="history-item-header"
+                    className="history-patient-header"
                     onClick={() => {
-                      const newKey = `history-${checkup.id}`;
+                      const newKey = `patient-${patientGroup.patientId}`;
                       setActiveKey(activeKey === newKey ? null : newKey);
                     }}
                   >
                     <div className="patient-info-row">
-                      <span className="patient-name">{checkup.patientName}</span>
-                      <span className="patient-id">ID: {checkup.patientId}</span>
-                      <span className="family-id">Fam: {checkup.familyId || 'N/A'}</span>
-                      <span className="age-gender">{checkup.age}y / {checkup.gender}</span>
-                      <span className="completion-time">
-                        {new Date(checkup.completedAt || checkup.updatedAt).toLocaleDateString()} {new Date(checkup.completedAt || checkup.updatedAt).toLocaleTimeString()}
-                      </span>
+                      <span className="patient-name">{patientGroup.patientName}</span>
+                      <span className="patient-id">ID: {patientGroup.patientId}</span>
+                      <span className="family-id">Fam: {patientGroup.familyId || 'N/A'}</span>
+                      <span className="age-gender">{patientGroup.age}y / {patientGroup.gender}</span>
+                      <span className="checkup-count">{patientGroup.checkups.length} checkup{patientGroup.checkups.length > 1 ? 's' : ''}</span>
                     </div>
                     <div className="expand-icon">
-                      <i className={`bi ${activeKey === `history-${checkup.id}` ? 'bi-chevron-up' : 'bi-chevron-down'}`}></i>
+                      <i className={`bi ${activeKey === `patient-${patientGroup.patientId}` ? 'bi-chevron-up' : 'bi-chevron-down'}`}></i>
                     </div>
                   </div>
                   
-                  {activeKey === `history-${checkup.id}` && (
-                    <div className="history-item-content">
-                      <div className="content-row">
-                        <div className="notes-section">
-                          <label className="section-label">
-                            <i className="bi bi-journal-text"></i>
-                            Doctor's Notes
-                          </label>
-                          <div className="notes-content">
-                            {checkup.notes || 'No notes recorded.'}
+                  {activeKey === `patient-${patientGroup.patientId}` && (
+                    <div className="patient-checkups-list">
+                      {patientGroup.checkups.map((checkup, index) => (
+                        <div key={checkup.id} className="history-checkup-item">
+                          <div className="checkup-header">
+                            <div className="checkup-info">
+                              <span className="checkup-number">#{index + 1}</span>
+                              <span className="checkup-date">
+                                {new Date(checkup.completedAt || checkup.updatedAt).toLocaleDateString()}
+                              </span>
+                              <span className="checkup-time">
+                                {new Date(checkup.completedAt || checkup.updatedAt).toLocaleTimeString()}
+                              </span>
+                              <span className="service-type">{checkup.serviceType}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="content-row">
+                            <div className="chief-complaint-section">
+                              <label className="section-label">
+                                <i className="bi bi-chat-square-text text-primary"></i>
+                                Chief Complaint
+                              </label>
+                              <div className="content-display readonly">
+                                {checkup.chiefComplaint || 'No chief complaint recorded.'}
+                              </div>
+                            </div>
+
+                            <div className="diagnosis-section">
+                              <label className="section-label">
+                                <i className="bi bi-clipboard-pulse text-success"></i>
+                                Diagnosis & Treatment
+                              </label>
+                              <div className="content-display readonly">
+                                <strong>Diagnosis:</strong> {checkup.diagnosis || 'No diagnosis recorded.'}<br/>
+                                <strong>Treatment:</strong> {checkup.treatmentPlan || 'No treatment plan recorded.'}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="content-row">
+                            <div className="symptoms-section">
+                              <label className="section-label">
+                                <i className="bi bi-thermometer text-warning"></i>
+                                Present Symptoms
+                              </label>
+                              <div className="content-display readonly">
+                                {checkup.presentSymptoms || 'No symptoms recorded.'}
+                              </div>
+                              <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+                                <button
+                                  className="doctor-notes-btn"
+                                  onClick={() => handleViewDoctorNotes(checkup)}
+                                  title="View Doctor's Notes"
+                                >
+                                  <i className="bi bi-journal-medical"></i>
+                                  Doctor's Notes
+                                </button>
+                              </div>
+                            </div>
+                            
+                            <div className="prescription-section">
+                              <label className="section-label">
+                                <i className="bi bi-prescription2"></i>
+                                Prescriptions {(checkup.prescriptions || []).length > 0 && `(${checkup.prescriptions.length})`}
+                              </label>
+                              <div className="prescriptions-list">
+                                {(checkup.prescriptions || []).length > 0 ? (
+                                  checkup.prescriptions.map((prescription, idx) => (
+                                    <div key={idx} className="prescription-item read-only">
+                                      <div className="prescription-header-card">
+                                        <strong className="medication-name">{prescription.medication}</strong>
+                                      </div>
+                                      <div className="prescription-details">
+                                        <div className="detail-item">
+                                          <span className="detail-label">Quantity:</span>
+                                          <span className="detail-value">{prescription.quantity}</span>
+                                        </div>
+                                        <div className="detail-item">
+                                          <span className="detail-label">Instructions:</span>
+                                          <span className="detail-value">{prescription.instructions}</span>
+                                        </div>
+                                        {prescription.genericName && (
+                                          <div className="detail-item">
+                                            <span className="detail-label">Generic:</span>
+                                            <span className="detail-value">{prescription.genericName}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))
+                                ) : (
+                                  <p className="no-prescriptions">No prescriptions were added.</p>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        
-                        <div className="prescription-section">
-                          <label className="section-label">
-                            <i className="bi bi-prescription2"></i>
-                            Prescriptions
-                          </label>
-                          <div className="prescriptions-list">
-                            {(checkup.prescriptions || []).length > 0 ? (
-                              checkup.prescriptions.map((prescription, idx) => (
-                                <div key={idx} className="prescription-item read-only">
-                                  <div className="prescription-details">
-                                    <strong>{prescription.medication}</strong>
-                                    <span className="quantity">Qty: {prescription.quantity}</span>
-                                    <span className="instructions">{prescription.instructions}</span>
-                                  </div>
-                                </div>
-                              ))
-                            ) : (
-                              <p className="no-prescriptions">No prescriptions were added.</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                      ))}
                     </div>
                   )}
                 </div>
@@ -1023,8 +1657,136 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
           </div>
         </div>
       )}
+
+      {/* Doctor Notes Modal */}
+      {showDoctorNotesModal && selectedCheckupNotes && (
+        <div className="doctor-notes-modal-overlay" onClick={() => setShowDoctorNotesModal(false)}>
+          <div className="modal-content doctor-notes-modal-container" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>
+                <i className="bi bi-journal-medical me-2"></i>
+                Doctor's Notes - {selectedCheckupNotes.patientName}
+              </h3>
+              <button
+                className="close-btn"
+                onClick={() => setShowDoctorNotesModal(false)}
+                aria-label="Close"
+              >
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div className="modal-body">
+              {selectedCheckupNotes.doctorNotes ? (
+                <div className="doctor-notes-content">
+                  {selectedCheckupNotes.doctorNotes}
+                </div>
+              ) : (
+                <div className="doctor-notes-empty">
+                  <i className="bi bi-journal-x" style={{ fontSize: '2rem', marginBottom: '10px', display: 'block' }}></i>
+                  No doctor's notes were recorded for this checkup.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default Checkups;
+
+/* Additional CSS for Patient Grouping in History */
+const styles = `
+.history-patient-group {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  background: #f8f9fa;
+}
+
+.history-patient-header {
+  padding: 16px;
+  background: #fff;
+  border-radius: 8px 8px 0 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #eee;
+}
+
+.history-patient-header:hover {
+  background: #f5f5f5;
+}
+
+.history-patient-header .patient-info-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.history-patient-header .checkup-count {
+  margin-left: auto;
+  background: #007bff;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85em;
+  font-weight: 500;
+}
+
+.patient-checkups-list {
+  padding: 0 16px 16px;
+}
+
+.history-checkup-item {
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  padding: 16px;
+}
+
+.checkup-header {
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.checkup-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.checkup-number {
+  background: #28a745;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
+.checkup-date, .checkup-time {
+  color: #666;
+  font-size: 0.95em;
+}
+
+.service-type {
+  background: #17a2b8;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.85em;
+}
+`;
+
+// Inject styles if not already present
+if (!document.querySelector('#checkups-patient-grouping-styles')) {
+  const styleElement = document.createElement('style');
+  styleElement.id = 'checkups-patient-grouping-styles';
+  styleElement.textContent = styles;
+  document.head.appendChild(styleElement);
+}

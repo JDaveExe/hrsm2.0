@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Alert, Spinner, Badge, Button, Modal } from 'react-bootstrap';
+import { Card, Row, Col, Alert, Spinner, Badge, Button, Modal, Tab, Tabs, Table } from 'react-bootstrap';
 import forecastingService, { forecastHelpers } from '../../../services/forecastingService';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 import { Line } from 'react-chartjs-2';
+import FormulaExplanation from './FormulaExplanation';
+import ConfidenceIntervals from './ConfidenceIntervals';
 import '../styles/ForecastingDashboard.css';
 
 // Register ChartJS components
@@ -246,6 +248,168 @@ const ForecastingDashboard = () => {
           </Card>
         </Col>
       </Row>
+
+      {/* Enhanced Calculation Explanations */}
+      {(diseaseRisks || resourceForecasts) && (
+        <Row className="mb-4">
+          <Col md={12}>
+            <Card className="calculation-details-card">
+              <Card.Header>
+                <h5>
+                  <i className="bi bi-calculator-fill me-2"></i>
+                  Forecasting Methodology & Calculations
+                </h5>
+                <small>Transparent algorithms and statistical methods</small>
+              </Card.Header>
+              <Card.Body>
+                <Tabs defaultActiveKey="disease-calc" className="mb-3">
+                  <Tab eventKey="disease-calc" title="Disease Risk Calculations">
+                    {diseaseRisks && Object.entries(diseaseRisks).some(([_, assessment]) => assessment.calculation) ? (
+                      <Row>
+                        {Object.entries(diseaseRisks).slice(0, 2).map(([disease, assessment]) => (
+                          assessment.calculation && (
+                            <Col md={6} key={disease}>
+                              <FormulaExplanation 
+                                calculation={assessment.calculation}
+                                type="disease"
+                                title={`${forecastHelpers.formatDiseaseName(disease)} Risk Assessment`}
+                              />
+                            </Col>
+                          )
+                        ))}
+                      </Row>
+                    ) : (
+                      <Alert variant="info">
+                        Disease risk calculation details will appear here when data is available.
+                      </Alert>
+                    )}
+                  </Tab>
+                  
+                  <Tab eventKey="resource-calc" title="Resource Forecasting">
+                    {resourceForecasts && Object.entries(resourceForecasts).some(([_, forecast]) => forecast.calculation) ? (
+                      <Row>
+                        {Object.entries(resourceForecasts).slice(0, 2).map(([resource, forecast]) => (
+                          forecast.calculation && (
+                            <Col md={6} key={resource}>
+                              <FormulaExplanation 
+                                calculation={forecast.calculation}
+                                type="resource"
+                                title={`${forecastHelpers.formatResourceName(resource)} Forecast`}
+                              />
+                              {forecast.confidenceIntervals && (
+                                <ConfidenceIntervals 
+                                  intervals={forecast.confidenceIntervals}
+                                  forecast={forecast.dailyForecast}
+                                  title={`${forecastHelpers.formatResourceName(resource)} Confidence Intervals`}
+                                />
+                              )}
+                            </Col>
+                          )
+                        ))}
+                      </Row>
+                    ) : (
+                      <Alert variant="info">
+                        Resource forecasting calculation details will appear here when data is available.
+                      </Alert>
+                    )}
+                  </Tab>
+                  
+                  <Tab eventKey="statistics" title="Statistical Summary">
+                    <Row>
+                      {/* Disease Statistics */}
+                      {diseaseRisks && Object.entries(diseaseRisks).some(([_, assessment]) => assessment.statistics) && (
+                        <Col md={6}>
+                          <Card className="formula-card">
+                            <Card.Header>
+                              <h6 className="mb-0">Disease Trend Statistics</h6>
+                            </Card.Header>
+                            <Card.Body>
+                              {Object.entries(diseaseRisks).map(([disease, assessment]) => (
+                                assessment.statistics && (
+                                  <div key={disease} className="mb-3">
+                                    <h6 className="text-primary">{forecastHelpers.formatDiseaseName(disease)}</h6>
+                                    <Row>
+                                      <Col xs={6}>
+                                        <small className="text-muted">Recent Average:</small>
+                                        <div className="fw-bold">{assessment.statistics.recentAverage}</div>
+                                      </Col>
+                                      <Col xs={6}>
+                                        <small className="text-muted">Previous Average:</small>
+                                        <div className="fw-bold">{assessment.statistics.previousAverage}</div>
+                                      </Col>
+                                      <Col xs={6}>
+                                        <small className="text-muted">Trend:</small>
+                                        <Badge bg={assessment.statistics.trendDirection === 'increasing' ? 'danger' : 'success'}>
+                                          {assessment.statistics.trendDirection}
+                                        </Badge>
+                                      </Col>
+                                      <Col xs={6}>
+                                        <small className="text-muted">Volatility:</small>
+                                        <Badge bg={assessment.statistics.volatility === 'high' ? 'warning' : 'info'}>
+                                          {assessment.statistics.volatility}
+                                        </Badge>
+                                      </Col>
+                                    </Row>
+                                  </div>
+                                )
+                              ))}
+                            </Card.Body>
+                          </Card>
+                        </Col>
+                      )}
+                      
+                      {/* Resource Statistics */}
+                      {resourceForecasts && Object.entries(resourceForecasts).some(([_, forecast]) => forecast.historicalAnalysis) && (
+                        <Col md={6}>
+                          <Card className="formula-card">
+                            <Card.Header>
+                              <h6 className="mb-0">Resource Usage Analysis</h6>
+                            </Card.Header>
+                            <Card.Body>
+                              {Object.entries(resourceForecasts).map(([resource, forecast]) => (
+                                forecast.historicalAnalysis && (
+                                  <div key={resource} className="mb-3">
+                                    <h6 className="text-primary">{forecastHelpers.formatResourceName(resource)}</h6>
+                                    <Row>
+                                      <Col xs={6}>
+                                        <small className="text-muted">Trend:</small>
+                                        <Badge bg={
+                                          forecast.historicalAnalysis.trendDirection === 'increasing' ? 'warning' : 
+                                          forecast.historicalAnalysis.trendDirection === 'decreasing' ? 'success' : 'info'
+                                        }>
+                                          {forecast.historicalAnalysis.trendDirection}
+                                        </Badge>
+                                      </Col>
+                                      <Col xs={6}>
+                                        <small className="text-muted">Volatility:</small>
+                                        <Badge bg={forecast.historicalAnalysis.volatility === 'High' ? 'danger' : 'success'}>
+                                          {forecast.historicalAnalysis.volatility}
+                                        </Badge>
+                                      </Col>
+                                      <Col xs={6}>
+                                        <small className="text-muted">Average Usage:</small>
+                                        <div className="fw-bold">{forecast.historicalAnalysis.averageUsage}</div>
+                                      </Col>
+                                      <Col xs={6}>
+                                        <small className="text-muted">Last Period:</small>
+                                        <div className="fw-bold">{forecast.historicalAnalysis.lastPeriodUsage}</div>
+                                      </Col>
+                                    </Row>
+                                  </div>
+                                )
+                              ))}
+                            </Card.Body>
+                          </Card>
+                        </Col>
+                      )}
+                    </Row>
+                  </Tab>
+                </Tabs>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       {/* Resource Planning */}
       <Row className="mb-4">

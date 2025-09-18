@@ -10,11 +10,11 @@
     "strength": "500mg",
     "manufacturer": "Unilab",
     "batchNumber": "10",
-    "unitsInStock": 1010,
+    "unitsInStock": 965,
     "minimumStock": 200,
     "unitCost": 1.5,
     "sellingPrice": 2.5,
-    "expiryDate": "2026-12-12",
+    "expiryDate": "2025-09-01",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Pain relief, fever reduction",
@@ -27,7 +27,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Most commonly used analgesic",
-    "updatedAt": "2025-08-31T10:08:34.929Z"
+    "updatedAt": "2025-09-11T11:19:14.022Z"
   },
   {
     "id": 2,
@@ -44,7 +44,7 @@
     "minimumStock": 50,
     "unitCost": 25,
     "sellingPrice": 45,
-    "expiryDate": "2025-11-30",
+    "expiryDate": "2025-09-13",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Pain relief, fever reduction in children",
@@ -56,7 +56,8 @@
     "isPrescriptionRequired": false,
     "status": "Available",
     "isActive": true,
-    "notes": "Pediatric formulation"
+    "notes": "Pediatric formulation",
+    "updatedAt": "2025-09-11T04:00:39.827Z"
   },
   {
     "id": 3,
@@ -73,7 +74,7 @@
     "minimumStock": 30,
     "unitCost": 35,
     "sellingPrice": 60,
-    "expiryDate": "2025-10-15",
+    "expiryDate": "2025-10-08",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Pain relief, fever reduction in infants",
@@ -85,7 +86,8 @@
     "isPrescriptionRequired": false,
     "status": "Available",
     "isActive": true,
-    "notes": "Infant formulation"
+    "notes": "Infant formulation",
+    "updatedAt": "2025-09-11T04:00:39.827Z"
   },
   {
     "id": 4,
@@ -679,7 +681,7 @@
     "strength": "10mg",
     "manufacturer": "Pfizer",
     "batchNumber": "AML024-2024",
-    "unitsInStock": 500,
+    "unitsInStock": 498,
     "minimumStock": 100,
     "unitCost": 5,
     "sellingPrice": 8,
@@ -695,7 +697,8 @@
     "isPrescriptionRequired": true,
     "status": "Available",
     "isActive": true,
-    "notes": "Maximum strength calcium channel blocker"
+    "notes": "Maximum strength calcium channel blocker",
+    "updatedAt": "2025-09-18T03:50:16.735Z"
   },
   {
     "id": 25,

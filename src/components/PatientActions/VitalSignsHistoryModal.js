@@ -12,6 +12,45 @@ const VitalSignsHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = fa
     enabled: show && !!patientId // Only fetch when modal is shown and we have a patient ID
   });
 
+  // State to store vaccination records for cross-referencing
+  const [vaccinationRecords, setVaccinationRecords] = useState([]);
+
+  // Fetch vaccination records for this patient to check if vital signs are vaccination-related
+  useEffect(() => {
+    if (!show || !patientId) return;
+
+    const fetchVaccinationRecords = async () => {
+      try {
+        const response = await fetch(`/api/vaccinations/patient/${patientId}`);
+        if (response.ok) {
+          const data = await response.json();
+          setVaccinationRecords(data || []);
+        }
+      } catch (error) {
+        console.log('Could not fetch vaccination records:', error);
+        setVaccinationRecords([]);
+      }
+    };
+
+    fetchVaccinationRecords();
+  }, [show, patientId]);
+
+  // Check if a vital signs record is from the same date as a vaccination
+  const isVaccinationRelated = (vitalSignsDate) => {
+    const vsDate = new Date(vitalSignsDate).toDateString();
+    return vaccinationRecords.some(vax => {
+      const vaxDate = new Date(vax.administeredAt).toDateString();
+      return vsDate === vaxDate;
+    });
+  };
+
+  // Helper function to display empty field value
+  const getEmptyFieldDisplay = (record) => {
+    return isVaccinationRelated(record.recordedAt) 
+      ? <span className="text-info">vaccination</span> 
+      : <span className="text-muted">-</span>;
+  };
+
   const getPatientFullName = (patient) => {
     if (!patient) return 'Unknown Patient';
     return `${patient.firstName || ''} ${patient.middleName || ''} ${patient.lastName || ''}`.replace(/\s+/g, ' ').trim();
@@ -163,7 +202,7 @@ const VitalSignsHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = fa
                           {record.respiratoryRate} brpm
                         </span>
                       ) : (
-                        <span className="text-muted">-</span>
+                        getEmptyFieldDisplay(record)
                       )}
                     </td>
                     <td>
@@ -172,14 +211,14 @@ const VitalSignsHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = fa
                           {record.oxygenSaturation}%
                         </span>
                       ) : (
-                        <span className="text-muted">-</span>
+                        getEmptyFieldDisplay(record)
                       )}
                     </td>
                     <td>
-                      {record.weight ? `${record.weight} kg` : <span className="text-muted">-</span>}
+                      {record.weight ? `${record.weight} kg` : getEmptyFieldDisplay(record)}
                     </td>
                     <td>
-                      {record.height ? `${record.height} cm` : <span className="text-muted">-</span>}
+                      {record.height ? `${record.height} cm` : getEmptyFieldDisplay(record)}
                     </td>
                     <td>
                       {record.clinicalNotes ? (
@@ -187,7 +226,7 @@ const VitalSignsHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = fa
                           <small>{record.clinicalNotes}</small>
                         </div>
                       ) : (
-                        <span className="text-muted">-</span>
+                        getEmptyFieldDisplay(record)
                       )}
                     </td>
                   </tr>

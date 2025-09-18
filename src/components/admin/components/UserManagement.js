@@ -5,6 +5,34 @@ import userService from '../../../services/userService';
 import './UserManagement.css';
 
 const UserManagement = memo(() => {
+  // Position options organized by user type
+  const positionsByUserType = {
+    admin: [
+      'City Health Officer',
+      'Chief Administrative Officer',
+      'IT Officer',
+      'Encoder',
+      'Utility'
+    ],
+    management: [
+      'Chief Administrative Officer',
+      'Admin & Support Services Records Officer',
+      'Nurse'
+    ],
+    doctor: [
+      'Medical Officer III',
+      'Nurse',
+      'Nutritionist-Dietitian',
+      'ICO-D Officers',
+      'Midwife'
+    ]
+  };
+
+  // Get filtered positions based on user type
+  const getPositionOptions = (userType) => {
+    return positionsByUserType[userType] || [];
+  };
+
   // State management
   const { backendConnected } = useData();
   const [users, setUsers] = useState([]);
@@ -14,6 +42,7 @@ const UserManagement = memo(() => {
 
   // Modal states
   const [showAddUserModal, setShowAddUserModal] = useState(false);
+  const [showUserTypeSelectionModal, setShowUserTypeSelectionModal] = useState(false);
   const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showManageDropdown, setShowManageDropdown] = useState(false);
@@ -228,12 +257,15 @@ const UserManagement = memo(() => {
   // Handle user type selection
   const handleUserTypeSelect = (userType) => {
     setSelectedUserType(userType);
-    setShowUserTypeSelection(false);
+    setShowUserTypeSelectionModal(false);
+    setShowAddUserModal(true);
     
-    // Set defaults based on user type
+    // Set defaults based on user type with appropriate positions
     const defaults = userType === 'admin' 
-      ? { role: 'admin', position: 'System Administrator', accessLevel: 'Administrator' }
-      : { role: 'doctor', position: 'General Physician', accessLevel: 'Doctor' };
+      ? { role: 'admin', position: 'City Health Officer', accessLevel: 'Administrator' }
+      : userType === 'management'
+      ? { role: 'management', position: 'Chief Administrative Officer', accessLevel: 'Management' }
+      : { role: 'doctor', position: 'Medical Officer III', accessLevel: 'Doctor' };
     
     setUserFormData(prev => ({ ...prev, ...defaults }));
     localStorage.setItem('adminSelectedUserType', userType);
@@ -268,8 +300,8 @@ const UserManagement = memo(() => {
         lastName: userFormData.lastName,
         emailInitials: userFormData.emailInitials,
         password: userFormData.password,
-        accessLevel: selectedUserType === 'admin' ? 'Administrator' : 'Doctor',
-        position: userFormData.position || (selectedUserType === 'admin' ? 'System Administrator' : 'General Physician')
+        accessLevel: selectedUserType === 'admin' ? 'Administrator' : selectedUserType === 'management' ? 'Management' : 'Doctor',
+        position: userFormData.position || (selectedUserType === 'admin' ? 'City Health Officer' : selectedUserType === 'management' ? 'Chief Administrative Officer' : 'Medical Officer III')
       };
 
       await userService.createUser(userData);
@@ -378,7 +410,7 @@ const UserManagement = memo(() => {
   // Role badge component
   const RoleBadge = ({ role, accessLevel }) => (
     <span className={`role-badge ${role}`}>
-      {accessLevel || (role === 'admin' ? 'Administrator' : 'Doctor/Staff')}
+      {accessLevel || (role === 'admin' ? 'Administrator' : role === 'management' ? 'Management' : 'Doctor/Staff')}
     </span>
   );
 
@@ -386,24 +418,21 @@ const UserManagement = memo(() => {
     <div className="user-management">
       <div className="content-header">
         <h1>
-          <i className="bi bi-people-fill me-2"></i>
-          User Management
           <span className={`badge ms-3 ${backendConnected ? 'bg-success' : 'bg-danger'}`}>
             <i className={`bi ${backendConnected ? 'bi-check-circle' : 'bi-x-circle'} me-1`}></i>
             {backendConnected ? 'Connected' : 'Disconnected'}
           </span>
         </h1>
         <div className="header-actions">
-          <Dropdown show={showManageDropdown} onToggle={setShowManageDropdown}>
+          <Dropdown show={showManageDropdown} onToggle={setShowManageDropdown} className="user-management-dropdown">
             <Dropdown.Toggle as={Button} variant="primary" className="manage-btn">
               <i className="bi bi-gear me-2"></i>
               Manage
             </Dropdown.Toggle>
-            <Dropdown.Menu>
+            <Dropdown.Menu className="user-management-dropdown-menu">
               <Dropdown.Item onClick={() => {
-                setShowAddUserModal(true);
+                setShowUserTypeSelectionModal(true);
                 setShowManageDropdown(false);
-                setShowUserTypeSelection(true);
                 setSelectedUserType('');
                 clearFormData();
               }}>
@@ -509,12 +538,56 @@ const UserManagement = memo(() => {
         )}
       </div>
 
-      {/* Add User Modal */}
+      {/* User Type Selection Modal */}
+      <Modal 
+        show={showUserTypeSelectionModal} 
+        onHide={() => setShowUserTypeSelectionModal(false)} 
+        size="md" 
+        className="user-type-selection-modal"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-person-plus me-2"></i>
+            Select User Type
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="user-type-selection">
+            <div 
+              className="user-type-card admin-card"
+              onClick={() => handleUserTypeSelect('admin')}
+            >
+              <i className="bi bi-shield-check"></i>
+              <h5>Administrator</h5>
+              <p>Full system access and user management</p>
+            </div>
+            <div 
+              className="user-type-card doctor-card"
+              onClick={() => handleUserTypeSelect('doctor')}
+            >
+              <i className="bi bi-person-badge"></i>
+              <h5>Medical Staff</h5>
+              <p>Doctor, Nurse, or Medical Personnel</p>
+            </div>
+            <div 
+              className="user-type-card management-card"
+              onClick={() => handleUserTypeSelect('management')}
+            >
+              <i className="bi bi-building"></i>
+              <h5>Management</h5>
+              <p>Inventory and reports management</p>
+            </div>
+          </div>
+        </Modal.Body>
+      </Modal>
+
+      {/* Add User Form Modal */}
       <Modal 
         show={showAddUserModal} 
         onHide={() => setShowAddUserModal(false)} 
-        size={showUserTypeSelection ? "sm" : "lg"} 
-        className={showUserTypeSelection ? "user-type-selection-modal" : "user-form-modal"}
+        size="lg" 
+        className="user-form-modal"
       >
         <Modal.Header closeButton>
           <Modal.Title>
@@ -523,77 +596,60 @@ const UserManagement = memo(() => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {showUserTypeSelection ? (
-            <div className="user-type-selection">
-              <div 
-                className="user-type-card admin-card"
-                onClick={() => handleUserTypeSelect('admin')}
+          <Form onSubmit={handleSaveUser}>
+            <div className="mb-3">
+              <strong>User Type: </strong>
+              <span className={`badge ${selectedUserType === 'admin' ? 'bg-primary' : selectedUserType === 'management' ? 'bg-warning' : 'bg-success'}`}>
+                {selectedUserType === 'admin' ? 'Administrator' : selectedUserType === 'management' ? 'Management' : 'Medical Staff'}
+              </span>
+              <Button
+                variant="link"
+                size="sm"
+                className="ms-2"
+                onClick={() => {
+                  setShowAddUserModal(false);
+                  setShowUserTypeSelectionModal(true);
+                }}
               >
-                <i className="bi bi-shield-check"></i>
-                <h5>Administrator</h5>
-                <p>Full system access and user management</p>
+                Change
+              </Button>
+            </div>
+
+            {/* Row 1: First, Middle, Last Names */}
+            <div className="row mb-4">
+              <div className="col-4">
+                <Form.Group>
+                  <Form.Label>First Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={userFormData.firstName}
+                    onChange={(e) => handleInputChange('firstName', e.target.value)}
+                    required
+                  />
+                </Form.Group>
               </div>
-              <div 
-                className="user-type-card doctor-card"
-                onClick={() => handleUserTypeSelect('doctor')}
-              >
-                <i className="bi bi-person-badge"></i>
-                <h5>Medical Staff</h5>
-                <p>Doctor, Nurse, or Medical Personnel</p>
+              <div className="col-4">
+                <Form.Group>
+                  <Form.Label>Middle Name</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={userFormData.middleName}
+                    onChange={(e) => handleInputChange('middleName', e.target.value)}
+                  />
+                </Form.Group>
+              </div>
+              <div className="col-4">
+                <Form.Group>
+                  <Form.Label>Last Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={userFormData.lastName}
+                    onChange={(e) => handleInputChange('lastName', e.target.value)}
+                    required
+                  />
+                </Form.Group>
               </div>
             </div>
-          ) : (
-            <Form onSubmit={handleSaveUser}>
-              <div className="mb-3">
-                <strong>User Type: </strong>
-                <span className={`badge ${selectedUserType === 'admin' ? 'bg-primary' : 'bg-success'}`}>
-                  {selectedUserType === 'admin' ? 'Administrator' : 'Medical Staff'}
-                </span>
-                <Button
-                  variant="link"
-                  size="sm"
-                  className="ms-2"
-                  onClick={() => setShowUserTypeSelection(true)}
-                >
-                  Change
-                </Button>
-              </div>
-
-              {/* Row 1: First, Middle, Last Names */}
-              <div className="row mb-4">
-                <div className="col-4">
-                  <Form.Group>
-                    <Form.Label>First Name *</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={userFormData.firstName}
-                      onChange={(e) => handleInputChange('firstName', e.target.value)}
-                      required
-                    />
-                  </Form.Group>
-                </div>
-                <div className="col-4">
-                  <Form.Group>
-                    <Form.Label>Middle Name</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={userFormData.middleName}
-                      onChange={(e) => handleInputChange('middleName', e.target.value)}
-                    />
-                  </Form.Group>
-                </div>
-                <div className="col-4">
-                  <Form.Group>
-                    <Form.Label>Last Name *</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={userFormData.lastName}
-                      onChange={(e) => handleInputChange('lastName', e.target.value)}
-                      required
-                    />
-                  </Form.Group>
-                </div>
-              </div>
 
               {/* Row 2: Email, Position/Role */}
               <div className="row mb-4">
@@ -615,12 +671,17 @@ const UserManagement = memo(() => {
                 <div className="col-4">
                   <Form.Group>
                     <Form.Label>Position</Form.Label>
-                    <Form.Control
-                      type="text"
+                    <Form.Select
                       value={userFormData.position}
                       onChange={(e) => handleInputChange('position', e.target.value)}
-                      placeholder={selectedUserType === 'admin' ? 'System Administrator' : 'General Physician'}
-                    />
+                    >
+                      <option value="">Select Position</option>
+                      {getPositionOptions(selectedUserType).map((position, index) => (
+                        <option key={index} value={position}>
+                          {position}
+                        </option>
+                      ))}
+                    </Form.Select>
                   </Form.Group>
                 </div>
               </div>
@@ -738,16 +799,13 @@ const UserManagement = memo(() => {
                 </div>
               </div>
             </Form>
-          )}
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowAddUserModal(false)}>
             Cancel
           </Button>
-          {!showUserTypeSelection && (
-            <>
-              <Button variant="outline-secondary" onClick={clearFormData}>
-                Clear Form
+          <Button variant="outline-secondary" onClick={clearFormData}>
+            Clear Form
               </Button>
               <Button 
                 variant="primary" 
@@ -763,8 +821,6 @@ const UserManagement = memo(() => {
                   'Create User Account'
                 )}
               </Button>
-            </>
-          )}
         </Modal.Footer>
       </Modal>
 
@@ -834,11 +890,17 @@ const UserManagement = memo(() => {
               <div className="col-md-6">
                 <Form.Group className="mb-3">
                   <Form.Label>Position</Form.Label>
-                  <Form.Control
-                    type="text"
+                  <Form.Select
                     value={userFormData.position}
                     onChange={(e) => handleInputChange('position', e.target.value)}
-                  />
+                  >
+                    <option value="">Select Position</option>
+                    {getPositionOptions(userFormData.role).map((position, index) => (
+                      <option key={index} value={position}>
+                        {position}
+                      </option>
+                    ))}
+                  </Form.Select>
                 </Form.Group>
               </div>
               <div className="col-md-6">

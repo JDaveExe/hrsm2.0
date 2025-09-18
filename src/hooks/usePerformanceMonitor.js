@@ -27,19 +27,19 @@ export const usePerformanceMonitor = (componentName = 'Component') => {
     const averageRenderTime = renderTimes.current.reduce((a, b) => a + b, 0) / renderTimes.current.length;
     const slowRenders = renderTimes.current.filter(time => time > 16).length; // 16ms = 60fps threshold
     
-    setPerformanceStats({
+    setPerformanceStats(prevStats => ({
       renderCount: renderCount.current,
       averageRenderTime: Math.round(averageRenderTime * 100) / 100,
       slowRenders,
       memoryUsage: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : 0
-    });
+    }));
     
     lastRenderTime.current = now;
     
     if (process.env.NODE_ENV === 'development' && renderTime > 16) {
       console.warn(`${componentName} slow render: ${renderTime.toFixed(2)}ms`);
     }
-  });
+  }, [componentName]); // Add componentName as dependency
 
   return performanceStats;
 };

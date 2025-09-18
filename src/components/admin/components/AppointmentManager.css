@@ -806,6 +806,61 @@
   color: #212529;
 }
 
+.appointment-manager .modal-body {
+  padding: 20px 25px;
+  color: #495057;
+}
+
+.appointment-manager .modal-footer {
+  padding: 15px 25px;
+  border-top: 1px solid #dee2e6;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  background: #f8f9fa;
+  border-radius: 0 0 8px 8px;
+}
+
+.appointment-manager .btn-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  font-weight: bold;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out;
+}
+
+.appointment-manager .btn-close:hover {
+  color: #000;
+  background-color: #e9ecef;
+}
+
+.appointment-manager .appointment-request-summary {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+  margin: 15px 0;
+}
+
+.appointment-manager .appointment-request-summary p {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+.appointment-manager .appointment-request-summary strong {
+  color: #495057;
+  font-weight: 600;
+}
+
 .appointment-manager .close-btn {
   background: none;
   border: none;
@@ -1586,6 +1641,8 @@
   align-items: center;
   gap: 8px;
   transition: all 0.2s ease;
+  color: #fff;
+  background-color: #007bff;
 }
 
 .btn-primary {
@@ -2445,6 +2502,297 @@ select:disabled option {
   color: #dc3545;
 }
 
+/* ===== APPOINTMENT REQUEST APPROVAL/REJECTION MODALS ===== */
+/* Specific modals to avoid CSS conflicts */
+
+/* Approval Modal */
+.appointment-approval-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 999999 !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+}
+
+.appointment-approval-modal {
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  width: 100% !important;
+  max-width: 500px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+  position: relative !important;
+  margin: auto !important;
+  transform: translateY(0) !important;
+  animation: modalSlideIn 0.3s ease-out !important;
+}
+
+.appointment-approval-modal-header {
+  background: #28a745 !important;
+  color: white !important;
+  padding: 20px 25px !important;
+  border-radius: 12px 12px 0 0 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.appointment-approval-modal-header h3 {
+  margin: 0 !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: white !important;
+}
+
+.appointment-approval-modal-close {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: none !important;
+  color: white !important;
+  cursor: pointer !important;
+  padding: 8px !important;
+  border-radius: 6px !important;
+  font-size: 16px !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.appointment-approval-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+.appointment-approval-modal-body {
+  padding: 25px !important;
+  color: #495057 !important;
+  line-height: 1.6 !important;
+}
+
+.appointment-approval-modal-footer {
+  padding: 20px 25px !important;
+  border-top: 1px solid #dee2e6 !important;
+  background: #f8f9fa !important;
+  border-radius: 0 0 12px 12px !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+}
+
+/* Rejection Modal */
+.appointment-rejection-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(0, 0, 0, 0.7) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 999999 !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+}
+
+.appointment-rejection-modal {
+  background: #ffffff !important;
+  border-radius: 12px !important;
+  width: 100% !important;
+  max-width: 550px !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3) !important;
+  position: relative !important;
+  margin: auto !important;
+  transform: translateY(0) !important;
+  animation: modalSlideIn 0.3s ease-out !important;
+}
+
+.appointment-rejection-modal-header {
+  background: #dc3545 !important;
+  color: white !important;
+  padding: 20px 25px !important;
+  border-radius: 12px 12px 0 0 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
+.appointment-rejection-modal-header h3 {
+  margin: 0 !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  color: white !important;
+}
+
+.appointment-rejection-modal-close {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: none !important;
+  color: white !important;
+  cursor: pointer !important;
+  padding: 8px !important;
+  border-radius: 6px !important;
+  font-size: 16px !important;
+  width: 32px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: background-color 0.2s ease !important;
+}
+
+.appointment-rejection-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+
+.appointment-rejection-modal-body {
+  padding: 25px !important;
+  color: #495057 !important;
+  line-height: 1.6 !important;
+}
+
+.appointment-rejection-modal-footer {
+  padding: 20px 25px !important;
+  border-top: 1px solid #dee2e6 !important;
+  background: #f8f9fa !important;
+  border-radius: 0 0 12px 12px !important;
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 12px !important;
+}
+
+/* Shared styles for appointment request summary in modals */
+.appointment-approval-modal .appointment-request-summary,
+.appointment-rejection-modal .appointment-request-summary {
+  background: #f1f3f4 !important;
+  padding: 18px !important;
+  border-radius: 8px !important;
+  margin: 15px 0 !important;
+  text-align: left !important;
+}
+
+.appointment-approval-modal .appointment-request-summary p,
+.appointment-rejection-modal .appointment-request-summary p {
+  margin: 6px 0 !important;
+  font-size: 14px !important;
+  color: #495057 !important;
+}
+
+.appointment-approval-modal .appointment-request-summary strong,
+.appointment-rejection-modal .appointment-request-summary strong {
+  color: #212529 !important;
+  font-weight: 600 !important;
+}
+
+/* Form styles in rejection modal */
+.appointment-rejection-modal .form-group {
+  margin-bottom: 20px !important;
+}
+
+.appointment-rejection-modal .form-group label {
+  display: block !important;
+  margin-bottom: 8px !important;
+  font-weight: 600 !important;
+  color: #495057 !important;
+  font-size: 14px !important;
+}
+
+.appointment-rejection-modal .form-control {
+  width: 100% !important;
+  padding: 12px !important;
+  border: 2px solid #dee2e6 !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  font-family: inherit !important;
+  resize: vertical !important;
+  transition: border-color 0.2s ease !important;
+  box-sizing: border-box !important;
+}
+
+.appointment-rejection-modal .form-control:focus {
+  outline: none !important;
+  border-color: #007bff !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+
+/* Modal animation */
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Button styles in modals */
+.appointment-approval-modal .btn,
+.appointment-rejection-modal .btn {
+  padding: 10px 20px !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-decoration: none !important;
+  min-width: 100px !important;
+}
+
+.appointment-approval-modal .btn:disabled,
+.appointment-rejection-modal .btn:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+}
+
+.appointment-approval-modal .btn-secondary,
+.appointment-rejection-modal .btn-secondary {
+  background: #6c757d !important;
+  color: white !important;
+}
+
+.appointment-approval-modal .btn-secondary:hover,
+.appointment-rejection-modal .btn-secondary:hover {
+  background: #5a6268 !important;
+}
+
+.appointment-approval-modal .btn-success {
+  background: #28a745 !important;
+  color: white !important;
+}
+
+.appointment-approval-modal .btn-success:hover {
+  background: #218838 !important;
+}
+
+.appointment-rejection-modal .btn-danger {
+  background: #dc3545 !important;
+  color: white !important;
+}
+
+.appointment-rejection-modal .btn-danger:hover {
+  background: #c82333 !important;
+}
+
+/* Text styles */
+.appointment-approval-modal .text-muted,
+.appointment-rejection-modal .text-muted {
+  color: #6c757d !important;
+  font-size: 13px !important;
+  font-style: italic !important;
+}
+
 .patient-dropdown {
   position: absolute;
   top: 100%;
@@ -2498,4 +2846,65 @@ select:disabled option {
 .patient-contact {
   font-size: 12px;
   color: #007bff;
+}
+
+/* Appointments Table Styles */
+.appointments-card-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.appointments-card-table th {
+  background-color: #f8f9fa;
+  color: #495057;
+  font-weight: 600;
+  padding: 12px;
+  text-align: left;
+  border-bottom: 2px solid #dee2e6;
+  font-size: 0.85rem;
+}
+
+.appointments-card-table td {
+  padding: 12px;
+  border-bottom: 1px solid #f1f3f4;
+  vertical-align: middle;
+}
+
+/* Specific column alignments */
+.appointments-card-table th:first-child,
+.appointments-card-table td:first-child {
+  text-align: left;
+  font-weight: 500;
+}
+
+.appointments-card-table th:nth-child(2),
+.appointments-card-table td:nth-child(2) {
+  text-align: center;
+}
+
+.appointments-card-table th:nth-child(3),
+.appointments-card-table td:nth-child(3) {
+  text-align: center;
+}
+
+.appointments-card-table th:nth-child(4),
+.appointments-card-table td:nth-child(4) {
+  text-align: center;
+}
+
+.appointments-card-table th:nth-child(5),
+.appointments-card-table td:nth-child(5) {
+  text-align: center;
+}
+
+.appointments-card-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Table container */
+.appointments-card-table-container {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
 }

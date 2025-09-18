@@ -7,7 +7,7 @@ const { authenticateToken: auth } = require('../middleware/auth');
 const router = express.Router();
 
 // @route   GET api/users
-// @desc    Get all users
+// @desc    Get all users (admin, doctor, and management accounts)
 // @access  Private/Admin
 router.get('/', auth, async (req, res) => {
   try {
@@ -31,7 +31,7 @@ router.get('/', auth, async (req, res) => {
         'createdAt'
       ],
       where: {
-        role: { [Op.in]: ['admin', 'doctor'] }
+        role: { [Op.in]: ['admin', 'doctor', 'management'] }
       },
       order: [['lastName', 'ASC']],
     });
@@ -43,15 +43,50 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+// @route   GET api/users/by-role/:role
+// @desc    Get users by role for vaccination administration
+// @access  Private
+router.get('/by-role/:role', auth, async (req, res) => {
+  try {
+    const { role } = req.params;
+    
+    // Validate role parameter
+    const validRoles = ['doctor', 'admin', 'management', 'staff', 'nurse'];
+    if (!validRoles.includes(role.toLowerCase())) {
+      return res.status(400).json({ msg: 'Invalid role specified' });
+    }
+
+    const users = await User.findAll({
+      attributes: [
+        'id', 
+        'firstName', 
+        'lastName', 
+        'position', 
+        'role'
+      ],
+      where: {
+        role: role.toLowerCase(),
+        isActive: true
+      },
+      order: [['firstName', 'ASC'], ['lastName', 'ASC']],
+    });
+
+    res.json(users);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
 // @route   GET api/users/doctors
-// @desc    Get all doctors (accessible by doctors and admins)
+// @desc    Get all doctors (accessible by doctors, admins, and management)
 // @access  Private/Doctor+
 router.get('/doctors', auth, async (req, res) => {
   try {
-    // Allow both doctors and admins to access this endpoint
+    // Allow doctors, admins, and management to access this endpoint
     const userRole = req.user.role.toLowerCase();
-    if (userRole !== 'admin' && userRole !== 'doctor') {
-      return res.status(403).json({ msg: 'Unauthorized: Doctor or Admin access required' });
+    if (userRole !== 'admin' && userRole !== 'doctor' && userRole !== 'management') {
+      return res.status(403).json({ msg: 'Unauthorized: Doctor, Admin, or Management access required' });
     }
 
     const doctors = await User.findAll({
@@ -177,8 +212,8 @@ router.post('/',
 // @access  Private/Admin
 router.put('/:id', auth, async (req, res) => {
   try {
-    // Check if the user has admin privileges
-    if (req.user.role !== 'admin') {
+    // Check if the user has admin privileges (case-insensitive check)
+    if (req.user.role.toLowerCase() !== 'admin') {
       return res.status(403).json({ msg: 'Unauthorized: Admin access required' });
     }
 
@@ -220,8 +255,8 @@ router.put('/:id', auth, async (req, res) => {
 // @access  Private/Admin
 router.delete('/:id', auth, async (req, res) => {
   try {
-    // Check if the user has admin privileges
-    if (req.user.role !== 'admin') {
+    // Check if the user has admin privileges (case-insensitive check)
+    if (req.user.role.toLowerCase() !== 'admin') {
       return res.status(403).json({ msg: 'Unauthorized: Admin access required' });
     }
 

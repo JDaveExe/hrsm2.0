@@ -1,3 +1,31 @@
+/* CSS Custom Properties for Theming */
+:root {
+  /* Red Theme (Default) */
+  --primary-color: #dc3545;
+  --primary-hover: #c82333;
+  --primary-gradient-start: #dc3545;
+  --primary-gradient-end: #c82333;
+  --primary-shadow-rgb: 220, 53, 69;
+}
+
+/* Blue Theme */
+.theme-blue {
+  --primary-color: #007bff;
+  --primary-hover: #0056b3;
+  --primary-gradient-start: #007bff;
+  --primary-gradient-end: #0056b3;
+  --primary-shadow-rgb: 0, 123, 255;
+}
+
+/* Green Theme */
+.theme-green {
+  --primary-color: #28a745;
+  --primary-hover: #1e7e34;
+  --primary-gradient-start: #28a745;
+  --primary-gradient-end: #1e7e34;
+  --primary-shadow-rgb: 40, 167, 69;
+}
+
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',

@@ -46,6 +46,7 @@ const CheckInSession = sequelize.define('CheckInSession', {
       'transferred',
       'started',
       'completed', 
+      'vaccination-completed',
       'cancelled'
     ),
     defaultValue: 'checked-in',
@@ -107,6 +108,21 @@ const CheckInSession = sequelize.define('CheckInSession', {
   doctorNotes: {
     type: DataTypes.TEXT,
     allowNull: true,
+  },
+  chiefComplaint: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Primary reason for patient visit',
+  },
+  presentSymptoms: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Current symptoms described by patient',
+  },
+  treatmentPlan: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Prescribed treatment plan',
   },
   createdBy: {
     type: DataTypes.INTEGER,

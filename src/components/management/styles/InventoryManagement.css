@@ -1,0 +1,108 @@
+/* InventoryManagement.css */
+.inventory-management {
+  padding: 0;
+}
+
+.inventory-tabs-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  border-bottom: 1px solid #e9ecef;
+  padding: 20px;
+  margin-bottom: 0;
+  flex-wrap: nowrap;
+  min-height: 70px;
+}
+
+.inventory-tabs {
+  border-bottom: none !important;
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.inventory-tabs .nav-link {
+  color: #6c757d;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: none;
+  font-weight: 500;
+  padding: 12px 16px;
+  margin-right: 8px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: fit-content;
+}
+
+.inventory-tabs .nav-link:hover {
+  color: #007bff;
+  border-color: transparent;
+  background: rgba(0, 123, 255, 0.05);
+}
+
+.inventory-tabs .nav-link.active {
+  color: #007bff;
+  border-bottom-color: #007bff;
+  background: rgba(0, 123, 255, 0.05);
+}
+
+.inventory-header-actions {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.time-period-buttons {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.time-period-buttons .btn {
+  font-size: 0.875rem;
+  padding: 6px 12px;
+}
+
+.inventory-content {
+  padding: 20px;
+  background: #f8f9fa;
+  min-height: calc(100vh - 200px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .inventory-tabs-container {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 15px;
+    gap: 15px;
+  }
+  
+  .inventory-tabs {
+    align-self: stretch;
+  }
+  
+  .inventory-tabs .nav-link {
+    padding: 10px 12px;
+    margin-right: 5px;
+    font-size: 0.9rem;
+  }
+  
+  .inventory-header-actions {
+    align-self: center;
+  }
+}
+
+@media (max-width: 576px) {
+  .inventory-tabs .nav-link {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+  
+  .time-period-buttons .btn {
+    font-size: 0.8rem;
+    padding: 5px 10px;
+  }
+}

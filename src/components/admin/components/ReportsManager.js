@@ -117,7 +117,7 @@ const ReportsManager = ({ simulationMode }) => {
       totalPatients: allPatients.length,
       totalFamilies: (familiesData || []).length,
       todaysCheckups: todaysCheckups.filter(checkup => 
-        checkup.status === 'completed' && 
+        (checkup.status === 'completed' || checkup.status === 'vaccination-completed') && 
         new Date(checkup.updatedAt || checkup.completedAt).toDateString() === new Date().toDateString()
       ).length,
       pendingAppointments: pendingAppointments.length,
@@ -125,7 +125,7 @@ const ReportsManager = ({ simulationMode }) => {
         checkup.status === 'in-progress' || checkup.status === 'checked-in'
       ).length,
       completedCheckups: todaysCheckups.filter(checkup => 
-        checkup.status === 'completed'
+        checkup.status === 'completed' || checkup.status === 'vaccination-completed'
       ).length,
       malePatients: allPatients.filter(p => p.gender === 'Male').length,
       femalePatients: allPatients.filter(p => p.gender === 'Female').length

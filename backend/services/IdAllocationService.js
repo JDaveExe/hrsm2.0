@@ -18,11 +18,11 @@ class IdAllocationService {
      */
     static async getNextAdminDoctorId() {
         try {
-            // Get current max admin/doctor ID in the 10000+ range
+            // Get current max admin/doctor/management ID in the 10000+ range
             const [results] = await sequelize.query(`
                 SELECT MAX(id) as maxId 
                 FROM users 
-                WHERE role IN ('admin', 'doctor') 
+                WHERE role IN ('admin', 'doctor', 'management') 
                 AND id >= 10003
             `);
             

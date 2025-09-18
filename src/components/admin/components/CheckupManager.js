@@ -6,6 +6,9 @@ import { useVitalSignsHistory, useRecordVitalSigns } from '../../../hooks/useVit
 import api from '../../../services/api'; // Import the new API service
 import LoadingSpinner from './LoadingSpinner';
 import VitalSignsModal from '../../VitalSignsModal';
+import VaccinationModal from '../../VaccinationModal';
+import DoctorPicker from '../../common/DoctorPicker';
+import { doctorSessionService } from '../../../services/doctorSessionService';
 import './styles/CheckupManager.css';
 import '../../../styles/CheckupTableStyles.css';
 import '../../../styles/VitalSignsModal.css';
@@ -33,6 +36,10 @@ const CheckupManager = () => {
   const [doctorQueueSearch, setDoctorQueueSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [activeTab, setActiveTab] = useState('today');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
   
   // Modal states
   const [showVitalSignsModal, setShowVitalSignsModal] = useState(false);
@@ -75,6 +82,14 @@ const CheckupManager = () => {
   const [vitalSignsHistoryPatientId, setVitalSignsHistoryPatientId] = useState(null);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [selectedNote, setSelectedNote] = useState('');
+  
+  // Vaccination modal state
+  const [showVaccinationModal, setShowVaccinationModal] = useState(false);
+  const [vaccinatedTodayPatients, setVaccinatedTodayPatients] = useState(new Set()); // Track patients vaccinated today
+  
+  // Doctor selection states
+  const [selectedDoctors, setSelectedDoctors] = useState({}); // Maps checkup.id -> selected doctor
+  const [onlineDoctors, setOnlineDoctors] = useState([]);
 
   // Use vital signs history hook conditionally
   const { 
@@ -106,23 +121,23 @@ const CheckupManager = () => {
   const serviceSchedule = {
     'monday': {
       morning: ['general-checkup', 'blood-pressure', 'vaccination'],
-      afternoon: ['prenatal-checkup', 'consultation', 'follow-up']
+      afternoon: ['prenatal-checkup', 'consultation', 'follow-up', 'vaccination']
     },
     'tuesday': {
       morning: ['pediatric-checkup', 'blood-pressure', 'vaccination'],
       afternoon: ['general-checkup', 'consultation', 'follow-up']
     },
     'wednesday': {
-      morning: ['general-checkup', 'blood-pressure', 'prenatal-checkup'],
+      morning: ['general-checkup', 'blood-pressure', 'prenatal-checkup', 'vaccination'],
       afternoon: ['vaccination', 'pediatric-checkup', 'follow-up']
     },
     'thursday': {
       morning: ['general-checkup', 'consultation', 'follow-up'],
-      afternoon: ['blood-pressure', 'vaccination', 'prenatal-checkup']
+      afternoon: ['blood-pressure', 'prenatal-checkup']
     },
     'friday': {
       morning: ['pediatric-checkup', 'blood-pressure', 'vaccination'],
-      afternoon: ['general-checkup', 'consultation', 'follow-up']
+      afternoon: ['general-checkup', 'consultation', 'follow-up', 'vaccination']
     }
   };
 
@@ -134,7 +149,6 @@ const CheckupManager = () => {
     { value: 'general-checkup', label: 'General Checkup' },
     { value: 'blood-pressure', label: 'Blood Pressure Check' },
     { value: 'vaccination', label: 'Vaccination' },
-    { value: 'prenatal-checkup', label: 'Prenatal Checkup' },
     { value: 'pediatric-checkup', label: 'Pediatric Checkup' },
     { value: 'consultation', label: 'Doctor Consultation' },
     { value: 'follow-up', label: 'Follow-up Visit' },
@@ -243,7 +257,7 @@ const CheckupManager = () => {
   const loadLastVitalSigns = async (patientId) => {
     try {
       // Use the vital signs history hook data if available, or fetch it manually
-      const response = await api.get(`/api/patients/${patientId}/vital-signs-history`);
+      const response = await api.get(`/api/checkups/vital-signs/history/${patientId}`);
       console.log('loadLastVitalSigns response:', response.data);
       
       let history = [];
@@ -271,7 +285,32 @@ const CheckupManager = () => {
     return null;
   };
 
-  // Load today's checkups on component mount
+  // Load today's vaccinated patients
+  const loadTodaysVaccinations = async () => {
+    try {
+      const authData = JSON.parse(sessionStorage.getItem('authData') || '{}');
+      const authToken = authData.token || window.__authToken;
+      
+      if (!authToken) return;
+      
+      const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${baseURL}/api/vaccinations/today`, {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      
+      if (response.ok) {
+        const vaccinationsToday = await response.json();
+        const patientIds = new Set(vaccinationsToday.map(v => v.patientId));
+        setVaccinatedTodayPatients(patientIds);
+      }
+    } catch (error) {
+      console.log('Could not load today\'s vaccinations:', error);
+    }
+  };
+
+  // Load today's checkups and vaccination status on component mount
   useEffect(() => {
     // The useCheckups hook now handles data fetching, so we can remove the manual fetch.
     // We still might want to expose a refresh function if needed.
@@ -279,6 +318,9 @@ const CheckupManager = () => {
       // This would be handled by refetching the query
       // For now, we can leave this as a placeholder
     };
+    
+    // Load today's vaccinated patients
+    loadTodaysVaccinations();
     
     return () => {
       delete window.refreshTodaysCheckups;
@@ -291,6 +333,11 @@ const CheckupManager = () => {
       filterCheckups();
     }
   }, [todaysCheckups, searchTerm, statusFilter]);
+
+  // Reset pagination when search term or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
 
   const filterCheckups = () => {
     let filtered = todaysCheckups || [];
@@ -317,7 +364,7 @@ const CheckupManager = () => {
           case 'in-progress':
             return checkup.status === 'in-progress';
           case 'completed':
-            return checkup.status === 'completed';
+            return checkup.status === 'completed' || checkup.status === 'vaccination-completed';
           default:
             return true;
         }
@@ -325,6 +372,29 @@ const CheckupManager = () => {
     }
 
     setFilteredCheckups(filtered);
+  };
+
+  // Calculate pagination values
+  const totalPages = Math.ceil(filteredCheckups.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentCheckups = filteredCheckups.slice(startIndex, endIndex);
+
+  // Pagination handlers
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
+  const handlePrevious = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
   };
 
   const handleVitalSigns = async (patient) => {
@@ -447,7 +517,7 @@ const CheckupManager = () => {
     
     try {
       // Get auth token properly
-      const authData = JSON.parse(localStorage.getItem('auth') || '{}');
+      const authData = JSON.parse(sessionStorage.getItem('authData') || '{}');
       const authToken = authData.token || window.__authToken;
       
       if (!authToken) {
@@ -457,7 +527,8 @@ const CheckupManager = () => {
       }
 
       // Update the checkup with the selected service type
-      const response = await fetch(`/api/checkups/${patient.id}`, {
+      const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${baseURL}/api/checkups/${patient.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -480,6 +551,133 @@ const CheckupManager = () => {
     } catch (error) {
       console.error('Error updating service type:', error);
       alert('Error updating service type. Please try again.');
+    }
+  };
+
+  // Vaccination handling functions
+  const handleStartVaccination = async (patient) => {
+    if (patient.serviceType !== 'vaccination') {
+      setAlert({ 
+        type: 'warning', 
+        message: 'This function is only available for vaccination services.' 
+      });
+      return;
+    }
+    
+    if (!patient.vitalSignsCollected) {
+      setAlert({ 
+        type: 'warning', 
+        message: 'Please complete vital signs before starting vaccination.' 
+      });
+      return;
+    }
+    
+    // Check if patient has already been vaccinated today
+    try {
+      const authData = JSON.parse(sessionStorage.getItem('authData') || '{}');
+      const authToken = authData.token || window.__authToken;
+      
+      if (authToken) {
+        const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+        const response = await fetch(`${baseURL}/api/vaccinations/check-today/${patient.patientId}`, {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          if (result.hasVaccinationToday) {
+            setAlert({ 
+              type: 'warning', 
+              message: 'This patient has already received a vaccination today.' 
+            });
+            return;
+          }
+        }
+      }
+    } catch (error) {
+      console.log('Could not check existing vaccinations:', error);
+      // Continue anyway - the API check is optional
+    }
+    
+    setSelectedPatient(patient);
+    setShowVaccinationModal(true);
+  };
+
+  const handleVaccinationSave = async (vaccinationRecord) => {
+    try {
+      // Save vaccination record to backend
+      const authData = JSON.parse(sessionStorage.getItem('authData') || '{}');
+      const authToken = authData.token || window.__authToken;
+      
+      if (!authToken) {
+        setAlert({ type: 'danger', message: 'Authentication required. Please log in again.' });
+        return;
+      }
+
+      const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${baseURL}/api/vaccinations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify(vaccinationRecord)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Update patient status to vaccination-completed
+        await fetch(`${baseURL}/api/checkups/${selectedPatient.id}/status`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          body: JSON.stringify({
+            status: 'vaccination-completed',
+            notes: `Vaccination completed: ${vaccinationRecord.vaccineName}`,
+            completionType: 'vaccination'
+          })
+        });
+
+        setAlert({ 
+          type: 'success', 
+          message: `Vaccination completed successfully for ${selectedPatient.patientName}` 
+        });
+        
+        // Add patient to vaccinated today set
+        setVaccinatedTodayPatients(prev => new Set([...prev, selectedPatient.patientId]));
+        
+        // Close modal and refresh data
+        setShowVaccinationModal(false);
+        setSelectedPatient(null);
+        refetch();
+        refreshTodaysCheckups();
+      } else {
+        console.error('Vaccination save failed:', response.status, response.statusText);
+        let errorMessage = `Failed to save vaccination record (${response.status})`;
+        try {
+          const error = await response.json();
+          console.error('Error response:', error);
+          errorMessage = error.message || errorMessage;
+        } catch (parseError) {
+          console.error('Could not parse error response:', parseError);
+        }
+        setAlert({ 
+          type: 'danger', 
+          message: errorMessage 
+        });
+      }
+    } catch (error) {
+      console.error('Error saving vaccination record:', error);
+      console.error('Error details:', error.message, error.stack);
+      setAlert({ 
+        type: 'danger', 
+        message: `Network error occurred while saving vaccination: ${error.message}. Please check your connection and try again.` 
+      });
     }
   };
 
@@ -630,20 +828,49 @@ const CheckupManager = () => {
     }
   };
 
+  const handleDoctorSelect = (checkupId, doctor) => {
+    setSelectedDoctors(prev => ({
+      ...prev,
+      [checkupId]: doctor
+    }));
+  };
+
   const handleNotifyDoctor = async (patient) => {
     if (!patient.vitalSignsCollected) {
       setAlert({ type: 'warning', message: 'Please collect vital signs before notifying the doctor.' });
       return;
     }
 
+    const selectedDoctor = selectedDoctors[patient.id];
+    if (!selectedDoctor) {
+      setAlert({ type: 'warning', message: 'Please select an available doctor before adding to queue.' });
+      return;
+    }
+
+    if (!selectedDoctor.isAvailable) {
+      setAlert({ type: 'warning', message: 'Selected doctor is not available. Please choose another doctor.' });
+      return;
+    }
+
     try {
-      // Use the optimized addToQueue function from DataContext
-      const result = await addToQueue(patient);
+      // Use the optimized addToQueue function from DataContext with assigned doctor
+      const result = await addToQueue({
+        ...patient,
+        assignedDoctor: selectedDoctor.id,
+        assignedDoctorName: selectedDoctor.name
+      });
       
       if (result.success) {
         setAlert({ 
           type: 'success', 
-          message: `Doctor has been notified about ${patient.patientName}. Patient is now in the doctor's queue.` 
+          message: `${selectedDoctor.name} has been notified about ${patient.patientName}. Patient assigned to doctor's queue.` 
+        });
+        
+        // Clear the doctor selection for this patient
+        setSelectedDoctors(prev => {
+          const updated = { ...prev };
+          delete updated[patient.id];
+          return updated;
         });
         
         // Refresh data to ensure synchronization
@@ -660,7 +887,7 @@ const CheckupManager = () => {
       }
     } catch (error) {
       console.error('Error notifying doctor:', error);
-      setAlert({ type: 'danger', message: 'Error notifying doctor. Please try again.' });
+      setAlert({ type: 'danger', message: 'Error assigning patient to doctor. Please try again.' });
     }
   };
 
@@ -680,6 +907,11 @@ const CheckupManager = () => {
         return <Badge bg="primary">With Doctor</Badge>;
       case 'completed':
         return <Badge bg="success">Completed</Badge>;
+      case 'vaccination-completed':
+        return <Badge bg="success">
+          <i className="bi bi-shield-check me-1"></i>
+          Vaccination Complete
+        </Badge>;
       default:
         return <Badge bg="light" text="dark">{checkup.status}</Badge>;
     }
@@ -761,7 +993,7 @@ const CheckupManager = () => {
           </Badge>
           <Badge bg="success" className="stat-notif">
             <i className="bi bi-check-circle me-1"></i>
-            Completed: {todaysCheckups.filter(c => c.status === 'vitals-recorded' || c.status === 'completed').length}
+            Completed: {todaysCheckups.filter(c => c.status === 'vitals-recorded' || c.status === 'completed' || c.status === 'vaccination-completed').length}
           </Badge>
           <Badge bg="orange" className="stat-notif bg-warning">
             <i className="bi bi-clock me-1"></i>
@@ -783,7 +1015,7 @@ const CheckupManager = () => {
         }>
           <div className="checkup-controls">
             <Row>
-              <Col md={4}>
+              <Col md={3}>
                 <InputGroup>
                   <InputGroup.Text><i className="bi bi-search"></i></InputGroup.Text>
                   <Form.Control
@@ -794,7 +1026,37 @@ const CheckupManager = () => {
                   />
                 </InputGroup>
               </Col>
-              <Col md={8}>
+              <Col md={3}>
+                {totalPages > 1 && (
+                  <div className="d-flex align-items-center justify-content-center">
+                    <Button 
+                      variant="outline-primary" 
+                      size="sm" 
+                      onClick={handlePrevious}
+                      disabled={currentPage === 1}
+                      className="me-2"
+                    >
+                      <i className="bi bi-chevron-left"></i>
+                    </Button>
+                    <span className="mx-2 text-nowrap">
+                      Page {currentPage} of {totalPages} 
+                      <small className="text-muted ms-1">
+                        ({filteredCheckups.length} total)
+                      </small>
+                    </span>
+                    <Button 
+                      variant="outline-primary" 
+                      size="sm" 
+                      onClick={handleNext}
+                      disabled={currentPage === totalPages}
+                      className="ms-2"
+                    >
+                      <i className="bi bi-chevron-right"></i>
+                    </Button>
+                  </div>
+                )}
+              </Col>
+              <Col md={6}>
                 <div className="d-flex gap-2 justify-content-end">
                   <Button variant="success" onClick={refetch}>
                     <i className="bi bi-arrow-clockwise me-1"></i>
@@ -854,19 +1116,20 @@ const CheckupManager = () => {
                   <th style={{width: '3%'}}>#</th>
                   <th style={{width: '4%'}}>Method</th>
                   <th style={{width: '8%'}}>Patient ID</th>
-                  <th style={{width: '15%'}}>Patient Name</th>
-                  <th style={{width: '8%'}}>Age/Gender</th>
-                  <th style={{width: '10%'}}>Check-in Time</th>
-                  <th style={{width: '15%'}}>Service Type</th>
-                  <th style={{width: '8%'}}>Priority</th>
-                  <th style={{width: '10%'}}>Status</th>
+                  <th style={{width: '12%'}}>Patient Name</th>
+                  <th style={{width: '7%'}}>Age/Gender</th>
+                  <th style={{width: '8%'}}>Check-in Time</th>
+                  <th style={{width: '12%'}}>Service Type</th>
+                  <th style={{width: '7%'}}>Priority</th>
+                  <th style={{width: '12%'}}>Available Doctor</th>
+                  <th style={{width: '8%'}}>Status</th>
                   <th style={{width: '19%'}}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredCheckups.length === 0 ? (
+                {currentCheckups.length === 0 ? (
                   <tr>
-                    <td colSpan="10" className="text-center py-4 text-muted">
+                    <td colSpan="11" className="text-center py-4 text-muted">
                       <i className="bi bi-calendar-x me-2"></i>
                       {searchTerm || statusFilter !== 'all' 
                         ? 'No checkups match your search criteria' 
@@ -875,7 +1138,7 @@ const CheckupManager = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredCheckups.map((checkup, index) => (
+                  currentCheckups.map((checkup, index) => (
                     <tr 
                       key={checkup.id} 
                       className={`checkup-row ${checkup.priority === 'Emergency' ? 'emergency-row' : ''} ${
@@ -889,7 +1152,7 @@ const CheckupManager = () => {
                         userSelect: isRemoveMode ? 'none' : 'auto'
                       }}
                     >
-                      <td className="row-number">{index + 1}</td>
+                      <td className="row-number">{startIndex + index + 1}</td>
                       <td className="method-cell">{getCheckInMethodIcon(checkup.checkInMethod)}</td>
                       <td className="patient-id">{checkup.patientId}</td>
                       <td className="patient-name">
@@ -907,6 +1170,7 @@ const CheckupManager = () => {
                           value={checkup.serviceType || ""}
                           onChange={(e) => handleServiceAssignment(checkup, e.target.value)}
                           style={{ minWidth: '150px', maxWidth: '100%' }}
+                          disabled={checkup.status === 'ready-for-queue'}
                         >
                           <option value="">Select Service</option>
                           {serviceTypes.map(service => (
@@ -917,6 +1181,26 @@ const CheckupManager = () => {
                         </Form.Select>
                       </td>
                       <td>{getPriorityBadge(checkup.priority)}</td>
+                      <td>
+                        {checkup.serviceType === 'vaccination' ? (
+                          <Badge bg="info" className="w-100 text-center py-2">
+                            <i className="bi bi-shield-plus me-1"></i>
+                            No Doctor Required
+                          </Badge>
+                        ) : (
+                          <DoctorPicker
+                            onDoctorSelect={(doctor) => handleDoctorSelect(checkup.id, doctor)}
+                            selectedDoctor={selectedDoctors[checkup.id]}
+                            disabled={!checkup.vitalSignsCollected || checkup.status === 'ready-for-queue'}
+                            size="sm"
+                            variant="outline-primary"
+                            inQueue={checkup.status === 'ready-for-queue'}
+                            assignedDoctor={checkup.status === 'ready-for-queue' ? {
+                              name: checkup.assignedDoctorName || 'Unknown Doctor'
+                            } : null}
+                          />
+                        )}
+                      </td>
                       <td>{getStatusBadge(checkup)}</td>
                       <td>
                         <div className="action-buttons">
@@ -933,18 +1217,57 @@ const CheckupManager = () => {
                             {checkup.vitalSignsCollected ? 'View Vital Signs' : 'Check Vital Signs'}
                           </Button>
                           
-                          {/* Add to Queue Button - Always visible but conditionally enabled */}
-                          <Button
-                            variant="outline-success"
-                            size="sm"
-                            onClick={() => handleNotifyDoctor(checkup)}
-                            className="me-1"
-                            disabled={!checkup.vitalSignsCollected}
-                            title={!checkup.vitalSignsCollected ? "Please complete vital signs first" : ""}
-                          >
-                            <i className="bi bi-arrow-right-circle me-1"></i>
-                            Add to Queue
-                          </Button>
+                          {/* Conditional Action Button based on Service Type */}
+                          {checkup.status !== 'ready-for-queue' && checkup.status !== 'vaccination-completed' && checkup.status !== 'completed' && !vaccinatedTodayPatients.has(checkup.patientId) && (
+                            checkup.serviceType === 'vaccination' ? (
+                              <Button
+                                variant="outline-success"
+                                size="sm"
+                                onClick={() => handleStartVaccination(checkup)}
+                                className="me-1"
+                                disabled={!checkup.vitalSignsCollected}
+                                title={
+                                  !checkup.vitalSignsCollected 
+                                    ? "Please complete vital signs first" 
+                                    : "Start vaccination process"
+                                }
+                              >
+                                <i className="bi bi-shield-plus me-1"></i>
+                                Start Vaccination
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="outline-success"
+                                size="sm"
+                                onClick={() => handleNotifyDoctor(checkup)}
+                                className="me-1"
+                                disabled={!checkup.vitalSignsCollected || !selectedDoctors[checkup.id]}
+                                title={
+                                  !checkup.vitalSignsCollected 
+                                    ? "Please complete vital signs first" 
+                                    : !selectedDoctors[checkup.id]
+                                    ? "Please select an available doctor first"
+                                    : ""
+                                }
+                              >
+                                <i className="bi bi-arrow-right-circle me-1"></i>
+                                Add to Queue
+                              </Button>
+                            )
+                          )}
+                          
+                          {/* In Queue Status - Show when patient is in queue */}
+                          {checkup.status === 'ready-for-queue' && (
+                            <Button
+                              variant="success"
+                              size="sm"
+                              disabled
+                              className="me-1"
+                            >
+                              <i className="bi bi-check-circle me-1"></i>
+                              In Queue
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1037,6 +1360,7 @@ const CheckupManager = () => {
                     <th>Service Type</th>
                     <th>Priority</th>
                     <th>Status</th>
+                    <th>Assisted By</th>
                     <th>Added Time</th>
                     <th>Source</th>
                   </tr>
@@ -1050,6 +1374,19 @@ const CheckupManager = () => {
                       <td>{item.serviceType}</td>
                       <td>{getPriorityBadge(item.priority)}</td>
                       <td>{getStatusBadge({ status: item.status })}</td>
+                      <td>
+                        {item.assignedDoctorName ? (
+                          <div>
+                            <i className="bi bi-person-check me-1 text-success"></i>
+                            <strong>{item.assignedDoctorName}</strong>
+                          </div>
+                        ) : (
+                          <span className="text-muted">
+                            <i className="bi bi-person-dash me-1"></i>
+                            Not assigned
+                          </span>
+                        )}
+                      </td>
                       <td>{new Date(item.queuedAt || Date.now()).toLocaleTimeString()}</td>
                       <td>
                         <Badge bg={item.source === 'admin_checkup' ? 'primary' : 'secondary'}>
@@ -1079,6 +1416,17 @@ const CheckupManager = () => {
         onViewHistory={handleViewVitalSignsHistory}
         onEdit={handleEditVitalSigns}
         normalRanges={normalRanges}
+      />
+
+      {/* Vaccination Modal */}
+      <VaccinationModal
+        show={showVaccinationModal}
+        onHide={() => {
+          setShowVaccinationModal(false);
+          setSelectedPatient(null);
+        }}
+        patient={selectedPatient}
+        onSave={handleVaccinationSave}
       />
 
       {/* Patient Database Modal removed as requested */}

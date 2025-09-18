@@ -7,10 +7,7 @@ import UserManagement from './components/UserManagement';
 import PatientManagement from './components/PatientManagement';
 import AppointmentManager from './components/AppointmentManager';
 import VitalSignsManager from './components/VitalSignsManager';
-import InventoryManagement from './components/InventoryManagement';
 import SystemSettings from './components/SystemSettings';
-import ReportsManager from './components/ReportsManager';
-import InventoryAlerts from './components/InventoryAlerts';
 import LoadingSpinner from './components/LoadingSpinner';
 import SimulationMode from './components/SimulationMode';
 import CheckupManager from './components/CheckupManager';
@@ -21,7 +18,7 @@ import './styles/AdminModals.css';
 import sealmainImage from '../../images/sealmain.png';
 
 const AdminLayout = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { 
     simulationModeStatus,
     updateSimulationMode,
@@ -35,9 +32,12 @@ const AdminLayout = () => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [inventoryFilter, setInventoryFilter] = useState(null);
   const [showSimulationModal, setShowSimulationModal] = useState(false);
   const [showFPSMonitor, setShowFPSMonitor] = useState(false);
+  
+  // Notification state
+  const [pendingNotifications, setPendingNotifications] = useState([]);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
 
   // Update time every second (real or simulated)
   useEffect(() => {
@@ -67,7 +67,6 @@ const AdminLayout = () => {
     
     setIsLoading(true);
     setCurrentPath(path);
-    setInventoryFilter(null); // Reset inventory filter when navigating
     
     // If a specific tab needs to be activated, save it in session storage
     if (tabToActivate) {
@@ -93,15 +92,58 @@ const AdminLayout = () => {
     };
   }, [handleNavigation]);
 
-  // Handle inventory alert navigation
-  const handleInventoryAlert = useCallback((alertType) => {
-    setIsLoading(true);
-    setCurrentPath('Inventory');
-    setInventoryFilter(alertType);
+  // Load notifications from localStorage
+  useEffect(() => {
+    const loadNotifications = () => {
+      try {
+        const stored = localStorage.getItem('admin_notifications');
+        const notifications = stored ? JSON.parse(stored) : [];
+        
+        // Filter only pending notifications that need acceptance
+        const pending = notifications.filter(notif => 
+          notif.type === 'appointment_scheduled' && 
+          notif.status === 'pending' &&
+          notif.needsAcceptance
+        );
+        
+        setPendingNotifications(pending);
+      } catch (error) {
+        console.error('Error loading notifications:', error);
+        setPendingNotifications([]);
+      }
+    };
+
+    loadNotifications();
     
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 100);
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(loadNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle notification acceptance
+  const handleAcceptNotification = useCallback((notificationId) => {
+    try {
+      const stored = localStorage.getItem('admin_notifications');
+      const notifications = stored ? JSON.parse(stored) : [];
+      
+      // Update notification status
+      const updated = notifications.map(notif => 
+        notif.id === notificationId 
+          ? { ...notif, status: 'accepted', acceptedAt: new Date().toISOString() }
+          : notif
+      );
+      
+      localStorage.setItem('admin_notifications', JSON.stringify(updated));
+      
+      // Remove from pending notifications
+      setPendingNotifications(prev => prev.filter(notif => notif.id !== notificationId));
+      
+      // Show success message
+      console.log('Appointment notification accepted');
+      
+    } catch (error) {
+      console.error('Error accepting notification:', error);
+    }
   }, []);
 
   // Toggle sidebar
@@ -204,12 +246,6 @@ const AdminLayout = () => {
         return AppointmentManager;
       case 'Vital Signs':
         return VitalSignsManager;
-      case 'Inventory':
-      case 'Prescription Inventory':
-      case 'Vaccine Inventory':
-        return InventoryManagement;
-      case 'Generate Reports':
-        return ReportsManager;
       case 'System Settings':
         return SystemSettings;
       case 'Backup & Restore':
@@ -264,11 +300,6 @@ const AdminLayout = () => {
               )}
             </div>
             
-            {/* Alerts Section */}
-            <div className="alerts-container">
-              <InventoryAlerts onNavigateToInventory={handleInventoryAlert} />
-            </div>
-            
             <div className="user-info">
               <div className="date-time">
                 <span>{currentDateTime.toLocaleString()}</span>
@@ -280,6 +311,28 @@ const AdminLayout = () => {
                 )}
                 <PerformanceIndicator show={showFPSMonitor} />
               </div>
+              
+              {/* Notification Bell */}
+              <div className="notification-container">
+                <button 
+                  className="notification-bell"
+                  onClick={() => setShowNotificationModal(!showNotificationModal)}
+                  title="Notifications"
+                >
+                  <i className="bi bi-bell"></i>
+                  {pendingNotifications.length > 0 && (
+                    <span className="notification-badge">{pendingNotifications.length}</span>
+                  )}
+                </button>
+                
+                {/* Notification Tooltip */}
+                {pendingNotifications.length > 0 && !showNotificationModal && (
+                  <div className="notification-tooltip">
+                    You have {pendingNotifications.length} notification{pendingNotifications.length > 1 ? 's' : ''}
+                  </div>
+                )}
+              </div>
+              
               <div className="user">
                 <span className="user-name">
                   {user ? `${user.firstName} ${user.lastName}` : 'User'}
@@ -288,9 +341,6 @@ const AdminLayout = () => {
                   <i className="bi bi-person-circle"></i>
                 </div>
               </div>
-              <button className="logout-btn" onClick={handleLogout}>
-                <i className="bi bi-box-arrow-right"></i>
-              </button>
             </div>
           </div>
 
@@ -317,7 +367,6 @@ const AdminLayout = () => {
                 currentPath={currentPath}
                 currentDateTime={currentDateTime}
                 simulationMode={simulationModeStatus}
-                inventoryFilter={inventoryFilter}
               />
             )}
           </div>
@@ -346,8 +395,8 @@ const AdminLayout = () => {
               <button 
                 className="admin-modal-btn admin-modal-btn-danger"
                 onClick={() => {
-                  // Implement logout logic here
-                  window.location.href = '/';
+                  logout();
+                  setShowLogoutModal(false);
                 }}
               >
                 Logout
@@ -365,6 +414,62 @@ const AdminLayout = () => {
         onSimulationToggle={handleSimulationToggle}
         onSimulationUpdate={handleSimulationUpdate}
       />
+
+      {/* Notification Modal */}
+      {showNotificationModal && (
+        <div className="admin-modal-overlay" onClick={() => setShowNotificationModal(false)}>
+          <div className="notification-modal" onClick={e => e.stopPropagation()}>
+            <div className="notification-modal-header">
+              <h4>
+                <i className="bi bi-bell me-2"></i>
+                Notifications ({pendingNotifications.length})
+              </h4>
+              <button className="admin-modal-close-btn" onClick={() => setShowNotificationModal(false)}>
+                <i className="bi bi-x"></i>
+              </button>
+            </div>
+            <div className="notification-modal-body">
+              {pendingNotifications.length === 0 ? (
+                <div className="no-notifications">
+                  <i className="bi bi-bell-slash"></i>
+                  <p>No pending notifications</p>
+                </div>
+              ) : (
+                <div className="notifications-list">
+                  {pendingNotifications.map(notification => (
+                    <div key={notification.id} className="notification-item">
+                      <div className="notification-content">
+                        <div className="notification-header">
+                          <i className="bi bi-calendar-check text-primary"></i>
+                          <span className="notification-title">Appointment Scheduled</span>
+                          <small className="notification-time">
+                            {new Date(notification.createdAt).toLocaleString()}
+                          </small>
+                        </div>
+                        <div className="notification-details">
+                          <p><strong>Patient:</strong> {notification.patientName}</p>
+                          <p><strong>Date:</strong> {notification.appointmentDate} at {notification.appointmentTime}</p>
+                          <p><strong>Type:</strong> {notification.appointmentType}</p>
+                          {notification.notes && <p><strong>Notes:</strong> {notification.notes}</p>}
+                        </div>
+                      </div>
+                      <div className="notification-actions">
+                        <button 
+                          className="btn btn-success btn-sm"
+                          onClick={() => handleAcceptNotification(notification.id)}
+                        >
+                          <i className="bi bi-check-circle me-1"></i>
+                          Accept
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

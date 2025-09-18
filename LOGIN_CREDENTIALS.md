@@ -35,6 +35,17 @@ The system comes with pre-configured default user accounts for immediate testing
   - Access prescription history
   - Update contact information
 
+### Management Account
+- **Username:** `management` or `management@brgymaybunga.health`
+- **Password:** `management123`
+- **Access Level:** Inventory and Reports Management
+- **Capabilities:**
+  - Inventory management and tracking
+  - Reports generation and analysis
+  - Supply chain oversight
+  - Statistical dashboards
+  - Forecast management
+
 ### Custom Created Accounts
 When you create new admin or doctor accounts through the system:
 - **Username format:** `[initials]@brgymaybunga.health`

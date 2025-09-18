@@ -6,10 +6,10 @@
     "manufacturer": "Sanofi",
     "category": "Routine Childhood",
     "batchNumber": "10",
-    "dosesInStock": 240,
+    "dosesInStock": 244,
     "minimumStock": 50,
     "unitCost": 25,
-    "expiryDate": "2025-10-30",
+    "expiryDate": "2025-09-06",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intradermal",
     "ageGroups": [
@@ -21,7 +21,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Store in refrigerator, use within 6 hours of reconstitution",
-    "updatedAt": "2025-08-21T06:05:07.078Z"
+    "updatedAt": "2025-09-16T06:29:35.101Z"
   },
   {
     "id": 2,
@@ -33,7 +33,7 @@
     "dosesInStock": 180,
     "minimumStock": 40,
     "unitCost": 30,
-    "expiryDate": "2025-11-30",
+    "expiryDate": "2025-09-14",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -47,7 +47,8 @@
     "contraindications": "Severe allergic reaction to previous dose",
     "status": "Available",
     "isActive": true,
-    "notes": "Can be given with other vaccines"
+    "notes": "Can be given with other vaccines",
+    "updatedAt": "2025-09-11T04:00:39.827Z"
   },
   {
     "id": 3,
@@ -56,10 +57,10 @@
     "manufacturer": "Serum Institute",
     "category": "Routine Childhood",
     "batchNumber": "PV003-2024",
-    "dosesInStock": 150,
+    "dosesInStock": 149,
     "minimumStock": 30,
     "unitCost": 45,
-    "expiryDate": "2025-10-15",
+    "expiryDate": "2025-09-29",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -70,7 +71,8 @@
     "contraindications": "Severe illness, previous severe reaction",
     "status": "Available",
     "isActive": true,
-    "notes": "Shake well before use"
+    "notes": "Shake well before use",
+    "updatedAt": "2025-09-17T00:14:48.505Z"
   },
   {
     "id": 4,
@@ -79,7 +81,7 @@
     "manufacturer": "Bio Farma",
     "category": "Routine Childhood",
     "batchNumber": "OPV004-2024",
-    "dosesInStock": 300,
+    "dosesInStock": 299,
     "minimumStock": 100,
     "unitCost": 5,
     "expiryDate": "2025-09-30",
@@ -94,7 +96,8 @@
     "contraindications": "Immunodeficiency, acute illness",
     "status": "Available",
     "isActive": true,
-    "notes": "Store frozen, use immediately after thawing"
+    "notes": "Store frozen, use immediately after thawing",
+    "updatedAt": "2025-09-17T00:43:17.138Z"
   },
   {
     "id": 5,
@@ -341,7 +344,7 @@
     "manufacturer": "Merck",
     "category": "Additional Routine",
     "batchNumber": "VAR015-2024",
-    "dosesInStock": 85,
+    "dosesInStock": 84,
     "minimumStock": 20,
     "unitCost": 80,
     "expiryDate": "2025-10-30",
@@ -356,7 +359,8 @@
     "contraindications": "Pregnancy, immunodeficiency",
     "status": "Available",
     "isActive": true,
-    "notes": "Live vaccine, store frozen"
+    "notes": "Live vaccine, store frozen",
+    "updatedAt": "2025-09-17T00:03:48.176Z"
   },
   {
     "id": 16,
@@ -573,37 +577,5 @@
     "status": "Available",
     "isActive": true,
     "notes": "New vaccine for RSV prevention"
-  },
-  {
-    "id": 26,
-    "name": "sample",
-    "category": "Emergency",
-    "manufacturer": "sanole",
-    "administrationRoute": "Intranasal",
-    "description": "sample",
-    "dosesInStock": 39,
-    "minimumStock": 0,
-    "batchNumber": "sample",
-    "expiryDate": "2025-10-14",
-    "storageRequirements": "-15 to -25°C (Frozen)",
-    "costPerDose": 100,
-    "createdAt": "2025-08-14T17:09:16.554Z",
-    "updatedAt": "2025-08-14T17:09:16.554Z"
-  },
-  {
-    "id": 26,
-    "name": "",
-    "category": "Emergency",
-    "manufacturer": "sanole",
-    "administrationRoute": "Intranasal",
-    "description": "sample",
-    "dosesInStock": 0,
-    "minimumStock": 0,
-    "batchNumber": "",
-    "expiryDate": "2025-10-14",
-    "storageRequirements": "-15 to -25°C (Frozen)",
-    "costPerDose": 100,
-    "createdAt": "2025-08-24T12:20:06.411Z",
-    "updatedAt": "2025-08-24T12:20:06.411Z"
   }
 ]

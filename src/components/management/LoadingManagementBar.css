@@ -1,0 +1,151 @@
+.loading-management-container {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, rgba(232, 244, 248, 0.95) 0%, rgba(240, 248, 255, 0.95) 50%, rgba(232, 245, 232, 0.95) 100%);
+  display: flex !important;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(5px);
+}
+
+/* Override any global spinner styles that might interfere */
+.loading-management-container .loading-spinner,
+.loading-management-container .spinner-border {
+  display: none !important;
+}
+
+.loading-management-content {
+  text-align: center;
+  padding: 2rem;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(180, 200, 220, 0.3);
+  min-width: 300px;
+  backdrop-filter: blur(10px);
+}
+
+.loading-management-bar {
+  width: 100%;
+  height: 8px;
+  background-color: #f1f3f4;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 1rem;
+  position: relative;
+}
+
+.loading-management-progress {
+  height: 100%;
+  background: linear-gradient(90deg, #3498db 0%, #2ecc71 50%, #3498db 100%);
+  border-radius: 6px;
+  width: 0%;
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-management-progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(255, 255, 255, 0.3) 25%, 
+    rgba(255, 255, 255, 0.5) 50%, 
+    rgba(255, 255, 255, 0.3) 75%, 
+    transparent 100%
+  );
+  animation: shimmer 2s infinite;
+}
+
+.loading-management-text {
+  color: #2c3e50;
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 0.5rem 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.loading-percentage {
+  color: #3498db;
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transition: color 0.3s ease;
+}
+
+/* Progress bar color variations based on progress */
+.loading-management-progress[style*="80%"],
+.loading-management-progress[style*="90%"],
+.loading-management-progress[style*="95%"],
+.loading-management-progress[style*="100%"] {
+  background: linear-gradient(90deg, #2ecc71 0%, #27ae60 50%, #2ecc71 100%);
+}
+
+.loading-management-progress[style*="100%"] + .loading-management-text + .loading-percentage {
+  color: #2ecc71;
+}
+
+/* Pulsing effect for final stage */
+.loading-management-content:has(.loading-management-progress[style*="100%"]) {
+  animation: finalPulse 0.6s ease-in-out;
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
+}
+
+@keyframes finalPulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 12px 40px rgba(46, 204, 113, 0.2);
+  }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .loading-management-content {
+    margin: 1rem;
+    padding: 1.5rem;
+    min-width: 280px;
+  }
+  
+  .loading-management-text {
+    font-size: 14px;
+  }
+}
+
+/* Light theme specific (matches management dashboard theme) */
+.loading-management-container.light-theme {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+
+.loading-management-container.light-theme .loading-management-content {
+  background: #fafafa;
+  border: 1px solid #e8eaed;
+}
+
+.loading-management-container.light-theme .loading-management-bar {
+  background-color: #f8f9fa;
+}
+
+.loading-management-container.light-theme .loading-management-text {
+  color: #3c4043;
+}

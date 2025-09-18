@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { CheckInSession, Patient, Appointment } = require('../models');
+const { CheckInSession, Patient, Appointment, User } = require('../models');
 const { Op, sequelize } = require('sequelize');
 const { sequelize: db } = require('../config/database');
 
@@ -224,6 +224,7 @@ router.post('/debug/test-session/:sessionId', async (req, res) => {
 router.post('/:sessionId/notify-doctor', async (req, res) => {
   try {
     const { sessionId } = req.params;
+    const { assignedDoctor, assignedDoctorName } = req.body;
 
     // First, get the session without includes to avoid association issues
     const session = await CheckInSession.findByPk(sessionId);
@@ -245,7 +246,8 @@ router.post('/:sessionId/notify-doctor', async (req, res) => {
     await session.update({
       doctorNotified: true,
       notifiedAt: new Date(),
-      status: 'doctor-notified'
+      status: 'doctor-notified',
+      assignedDoctor: assignedDoctor || null
     });
 
     // Here you could add notification logic (email, SMS, push notification)
@@ -366,7 +368,21 @@ router.put('/:sessionId/status', async (req, res) => {
   
   try {
     const { sessionId } = req.params;
-    const { status, notes, prescriptions } = req.body;
+    const { status, notes, prescriptions, chiefComplaint, presentSymptoms, diagnosis, treatmentPlan, doctorNotes, doctorId, doctorName } = req.body;
+
+    console.log('🔄 Updating checkup status:', {
+      sessionId,
+      status,
+      notes: notes?.substring(0, 50) + '...',
+      chiefComplaint: chiefComplaint?.substring(0, 50) + '...',
+      presentSymptoms: presentSymptoms?.substring(0, 50) + '...',
+      diagnosis: diagnosis?.substring(0, 50) + '...',
+      treatmentPlan: treatmentPlan?.substring(0, 50) + '...',
+      doctorNotes: doctorNotes?.substring(0, 50) + '...',
+      prescriptionsCount: prescriptions?.length || 0,
+      doctorId,
+      doctorName
+    });
 
     const session = await CheckInSession.findByPk(sessionId, { transaction });
     if (!session) {
@@ -378,32 +394,79 @@ router.put('/:sessionId/status', async (req, res) => {
     if (notes !== undefined) {
       updateData.notes = notes;
     }
+    if (chiefComplaint !== undefined) {
+      updateData.chiefComplaint = chiefComplaint;
+    }
+    if (presentSymptoms !== undefined) {
+      updateData.presentSymptoms = presentSymptoms;
+    }
+    if (diagnosis !== undefined) {
+      updateData.diagnosis = diagnosis;
+    }
+    if (treatmentPlan !== undefined) {
+      updateData.treatmentPlan = treatmentPlan;
+    }
+    if (doctorNotes !== undefined) {
+      updateData.doctorNotes = doctorNotes;
+    }
+    
+    // Track the doctor who completed the checkup
+    if (status === 'completed') {
+      updateData.assignedDoctor = doctorId || 10021; // Use doctorId (integer), fallback to valid doctor ID
+      updateData.completedAt = new Date();
+    } else if (status === 'vaccination-completed') {
+      // For vaccination completions, explicitly set assignedDoctor to null to avoid FK constraint issues
+      updateData.assignedDoctor = null;
+      updateData.completedAt = new Date();
+    }
 
     // If status is being set to 'completed', handle inventory deduction
+    console.log(`Checking deduction conditions: status=${status}, prescriptions=${prescriptions ? prescriptions.length : 'null'}`);
     if (status === 'completed' && prescriptions && prescriptions.length > 0) {
-      console.log(`Processing inventory deduction for completed checkup ${sessionId}`);
+      console.log(`🔄 Processing inventory deduction for completed checkup ${sessionId}`);
       
-      // Load the Medication model dynamically
-      const MedicationModel = require('../models/Prescription.sequelize');
-      const Medication = MedicationModel(db);
+      // Use file-based inventory system (same as inventory routes)
+      const fs = require('fs').promises;
+      const path = require('path');
+      const medicationsDataPath = path.join(__dirname, '../data/medications.json');
+      
+      // Helper function to read JSON data
+      const readJsonFile = async (filePath) => {
+        try {
+          const data = await fs.readFile(filePath, 'utf8');
+          return JSON.parse(data);
+        } catch (error) {
+          if (error.code === 'ENOENT') {
+            return [];
+          }
+          throw error;
+        }
+      };
+      
+      // Helper function to write JSON data
+      const writeJsonFile = async (filePath, data) => {
+        await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+      };
       
       // Process each prescription and deduct from inventory
       for (const prescription of prescriptions) {
         if (prescription.medication && prescription.quantity && prescription.quantity > 0) {
-          // Find the medication in inventory
-          const medication = await Medication.findOne({
-            where: { 
-              name: prescription.medication 
-            },
-            transaction
-          });
+          // Read current medications from file
+          const medications = await readJsonFile(medicationsDataPath);
           
-          if (!medication) {
+          // Find the medication in inventory (case-insensitive search)
+          const medicationIndex = medications.findIndex(m => 
+            m.name.toLowerCase() === prescription.medication.toLowerCase()
+          );
+          
+          if (medicationIndex === -1) {
             await transaction.rollback();
             return res.status(400).json({ 
               error: `Medication "${prescription.medication}" not found in inventory` 
             });
           }
+          
+          const medication = medications[medicationIndex];
           
           // Check if there's enough stock
           if (medication.unitsInStock < prescription.quantity) {
@@ -415,33 +478,81 @@ router.put('/:sessionId/status', async (req, res) => {
           
           // Deduct the quantity from stock
           const newStock = medication.unitsInStock - prescription.quantity;
-          await medication.update({ 
-            unitsInStock: newStock,
-            status: newStock <= medication.minimumStock ? 'Low Stock' : 
-                    newStock === 0 ? 'Out of Stock' : 'Available'
-          }, { transaction });
+          medications[medicationIndex].unitsInStock = newStock;
+          medications[medicationIndex].status = newStock <= medication.minimumStock ? 'Low Stock' : 
+                  newStock === 0 ? 'Out of Stock' : 'Available';
+          medications[medicationIndex].updatedAt = new Date().toISOString();
           
-          console.log(`Deducted ${prescription.quantity} units of "${prescription.medication}" from inventory. New stock: ${newStock}`);
+          // Write updated inventory back to file
+          await writeJsonFile(medicationsDataPath, medications);
+          
+          console.log(`✅ Deducted ${prescription.quantity} units of "${prescription.medication}" from inventory. New stock: ${newStock}`);
         }
       }
       
       // Update the session with the prescriptions data
       updateData.prescription = JSON.stringify(prescriptions);
-      updateData.completedAt = new Date();
     }
 
+    console.log('🔄 About to update session with data:', updateData);
     await session.update(updateData, { transaction });
+    console.log('✅ Session updated successfully, committing transaction...');
     await transaction.commit();
+    console.log('✅ Transaction committed successfully');
 
-    res.json({ 
-      message: 'Status updated successfully',
-      session: {
-        id: session.id,
-        status: session.status,
-        notes: session.notes,
-        completedAt: session.completedAt
-      }
+    // Get the updated session with full patient information for proper response
+    const updatedSession = await CheckInSession.findByPk(sessionId, {
+      include: [
+        {
+          model: Patient,
+          as: 'Patient',
+          attributes: ['id', 'firstName', 'lastName', 'dateOfBirth', 'gender', 'contactNumber', 'familyId']
+        },
+        {
+          model: Appointment,
+          as: 'Appointment',
+          required: false,
+          attributes: ['serviceType', 'appointmentTime', 'priority']
+        }
+      ]
     });
+
+    const patient = updatedSession.Patient;
+    const appointment = updatedSession.Appointment;
+    
+    // Return the full checkup data in the same format as the doctor checkups endpoint
+    const result = {
+      id: updatedSession.id,
+      patientId: patient?.id || updatedSession.patientId,
+      patientName: patient ? `${patient.firstName} ${patient.lastName}` : 'Unknown Patient',
+      age: patient?.dateOfBirth ? calculateAge(patient.dateOfBirth) : 'N/A',
+      gender: patient?.gender || 'N/A',
+      contactNumber: patient?.contactNumber || 'N/A',
+      familyId: patient?.familyId || 'N/A',
+      serviceType: appointment?.serviceType || updatedSession.serviceType || 'General Checkup',
+      priority: appointment?.priority || updatedSession.priority || 'Normal',
+      status: updatedSession.status,
+      startedAt: updatedSession.checkInTime,
+      completedAt: updatedSession.completedAt,
+      notes: updatedSession.notes || '',
+      chiefComplaint: updatedSession.chiefComplaint || '',
+      presentSymptoms: updatedSession.presentSymptoms || '',
+      diagnosis: updatedSession.diagnosis || '',
+      treatmentPlan: updatedSession.treatmentPlan || '',
+      doctorNotes: updatedSession.doctorNotes || '',
+      prescriptions: (() => {
+        try {
+          return updatedSession.prescription ? JSON.parse(updatedSession.prescription) : [];
+        } catch (e) {
+          console.error('Error parsing prescription JSON:', e, 'Raw value:', updatedSession.prescription);
+          return [];
+        }
+      })(),
+      createdAt: updatedSession.createdAt,
+      updatedAt: updatedSession.updatedAt
+    };
+
+    res.json(result);
   } catch (error) {
     await transaction.rollback();
     console.error('Error updating status:', error);
@@ -572,6 +683,12 @@ router.get('/doctor', async (req, res) => {
         startedAt: session.checkInTime,
         completedAt: session.checkOutTime,
         notes: session.notes || '',
+        // Clinical note fields
+        chiefComplaint: session.chiefComplaint || '',
+        presentSymptoms: session.presentSymptoms || '',
+        diagnosis: session.diagnosis || '',
+        treatmentPlan: session.treatmentPlan || '',
+        doctorNotes: session.doctorNotes || '',
         prescriptions: (() => {
           try {
             return session.prescription ? JSON.parse(session.prescription) : [];
@@ -755,7 +872,19 @@ router.get('/doctor', async (req, res) => {
         startedAt: session.checkInTime,
         completedAt: session.completedAt,
         notes: session.notes || '',
-        prescriptions: session.prescriptions || [],
+        chiefComplaint: session.chiefComplaint || '',
+        presentSymptoms: session.presentSymptoms || '',
+        diagnosis: session.diagnosis || '',
+        treatmentPlan: session.treatmentPlan || '',
+        doctorNotes: session.doctorNotes || '',
+        prescriptions: (() => {
+          try {
+            return session.prescription ? JSON.parse(session.prescription) : [];
+          } catch (e) {
+            console.error('Error parsing prescription JSON:', e, 'Raw value:', session.prescription);
+            return [];
+          }
+        })(),
         createdAt: session.createdAt,
         updatedAt: session.updatedAt
       };
@@ -776,21 +905,28 @@ router.get('/doctor', async (req, res) => {
 router.patch('/:sessionId/notes', async (req, res) => {
   try {
     const { sessionId } = req.params;
-    const { notes, prescriptions } = req.body;
+    const { notes, prescriptions, chiefComplaint, presentSymptoms, diagnosis, treatmentPlan, doctorNotes } = req.body;
 
-    console.log('Updating checkup notes:', { sessionId, notes, prescriptions });
+    console.log('Updating checkup notes:', { sessionId, notes, prescriptions, chiefComplaint, presentSymptoms, diagnosis, treatmentPlan, doctorNotes });
 
     const session = await CheckInSession.findByPk(sessionId);
     if (!session) {
       return res.status(404).json({ error: 'Checkup session not found' });
     }
 
-    // Update notes and prescriptions
-    await session.update({
-      notes: notes || session.notes,
-      prescription: prescriptions ? JSON.stringify(prescriptions) : session.prescription,
-      updatedAt: new Date()
-    });
+    // Prepare update data
+    const updateData = {};
+    if (notes !== undefined) updateData.notes = notes;
+    if (prescriptions !== undefined) updateData.prescription = JSON.stringify(prescriptions);
+    if (chiefComplaint !== undefined) updateData.chiefComplaint = chiefComplaint;
+    if (presentSymptoms !== undefined) updateData.presentSymptoms = presentSymptoms;
+    if (diagnosis !== undefined) updateData.diagnosis = diagnosis;
+    if (treatmentPlan !== undefined) updateData.treatmentPlan = treatmentPlan;
+    if (doctorNotes !== undefined) updateData.doctorNotes = doctorNotes;
+    updateData.updatedAt = new Date();
+
+    // Update session with new data
+    await session.update(updateData);
 
     // Get updated session with patient info
     const updatedSession = await CheckInSession.findByPk(sessionId, {
@@ -826,6 +962,11 @@ router.patch('/:sessionId/notes', async (req, res) => {
       startedAt: updatedSession.checkInTime,
       completedAt: updatedSession.completedAt,
       notes: updatedSession.notes || '',
+      chiefComplaint: updatedSession.chiefComplaint || '',
+      presentSymptoms: updatedSession.presentSymptoms || '',
+      diagnosis: updatedSession.diagnosis || '',
+      treatmentPlan: updatedSession.treatmentPlan || '',
+      doctorNotes: updatedSession.doctorNotes || '',
       prescriptions: (() => {
         try {
           return updatedSession.prescription ? JSON.parse(updatedSession.prescription) : [];
@@ -873,6 +1014,12 @@ router.get('/history/:patientId', async (req, res) => {
           as: 'Appointment',
           required: false,
           attributes: ['serviceType', 'appointmentTime', 'priority']
+        },
+        {
+          model: User,
+          as: 'assignedDoctorUser',
+          required: false,
+          attributes: ['id', 'firstName', 'lastName', 'username']
         }
       ],
       order: [['completedAt', 'DESC']]
@@ -881,6 +1028,7 @@ router.get('/history/:patientId', async (req, res) => {
     const history = checkupHistory.map(session => {
       const patient = session.Patient;
       const appointment = session.Appointment;
+      const doctor = session.assignedDoctorUser;
       
       return {
         id: session.id,
@@ -889,10 +1037,28 @@ router.get('/history/:patientId', async (req, res) => {
         serviceType: appointment?.serviceType || session.serviceType || 'General Checkup',
         priority: appointment?.priority || session.priority || 'Normal',
         status: session.status,
-        startedAt: session.checkInTime,
-        completedAt: session.completedAt,
+        checkInTime: session.checkInTime,
+        startedAt: session.startedAt,
+        completedAt: session.completedAt || session.checkOutTime,
+        // Clinical note fields
+        chiefComplaint: session.chiefComplaint || '',
+        presentSymptoms: session.presentSymptoms || '',
+        diagnosis: session.diagnosis || '',
+        treatmentPlan: session.treatmentPlan || '',
+        doctorNotes: session.doctorNotes || '',
+        // Doctor tracking
+        assignedDoctor: doctor ? `Dr. ${doctor.firstName} ${doctor.lastName}` : 'Unknown Doctor',
+        // Legacy notes field
         notes: session.notes || '',
-        prescriptions: session.prescriptions || [],
+        // Prescriptions
+        prescriptions: (() => {
+          try {
+            return session.prescription ? JSON.parse(session.prescription) : [];
+          } catch (e) {
+            console.error('Error parsing prescription JSON:', e, 'Raw value:', session.prescription);
+            return [];
+          }
+        })(),
         createdAt: session.createdAt,
         updatedAt: session.updatedAt
       };

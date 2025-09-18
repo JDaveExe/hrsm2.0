@@ -32,6 +32,8 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
         return <Navigate to="/doctor/dashboard" replace />;
       case 'patient':
         return <Navigate to="/patient/dashboard" replace />;
+      case 'management':
+        return <Navigate to="/management/dashboard" replace />;
       default:
         return <Navigate to="/" replace />;
     }

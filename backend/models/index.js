@@ -6,6 +6,8 @@ const User = require('./User');
 const VitalSigns = require('./VitalSigns');
 const Appointment = require('./Appointment');
 const CheckInSession = require('./CheckInSession.sequelize');
+const DoctorSession = require('./DoctorSession');
+const Vaccination = require('./Vaccination');
 
 // Define associations
 User.hasOne(Patient, { foreignKey: 'userId' });
@@ -39,11 +41,27 @@ CheckInSession.belongsTo(Appointment, { foreignKey: 'appointmentId', as: 'Appoin
 User.hasMany(CheckInSession, { foreignKey: 'createdBy', as: 'createdCheckIns' });
 CheckInSession.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 
+User.hasMany(CheckInSession, { foreignKey: 'assignedDoctor', as: 'assignedCheckIns' });
+CheckInSession.belongsTo(User, { foreignKey: 'assignedDoctor', as: 'assignedDoctorUser' });
+
+// DoctorSession associations
+User.hasMany(DoctorSession, { foreignKey: 'doctorId', as: 'doctorSessions' });
+DoctorSession.belongsTo(User, { foreignKey: 'doctorId', as: 'doctor' });
+
+// Vaccination associations
+Patient.hasMany(Vaccination, { foreignKey: 'patientId', as: 'vaccinations' });
+Vaccination.belongsTo(Patient, { foreignKey: 'patientId', as: 'Patient' });
+
+User.hasMany(Vaccination, { foreignKey: 'createdBy', as: 'createdVaccinations' });
+Vaccination.belongsTo(User, { foreignKey: 'createdBy', as: 'CreatedBy' });
+
 module.exports = {
   Family,
   Patient,
   User,
   VitalSigns,
   Appointment,
-  CheckInSession
+  CheckInSession,
+  DoctorSession,
+  Vaccination
 };
