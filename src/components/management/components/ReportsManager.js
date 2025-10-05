@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { Card, Row, Col, Tabs, Tab } from 'react-bootstrap';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, BarElement, ArcElement } from 'chart.js';
-import { Line, Pie, Bar } from 'react-chartjs-2';
+import { Line, Pie, Bar, Doughnut } from 'react-chartjs-2';
 import inventoryService from '../../../services/inventoryService';
 import { dashboardService } from '../../../services/dashboardService';
 import doctorReportsService from '../../../services/doctorReportsService';
@@ -138,6 +138,11 @@ const ReportsManager = ({ isDarkMode }) => {
   // Zoom modal state
   const [showZoomModal, setShowZoomModal] = useState(false);
   const [zoomedReport, setZoomedReport] = useState(null);
+  const [activeDataTab, setActiveDataTab] = useState('chart'); // For comprehensive data tabs
+  
+  // Reports History state
+  const [historyFilter, setHistoryFilter] = useState('all');
+  const [historyCurrentPage, setHistoryCurrentPage] = useState(1);
   
   // Remove modal state
   const [showRemoveModal, setShowRemoveModal] = useState(false);
@@ -277,6 +282,36 @@ const ReportsManager = ({ isDarkMode }) => {
       category: 'Inventory Management',
       description: 'Waste reduction metrics',
       recommendedCharts: ['bar', 'line', 'pie']
+    },
+
+    // Healthcare Analytics (Custom Reports)
+    { 
+      id: 'custom-diagnosis-analysis', 
+      name: 'Diagnosis Analysis Report', 
+      category: 'Healthcare Analytics',
+      description: 'Analysis of most diagnosed diseases with demographic breakdown',
+      recommendedCharts: ['bar', 'pie', 'horizontal-bar']
+    },
+    { 
+      id: 'custom-prescription-analysis', 
+      name: 'Prescription Analysis Report', 
+      category: 'Healthcare Analytics',
+      description: 'Analysis of most prescribed medications with demographic breakdown',
+      recommendedCharts: ['bar', 'pie', 'horizontal-bar']
+    },
+    { 
+      id: 'custom-vaccine-analysis', 
+      name: 'Vaccine Analysis Report', 
+      category: 'Healthcare Analytics',
+      description: 'Analysis of vaccination patterns with demographic breakdown',
+      recommendedCharts: ['bar', 'pie', 'horizontal-bar']
+    },
+    { 
+      id: 'custom-barangay-analysis', 
+      name: 'Barangay Visits Analysis Report', 
+      category: 'Healthcare Analytics',
+      description: 'Analysis of patient visits by geographic location',
+      recommendedCharts: ['bar', 'pie', 'horizontal-bar']
     },
 
   ];
@@ -550,22 +585,34 @@ const ReportsManager = ({ isDarkMode }) => {
         }
         // Fallback to sample data if no real data available
         const sampleDates = ['Jan 15', 'Jan 16', 'Jan 17', 'Jan 18', 'Jan 19', 'Jan 20', 'Jan 21'];
+        const isAreaChart = chartType === 'area';
+        
         return {
           labels: sampleDates,
           datasets: [{
             label: 'Dr. Smith',
             data: [8, 12, 10, 14, 9, 11, 13],
             borderColor: baseColors[0],
-            backgroundColor: chartType === 'area' ? baseColors[0].replace('1)', '0.2)') : baseColors[0],
-            fill: chartType === 'area',
-            tension: 0.1
+            backgroundColor: isAreaChart ? 
+              baseColors[0].replace('rgb(', 'rgba(').replace(')', ', 0.3)') : 
+              (chartType === 'bar' ? baseColors[0] : 'transparent'),
+            fill: isAreaChart,
+            tension: 0.4,
+            pointBackgroundColor: baseColors[0],
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2
           }, {
             label: 'Dr. Johnson',
             data: [6, 9, 11, 8, 12, 10, 15],
             borderColor: baseColors[1],
-            backgroundColor: chartType === 'area' ? baseColors[1].replace('1)', '0.2)') : baseColors[1],
-            fill: chartType === 'area',
-            tension: 0.1
+            backgroundColor: isAreaChart ? 
+              baseColors[1].replace('rgb(', 'rgba(').replace(')', ', 0.3)') : 
+              (chartType === 'bar' ? baseColors[1] : 'transparent'),
+            fill: isAreaChart,
+            tension: 0.4,
+            pointBackgroundColor: baseColors[1],
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2
           }]
         };
 
@@ -582,13 +629,20 @@ const ReportsManager = ({ isDarkMode }) => {
         };
 
       case 'vaccine-distribution':
-        return {
+        const vaccineData = {
           labels: ['COVID-19', 'Flu', 'Hepatitis B', 'MMR', 'Tetanus'],
+          data: [120, 85, 45, 32, 28]
+        };
+        
+        return {
+          labels: vaccineData.labels,
           datasets: [{
             label: 'Vaccines Administered',
-            data: [120, 85, 45, 32, 28],
-            backgroundColor: baseColors[3],
-            borderColor: baseColors[3],
+            data: vaccineData.data,
+            backgroundColor: chartType === 'pie' || chartType === 'doughnut' ? 
+              baseColors.slice(0, vaccineData.labels.length) : 
+              baseColors[3],
+            borderColor: chartType === 'pie' || chartType === 'doughnut' ? '#fff' : baseColors[3],
             borderWidth: 2
           }]
         };
@@ -699,6 +753,51 @@ const ReportsManager = ({ isDarkMode }) => {
           };
         }
 
+      // Custom reports from HealthcareInsights
+      case 'custom-diagnosis-analysis':
+      case 'custom-prescription-analysis':
+      case 'custom-vaccine-analysis':
+      case 'custom-barangay-analysis':
+        console.log('🎯 Healthcare analytics report case triggered for:', reportType.id);
+        
+        // Find the healthcare report data for this custom report
+        const healthcareReportId = Object.keys(createdReports).find(key => 
+          createdReports[key]?.type?.id === reportType.id
+        );
+        
+        if (healthcareReportId && createdReports[healthcareReportId]?.chartData) {
+          const healthcareData = createdReports[healthcareReportId].chartData;
+          console.log('✅ Using healthcare custom report data:', {
+            labels: healthcareData.labels?.length || 0,
+            datasets: healthcareData.datasets?.length || 0,
+            rawData: createdReports[healthcareReportId]?.rawData?.totalRecords || 0
+          });
+          
+          return {
+            labels: healthcareData.labels || ['No Data'],
+            datasets: healthcareData.datasets || [{
+              label: 'No Data',
+              data: [0],
+              backgroundColor: ['#e0e0e0'],
+              borderColor: '#fff',
+              borderWidth: 2
+            }]
+          };
+        } else {
+          console.log('⚠️ Healthcare custom report data not found for:', reportType.id);
+          // Return a meaningful placeholder for healthcare reports
+          return {
+            labels: ['Healthcare Data Loading...'],
+            datasets: [{
+              label: 'Loading Healthcare Data',
+              data: [1],
+              backgroundColor: ['#28a745'],
+              borderColor: '#fff',
+              borderWidth: 2
+            }]
+          };
+        }
+
       default:
         return {
           labels: ['Category A', 'Category B', 'Category C', 'Category D'],
@@ -746,8 +845,26 @@ const ReportsManager = ({ isDarkMode }) => {
       } : {}
     };
 
+    // Add horizontal bar specific options
+    if (chartType === 'horizontal-bar') {
+      options.indexAxis = 'y';
+      options.scales = {
+        y: {
+          beginAtZero: true,
+          grid: { display: isZoomed },
+          ticks: { font: { size: isZoomed ? 12 : 10 } }
+        },
+        x: {
+          beginAtZero: true,
+          grid: { display: isZoomed },
+          ticks: { font: { size: isZoomed ? 12 : 10 } }
+        }
+      };
+    }
+
     switch (chartType) {
       case 'bar':
+        return <Bar data={data} options={options} />;
       case 'horizontal-bar':
         return <Bar data={data} options={options} />;
       case 'line':
@@ -756,7 +873,7 @@ const ReportsManager = ({ isDarkMode }) => {
       case 'pie':
         return <Pie data={data} options={options} />;
       case 'doughnut':
-        return <Pie data={data} options={options} />;
+        return <Doughnut data={data} options={options} />;
       default:
         return <Bar data={data} options={options} />;
     }
@@ -921,6 +1038,7 @@ const ReportsManager = ({ isDarkMode }) => {
     if (existingReport) {
       // If report exists, show zoom modal
       setZoomedReport(existingReport);
+      setActiveDataTab('chart'); // Reset to first tab
       setShowZoomModal(true);
     } else {
       // If empty slot, start creation flow
@@ -933,6 +1051,216 @@ const ReportsManager = ({ isDarkMode }) => {
   const handleZoomClose = () => {
     setShowZoomModal(false);
     setZoomedReport(null);
+    setActiveDataTab('chart'); // Reset tab when closing
+  };
+
+  // Export chart functionality
+  const handleExportChart = () => {
+    if (!zoomedReport) return;
+    
+    try {
+      // Get the chart canvas element
+      const chartContainer = document.querySelector('.zoom-modal .chart-container-zoom canvas');
+      if (!chartContainer) {
+        alert('Chart not found for export');
+        return;
+      }
+
+      // Create download link
+      const link = document.createElement('a');
+      link.download = `${zoomedReport.type.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().getTime()}.png`;
+      link.href = chartContainer.toDataURL();
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log('Chart exported successfully');
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export chart. Please try again.');
+    }
+  };
+
+  // Print report functionality
+  const handlePrintReport = () => {
+    if (!zoomedReport) return;
+    
+    try {
+      // Create a new window for printing
+      const printWindow = window.open('', '_blank');
+      const chartContainer = document.querySelector('.zoom-modal .chart-container-zoom canvas');
+      
+      if (!chartContainer) {
+        alert('Chart not found for printing');
+        return;
+      }
+
+      const chartImageUrl = chartContainer.toDataURL();
+      
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>${zoomedReport.type.name} - Report</title>
+          <style>
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 20px; 
+              color: #333;
+            }
+            .report-header { 
+              text-align: center; 
+              margin-bottom: 30px; 
+              border-bottom: 2px solid #28a745;
+              padding-bottom: 20px;
+            }
+            .report-header h1 { 
+              color: #28a745; 
+              margin: 0;
+              font-size: 28px;
+            }
+            .report-header p { 
+              color: #666; 
+              margin: 5px 0;
+              font-size: 16px;
+            }
+            .chart-section { 
+              text-align: center; 
+              margin: 30px 0;
+            }
+            .chart-section img { 
+              max-width: 100%; 
+              height: auto;
+              border: 1px solid #ddd;
+              border-radius: 8px;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .details-section {
+              margin-top: 30px;
+              background: #f8f9fa;
+              padding: 20px;
+              border-radius: 8px;
+              border-left: 4px solid #28a745;
+            }
+            .details-section h3 {
+              color: #28a745;
+              margin-top: 0;
+            }
+            .detail-item {
+              margin: 10px 0;
+              font-size: 14px;
+            }
+            .detail-label {
+              font-weight: bold;
+              color: #555;
+            }
+            ${zoomedReport.rawData ? `
+            .data-summary {
+              margin-top: 20px;
+              background: white;
+              padding: 15px;
+              border-radius: 6px;
+              border: 1px solid #ddd;
+            }
+            .data-summary h4 {
+              color: #28a745;
+              margin-top: 0;
+              margin-bottom: 15px;
+            }
+            .summary-grid {
+              display: grid;
+              grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+              gap: 15px;
+            }
+            .summary-item {
+              text-align: center;
+              padding: 10px;
+              background: #f8f9fa;
+              border-radius: 4px;
+            }
+            .summary-item .value {
+              font-size: 18px;
+              font-weight: bold;
+              color: #28a745;
+            }
+            .summary-item .label {
+              font-size: 12px;
+              color: #666;
+              text-transform: uppercase;
+              margin-top: 5px;
+            }
+            ` : ''}
+            @media print {
+              body { margin: 0; }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="report-header">
+            <h1>${zoomedReport.type.name}</h1>
+            <p>${zoomedReport.type.description}</p>
+            <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+          </div>
+          
+          <div class="chart-section">
+            <img src="${chartImageUrl}" alt="${zoomedReport.type.name} Chart" />
+          </div>
+          
+          <div class="details-section">
+            <h3>Report Details</h3>
+            <div class="detail-item">
+              <span class="detail-label">Report Type:</span> ${zoomedReport.type.name}
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Category:</span> ${zoomedReport.type.category || 'N/A'}
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Chart Type:</span> ${chartTypes.find(c => c.id === zoomedReport.chartType)?.name || 'N/A'}
+            </div>
+            <div class="detail-item">
+              <span class="detail-label">Created:</span> ${zoomedReport.createdAt.toLocaleString()}
+            </div>
+            
+            ${zoomedReport.rawData ? `
+            <div class="data-summary">
+              <h4>Data Summary</h4>
+              <div class="summary-grid">
+                <div class="summary-item">
+                  <div class="value">${zoomedReport.rawData.totalRecords || 0}</div>
+                  <div class="label">Total Records</div>
+                </div>
+                <div class="summary-item">
+                  <div class="value">${zoomedReport.rawData.groupMode || 'N/A'}</div>
+                  <div class="label">Group Mode</div>
+                </div>
+                <div class="summary-item">
+                  <div class="value">${zoomedReport.rawData.dataType || 'N/A'}</div>
+                  <div class="label">Data Type</div>
+                </div>
+              </div>
+            </div>
+            ` : ''}
+          </div>
+        </body>
+        </html>
+      `);
+      
+      printWindow.document.close();
+      
+      // Wait for image to load then print
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+        printWindow.close();
+      }, 500);
+      
+      console.log('Print dialog opened successfully');
+    } catch (error) {
+      console.error('Print failed:', error);
+      alert('Failed to print report. Please try again.');
+    }
   };
 
   const handleRemoveReport = (reportToRemove) => {
@@ -1114,6 +1442,39 @@ const ReportsManager = ({ isDarkMode }) => {
     return <LoadingManagementBar message="Loading reports data..." duration="normal" />;
   }
 
+  // Generate reports history from created reports
+  const getReportsHistory = () => {
+    const allReports = Object.values(createdReports).filter(report => report && report.id);
+    
+    // Filter by time period
+    const now = new Date();
+    const filteredReports = allReports.filter(report => {
+      const reportDate = new Date(report.createdAt);
+      
+      switch (historyFilter) {
+        case 'today':
+          return reportDate.toDateString() === now.toDateString();
+        case 'week':
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          return reportDate >= weekAgo;
+        case 'month':
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          return reportDate >= monthAgo;
+        case 'year':
+          const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+          return reportDate >= yearAgo;
+        case 'all':
+        default:
+          return true;
+      }
+    });
+    
+    // Sort by creation date (newest first)
+    return filteredReports.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  };
+
+  const reportsHistory = getReportsHistory();
+
   return (
     <div className="management-reports-manager">
       <div className="reports-container">
@@ -1246,11 +1607,147 @@ const ReportsManager = ({ isDarkMode }) => {
 
           {activeTab === 'history' && (
             <div className="reports-history-content">
-              <div className="history-placeholder">
-                <i className="bi bi-file-earmark-text placeholder-icon"></i>
-                <h4>No Reports Generated Yet</h4>
-                <p>Your generated reports will appear here for easy access and download.</p>
-                <p>Start by creating a report using the grid above!</p>
+              {/* History Filter Controls */}
+              <div className="history-controls">
+                <div className="history-filter-buttons">
+                  {[
+                    { id: 'today', label: 'Today', icon: 'bi-calendar-day' },
+                    { id: 'week', label: 'This Week', icon: 'bi-calendar-week' },
+                    { id: 'month', label: 'This Month', icon: 'bi-calendar-month' },
+                    { id: 'year', label: 'This Year', icon: 'bi-calendar-range' },
+                    { id: 'all', label: 'All Time', icon: 'bi-clock-history' }
+                  ].map(filter => (
+                    <button
+                      key={filter.id}
+                      className={`history-filter-btn ${historyFilter === filter.id ? 'active' : ''}`}
+                      onClick={() => {
+                        setHistoryFilter(filter.id);
+                        setHistoryCurrentPage(1); // Reset to first page when filter changes
+                      }}
+                    >
+                      <i className={`bi ${filter.icon} me-2`}></i>
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+                
+                <div className="history-stats">
+                  <span className="history-count">
+                    {reportsHistory.length} {reportsHistory.length === 1 ? 'report' : 'reports'} found
+                  </span>
+                </div>
+              </div>
+
+              {/* Reports History Grid (3x3 with Pagination) */}
+              <div className="history-reports-grid">
+                {reportsHistory.length > 0 ? (
+                  <>
+                    <div className="reports-grid-3x3">
+                      {(() => {
+                        const startIndex = (historyCurrentPage - 1) * 9;
+                        const endIndex = startIndex + 9;
+                        const pageReports = reportsHistory.slice(startIndex, endIndex);
+                        
+                        return Array.from({ length: 9 }, (_, index) => {
+                          const report = pageReports[index];
+                          
+                          return (
+                            <div 
+                              key={index} 
+                              className={`report-slot ${report ? 'has-report' : 'empty-slot'}`}
+                              onClick={() => report && (() => {
+                                setZoomedReport(report);
+                                setActiveDataTab('chart');
+                                setShowZoomModal(true);
+                              })()}
+                            >
+                              <div className="report-slot-content">
+                                {report ? (
+                                  <div className="existing-report">
+                                    <div className="report-header-mini">
+                                      <h5>{report.type.name}</h5>
+                                      <div className="header-icons">
+                                        <span className="chart-type-badge">
+                                          <i className={chartTypes.find(c => c.id === report.chartType)?.icon || 'bi-bar-chart'}></i>
+                                        </span>
+                                        <span className="zoom-indicator">
+                                          <i className="bi bi-zoom-in"></i>
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="chart-container-mini">
+                                      {renderChart(
+                                        report.chartType, 
+                                        generateChartData(report.type, report.chartType),
+                                        false
+                                      )}
+                                    </div>
+                                    <div className="report-footer-mini">
+                                      <small className="report-category">{report.type.category}</small>
+                                      <small className="created-date">
+                                        {new Date(report.createdAt).toLocaleDateString()}
+                                      </small>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="slot-placeholder empty">
+                                    <div className="empty-slot-content">
+                                      <i className="bi bi-file-earmark-text-fill"></i>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                    
+                    {/* History Pagination */}
+                    {Math.ceil(reportsHistory.length / 9) > 1 && (
+                      <div className="history-pagination">
+                        <button 
+                          className="btn btn-sm btn-outline-secondary"
+                          onClick={() => setHistoryCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={historyCurrentPage === 1}
+                        >
+                          <i className="bi bi-chevron-left"></i>
+                          Previous
+                        </button>
+                        
+                        <span className="page-info">
+                          Page {historyCurrentPage} of {Math.ceil(reportsHistory.length / 9)}
+                        </span>
+                        
+                        <button 
+                          className="btn btn-sm btn-outline-secondary"
+                          onClick={() => setHistoryCurrentPage(prev => Math.min(Math.ceil(reportsHistory.length / 9), prev + 1))}
+                          disabled={historyCurrentPage === Math.ceil(reportsHistory.length / 9)}
+                        >
+                          Next
+                          <i className="bi bi-chevron-right"></i>
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="history-empty-state">
+                    <i className="bi bi-file-earmark-text empty-icon"></i>
+                    <h4>No Reports Found</h4>
+                    <p>
+                      {historyFilter === 'all' 
+                        ? 'No reports have been generated yet.'
+                        : `No reports found for ${
+                            historyFilter === 'today' ? 'today' :
+                            historyFilter === 'week' ? 'this week' :
+                            historyFilter === 'month' ? 'this month' :
+                            historyFilter === 'year' ? 'this year' : 'this period'
+                          }.`
+                      }
+                    </p>
+                    <p>Start by creating a report using the "Create Reports" tab!</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1415,6 +1912,120 @@ const ReportsManager = ({ isDarkMode }) => {
                   )}
                 </div>
                 
+                {/* Enhanced data display for healthcare reports */}
+                {zoomedReport.rawData && (
+                  <div className="comprehensive-data-section">
+                    <div className="data-tabs">
+                      <div className="tab-headers">
+                        <button 
+                          className={`tab-header ${activeDataTab === 'chart' ? 'active' : ''}`}
+                          onClick={() => setActiveDataTab('chart')}
+                        >
+                          <i className="bi bi-bar-chart me-2"></i>
+                          Chart Data
+                        </button>
+                        <button 
+                          className={`tab-header ${activeDataTab === 'detailed' ? 'active' : ''}`}
+                          onClick={() => setActiveDataTab('detailed')}
+                        >
+                          <i className="bi bi-table me-2"></i>
+                          Detailed Breakdown
+                        </button>
+                      </div>
+                      
+                      <div className="tab-content">
+                        <div className={`tab-pane ${activeDataTab === 'chart' ? 'active' : ''}`}>
+                          <div className="data-summary-cards">
+                            <div className="summary-card">
+                              <div className="summary-icon">
+                                <i className="bi bi-clipboard-data"></i>
+                              </div>
+                              <div className="summary-info">
+                                <h6>Total Records</h6>
+                                <span className="summary-value">{zoomedReport.rawData.totalRecords || 0}</span>
+                              </div>
+                            </div>
+                            <div className="summary-card">
+                              <div className="summary-icon">
+                                <i className="bi bi-people"></i>
+                              </div>
+                              <div className="summary-info">
+                                <h6>Group Mode</h6>
+                                <span className="summary-value">{zoomedReport.rawData.groupMode || 'N/A'}</span>
+                              </div>
+                            </div>
+                            <div className="summary-card">
+                              <div className="summary-icon">
+                                <i className="bi bi-calendar"></i>
+                              </div>
+                              <div className="summary-info">
+                                <h6>Generated</h6>
+                                <span className="summary-value">
+                                  {zoomedReport.rawData.generated ? 
+                                    new Date(zoomedReport.rawData.generated).toLocaleDateString() : 
+                                    'N/A'
+                                  }
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className={`tab-pane ${activeDataTab === 'detailed' ? 'active' : ''}`}>
+                          {/* Detailed breakdown table */}
+                          <div className="detailed-breakdown">
+                            <h6>Raw Data Analysis</h6>
+                            {zoomedReport.rawData.main && zoomedReport.rawData.main.length > 0 ? (
+                              <div className="breakdown-table-container">
+                                <table className="breakdown-table">
+                                  <thead>
+                                    <tr>
+                                      <th>Item</th>
+                                      <th>Age Group</th>
+                                      <th>Gender</th>
+                                      <th>Count</th>
+                                      {zoomedReport.rawData.dataType === 'diagnosis' && <th>Diagnosis</th>}
+                                      {zoomedReport.rawData.dataType === 'prescription' && <th>Medication</th>}
+                                      {zoomedReport.rawData.dataType === 'vaccine' && <th>Vaccine</th>}
+                                      {zoomedReport.rawData.dataType === 'barangay' && <th>Location</th>}
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {zoomedReport.rawData.main.slice(0, 10).map((item, index) => (
+                                      <tr key={index}>
+                                        <td>{index + 1}</td>
+                                        <td>{item.ageGroup || 'N/A'}</td>
+                                        <td>{item.gender || 'N/A'}</td>
+                                        <td>1</td>
+                                        {zoomedReport.rawData.dataType === 'diagnosis' && <td>{item.diagnosis || 'N/A'}</td>}
+                                        {zoomedReport.rawData.dataType === 'prescription' && <td>{item.medication_name || 'N/A'}</td>}
+                                        {zoomedReport.rawData.dataType === 'vaccine' && <td>{item.vaccine_name || 'N/A'}</td>}
+                                        {zoomedReport.rawData.dataType === 'barangay' && <td>{item.barangay || 'N/A'}</td>}
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                                {zoomedReport.rawData.main.length > 10 && (
+                                  <div className="table-footer">
+                                    <small className="text-muted">
+                                      Showing first 10 of {zoomedReport.rawData.main.length} records
+                                    </small>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="no-data-message">
+                                <i className="bi bi-info-circle me-2"></i>
+                                No detailed data available for this report
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="zoom-modal-info">
                   <div className="info-section">
                     <h6>Report Details</h6>
@@ -1424,11 +2035,17 @@ const ReportsManager = ({ isDarkMode }) => {
                   </div>
                   
                   <div className="zoom-actions">
-                    <button className="btn btn-outline-success">
+                    <button 
+                      className="btn btn-outline-success"
+                      onClick={handleExportChart}
+                    >
                       <i className="bi bi-download me-2"></i>
                       Export Chart
                     </button>
-                    <button className="btn btn-outline-primary">
+                    <button 
+                      className="btn btn-outline-primary"
+                      onClick={handlePrintReport}
+                    >
                       <i className="bi bi-printer me-2"></i>
                       Print Report
                     </button>

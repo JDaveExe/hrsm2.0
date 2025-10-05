@@ -9,12 +9,12 @@
     "form": "Tablet",
     "strength": "500mg",
     "manufacturer": "Unilab",
-    "batchNumber": "10",
-    "unitsInStock": 965,
+    "batchNumber": "PAR-1010",
+    "unitsInStock": 1244,
     "minimumStock": 200,
     "unitCost": 1.5,
     "sellingPrice": 2.5,
-    "expiryDate": "2025-09-01",
+    "expiryDate": "2027-11-11",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Pain relief, fever reduction",
@@ -27,7 +27,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Most commonly used analgesic",
-    "updatedAt": "2025-09-11T11:19:14.022Z"
+    "updatedAt": "2025-10-02T08:46:03.003Z"
   },
   {
     "id": 2,
@@ -44,7 +44,7 @@
     "minimumStock": 50,
     "unitCost": 25,
     "sellingPrice": 45,
-    "expiryDate": "2025-09-13",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Pain relief, fever reduction in children",
@@ -57,7 +57,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Pediatric formulation",
-    "updatedAt": "2025-09-11T04:00:39.827Z"
+    "updatedAt": "2025-09-29T05:00:35.102Z"
   },
   {
     "id": 3,
@@ -133,7 +133,7 @@
     "minimumStock": 100,
     "unitCost": 3.5,
     "sellingPrice": 6,
-    "expiryDate": "2025-08-20",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Pain relief, fever reduction, inflammation",
@@ -145,7 +145,8 @@
     "isPrescriptionRequired": false,
     "status": "Available",
     "isActive": true,
-    "notes": "Higher strength NSAID"
+    "notes": "Higher strength NSAID",
+    "updatedAt": "2025-09-29T05:00:35.123Z"
   },
   {
     "id": 6,
@@ -162,7 +163,7 @@
     "minimumStock": 40,
     "unitCost": 45,
     "sellingPrice": 75,
-    "expiryDate": "2025-07-10",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Pain relief, fever reduction in children",
@@ -174,7 +175,8 @@
     "isPrescriptionRequired": false,
     "status": "Available",
     "isActive": true,
-    "notes": "Pediatric NSAID formulation"
+    "notes": "Pediatric NSAID formulation",
+    "updatedAt": "2025-09-29T05:00:35.148Z"
   },
   {
     "id": 7,
@@ -278,7 +280,7 @@
     "minimumStock": 50,
     "unitCost": 5,
     "sellingPrice": 8,
-    "expiryDate": "2025-09-15",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Mild to moderate pain, dysmenorrhea",
@@ -290,7 +292,8 @@
     "isPrescriptionRequired": true,
     "status": "Available",
     "isActive": true,
-    "notes": "Lower strength option"
+    "notes": "Lower strength option",
+    "updatedAt": "2025-09-29T05:00:35.174Z"
   },
   {
     "id": 11,
@@ -307,7 +310,7 @@
     "minimumStock": 40,
     "unitCost": 15,
     "sellingPrice": 25,
-    "expiryDate": "2025-08-05",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C, controlled substance",
     "administrationRoute": "Oral",
     "indication": "Moderate to severe pain",
@@ -319,7 +322,8 @@
     "isPrescriptionRequired": true,
     "status": "Available",
     "isActive": true,
-    "notes": "Controlled substance, monitor for abuse"
+    "notes": "Controlled substance, monitor for abuse",
+    "updatedAt": "2025-09-29T05:00:35.202Z"
   },
   {
     "id": 12,
@@ -336,7 +340,7 @@
     "minimumStock": 120,
     "unitCost": 12,
     "sellingPrice": 18,
-    "expiryDate": "2025-07-25",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Bacterial infections",
@@ -348,7 +352,8 @@
     "isPrescriptionRequired": true,
     "status": "Available",
     "isActive": true,
-    "notes": "First-line antibiotic for many infections"
+    "notes": "First-line antibiotic for many infections",
+    "updatedAt": "2025-09-29T05:00:35.224Z"
   },
   {
     "id": 13,
@@ -365,7 +370,7 @@
     "minimumStock": 80,
     "unitCost": 8,
     "sellingPrice": 12,
-    "expiryDate": "2025-06-10",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Bacterial infections in children",
@@ -377,7 +382,8 @@
     "isPrescriptionRequired": true,
     "status": "Available",
     "isActive": true,
-    "notes": "Pediatric strength antibiotic"
+    "notes": "Pediatric strength antibiotic",
+    "updatedAt": "2025-09-29T05:00:35.246Z"
   },
   {
     "id": 14,
@@ -394,7 +400,7 @@
     "minimumStock": 60,
     "unitCost": 25,
     "sellingPrice": 35,
-    "expiryDate": "2025-05-20",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Resistant bacterial infections",
@@ -406,7 +412,8 @@
     "isPrescriptionRequired": true,
     "status": "Available",
     "isActive": true,
-    "notes": "Broad-spectrum antibiotic with beta-lactamase inhibitor"
+    "notes": "Broad-spectrum antibiotic with beta-lactamase inhibitor",
+    "updatedAt": "2025-09-29T05:00:35.268Z"
   },
   {
     "id": 15,
@@ -423,7 +430,7 @@
     "minimumStock": 50,
     "unitCost": 45,
     "sellingPrice": 65,
-    "expiryDate": "2025-04-15",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Respiratory tract infections, STDs",
@@ -435,7 +442,8 @@
     "isPrescriptionRequired": true,
     "status": "Available",
     "isActive": true,
-    "notes": "Short course macrolide antibiotic"
+    "notes": "Short course macrolide antibiotic",
+    "updatedAt": "2025-09-29T05:00:35.292Z"
   },
   {
     "id": 16,
@@ -452,7 +460,7 @@
     "minimumStock": 80,
     "unitCost": 3,
     "sellingPrice": 5,
-    "expiryDate": "2025-03-30",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Allergic rhinitis, chronic urticaria",
@@ -464,7 +472,8 @@
     "isPrescriptionRequired": false,
     "status": "Available",
     "isActive": true,
-    "notes": "Non-sedating antihistamine"
+    "notes": "Non-sedating antihistamine",
+    "updatedAt": "2025-09-29T05:00:35.315Z"
   },
   {
     "id": 17,
@@ -481,7 +490,7 @@
     "minimumStock": 30,
     "unitCost": 35,
     "sellingPrice": 55,
-    "expiryDate": "2025-02-28",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Allergic rhinitis, chronic urticaria in children",
@@ -493,7 +502,8 @@
     "isPrescriptionRequired": false,
     "status": "Available",
     "isActive": true,
-    "notes": "Pediatric antihistamine formulation"
+    "notes": "Pediatric antihistamine formulation",
+    "updatedAt": "2025-09-29T05:00:35.339Z"
   },
   {
     "id": 18,
@@ -510,7 +520,7 @@
     "minimumStock": 70,
     "unitCost": 4,
     "sellingPrice": 7,
-    "expiryDate": "2025-01-31",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Allergic rhinitis, chronic urticaria",
@@ -522,7 +532,8 @@
     "isPrescriptionRequired": false,
     "status": "Available",
     "isActive": true,
-    "notes": "Long-acting non-sedating antihistamine"
+    "notes": "Long-acting non-sedating antihistamine",
+    "updatedAt": "2025-09-29T05:00:35.360Z"
   },
   {
     "id": 19,
@@ -627,7 +638,7 @@
     "minimumStock": 120,
     "unitCost": 3.5,
     "sellingPrice": 5.5,
-    "expiryDate": "2025-09-05",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Type 2 diabetes mellitus",
@@ -639,7 +650,8 @@
     "isPrescriptionRequired": true,
     "status": "Available",
     "isActive": true,
-    "notes": "Higher strength metformin"
+    "notes": "Higher strength metformin",
+    "updatedAt": "2025-09-29T05:00:35.382Z"
   },
   {
     "id": 23,
@@ -652,11 +664,11 @@
     "strength": "5mg",
     "manufacturer": "Pfizer",
     "batchNumber": "AML023-2024",
-    "unitsInStock": 700,
+    "unitsInStock": 698,
     "minimumStock": 140,
     "unitCost": 3,
     "sellingPrice": 5,
-    "expiryDate": "2025-08-25",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Hypertension, angina",
@@ -668,7 +680,8 @@
     "isPrescriptionRequired": true,
     "status": "Available",
     "isActive": true,
-    "notes": "Long-acting calcium channel blocker"
+    "notes": "Long-acting calcium channel blocker",
+    "updatedAt": "2025-10-04T15:58:06.186Z"
   },
   {
     "id": 24,
@@ -685,7 +698,7 @@
     "minimumStock": 100,
     "unitCost": 5,
     "sellingPrice": 8,
-    "expiryDate": "2025-07-30",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Hypertension, angina",
@@ -698,7 +711,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Maximum strength calcium channel blocker",
-    "updatedAt": "2025-09-18T03:50:16.735Z"
+    "updatedAt": "2025-09-29T05:00:35.430Z"
   },
   {
     "id": 25,
@@ -715,7 +728,7 @@
     "minimumStock": 120,
     "unitCost": 8,
     "sellingPrice": 12,
-    "expiryDate": "2025-06-15",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Hypertension, diabetic nephropathy, heart failure",
@@ -727,7 +740,8 @@
     "isPrescriptionRequired": true,
     "status": "Available",
     "isActive": true,
-    "notes": "ARB with renal protective effects"
+    "notes": "ARB with renal protective effects",
+    "updatedAt": "2025-09-29T05:00:35.461Z"
   },
   {
     "id": 26,
@@ -744,7 +758,7 @@
     "minimumStock": 80,
     "unitCost": 2.5,
     "sellingPrice": 4,
-    "expiryDate": "2025-05-10",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Asthma, COPD, bronchospasm",
@@ -756,7 +770,8 @@
     "isPrescriptionRequired": true,
     "status": "Available",
     "isActive": true,
-    "notes": "Short-acting beta-2 agonist bronchodilator"
+    "notes": "Short-acting beta-2 agonist bronchodilator",
+    "updatedAt": "2025-09-29T05:00:35.491Z"
   },
   {
     "id": 27,
@@ -773,7 +788,7 @@
     "minimumStock": 40,
     "unitCost": 35,
     "sellingPrice": 55,
-    "expiryDate": "2025-04-20",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C",
     "administrationRoute": "Oral",
     "indication": "Asthma, bronchospasm in children",
@@ -785,7 +800,8 @@
     "isPrescriptionRequired": true,
     "status": "Available",
     "isActive": true,
-    "notes": "Pediatric bronchodilator formulation"
+    "notes": "Pediatric bronchodilator formulation",
+    "updatedAt": "2025-09-29T05:00:35.514Z"
   },
   {
     "id": 28,
@@ -802,7 +818,7 @@
     "minimumStock": 30,
     "unitCost": 180,
     "sellingPrice": 280,
-    "expiryDate": "2025-03-15",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C, do not puncture or incinerate",
     "administrationRoute": "Inhalation",
     "indication": "Acute bronchospasm, asthma rescue therapy",
@@ -814,7 +830,8 @@
     "isPrescriptionRequired": true,
     "status": "Available",
     "isActive": true,
-    "notes": "Fast-acting rescue inhaler for acute symptoms"
+    "notes": "Fast-acting rescue inhaler for acute symptoms",
+    "updatedAt": "2025-09-29T05:00:35.542Z"
   },
   {
     "id": 29,
@@ -831,7 +848,7 @@
     "minimumStock": 20,
     "unitCost": 25,
     "sellingPrice": 40,
-    "expiryDate": "2025-02-05",
+    "expiryDate": "2027-12-31",
     "storageConditions": "Store below 30°C, protect from light",
     "administrationRoute": "Inhalation (nebulizer)",
     "indication": "Severe bronchospasm, acute asthma",
@@ -843,7 +860,8 @@
     "isPrescriptionRequired": true,
     "status": "Available",
     "isActive": true,
-    "notes": "For use with nebulizer in severe cases"
+    "notes": "For use with nebulizer in severe cases",
+    "updatedAt": "2025-09-29T05:00:35.567Z"
   },
   {
     "id": 30,
@@ -873,5 +891,60 @@
     "status": "Available",
     "isActive": true,
     "notes": "Essential vitamin for immune function and collagen synthesis"
+  },
+  {
+    "id": 31,
+    "name": "Enervon",
+    "genericName": "Enervon",
+    "brandName": "Enervon",
+    "description": "",
+    "manufacturer": "Unilab",
+    "category": "Vitamins & Supplements",
+    "batchNumber": "EEE-1000",
+    "quantityInStock": 100,
+    "minimumStock": 50,
+    "unitCost": 20,
+    "sellingPrice": 15,
+    "expiryDate": "2026-06-24",
+    "dosageForm": "Tablet",
+    "strength": "500mg",
+    "storageConditions": "",
+    "isPrescriptionRequired": true,
+    "activeIngredients": "",
+    "therapeuticClass": "",
+    "sideEffects": "",
+    "contraindications": "",
+    "notes": "sample",
+    "createdAt": "2025-09-24T03:24:12.665Z",
+    "updatedAt": "2025-09-24T03:25:04.886Z",
+    "unitsInStock": 100
+  },
+  {
+    "id": 32,
+    "name": "Ambroxol Hydrochloride",
+    "genericName": "Ambroxol Hydrochloride",
+    "brandName": "Mucosolvan",
+    "description": "",
+    "manufacturer": "Boehringer Ingelheim",
+    "category": "Respiratory",
+    "batchNumber": "AMX-2024-001",
+    "quantityInStock": 150,
+    "minimumStock": 50,
+    "unitCost": 8.5,
+    "sellingPrice": 12,
+    "expiryDate": "2026-10-07",
+    "dosageForm": "Tablet",
+    "strength": "30mg",
+    "storageConditions": "",
+    "isPrescriptionRequired": true,
+    "activeIngredients": "",
+    "therapeuticClass": "",
+    "sideEffects": "",
+    "contraindications": "",
+    "notes": "sample",
+    "createdAt": "2025-10-02T08:38:36.920Z",
+    "updatedAt": "2025-10-02T08:57:13.392Z",
+    "unitsInStock": 25,
+    "status": "Low Stock"
   }
 ]

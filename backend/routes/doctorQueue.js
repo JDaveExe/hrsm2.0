@@ -112,6 +112,23 @@ router.post('/:sessionId/start', auth, async (req, res) => {
     const { sessionId } = req.params;
     const { doctorId } = req.body;
 
+    // Check if doctor already has an in-progress checkup
+    const existingInProgressCheckup = await CheckInSession.findOne({
+      where: {
+        assignedDoctor: req.user.id,
+        status: {
+          [Op.in]: ['started', 'in-progress']
+        }
+      }
+    });
+    
+    if (existingInProgressCheckup && existingInProgressCheckup.id !== parseInt(sessionId)) {
+      return res.status(400).json({
+        error: 'You already have a checkup in progress. Please complete your current checkup before starting a new one.',
+        existingCheckupId: existingInProgressCheckup.id
+      });
+    }
+
     const session = await CheckInSession.findByPk(sessionId, {
       include: [{
         model: Patient,

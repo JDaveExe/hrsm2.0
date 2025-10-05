@@ -6,7 +6,7 @@ import '../styles/LoginSignup.css'; // Navbar & auth shared styles
 const Header = memo(() => {
   const location = useLocation();
   const { isAuthenticated, user } = useAuth();
-  const visiblePaths = ['/', '/auth', '/appointments', '/services', '/contact'];
+  const visiblePaths = ['/', '/auth', '/health-stock', '/services', '/contact'];
 
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   
@@ -81,7 +81,7 @@ const Header = memo(() => {
       <nav className="main-navigation">
         <div className="nav-links">
           <Link to="/" className={location.pathname === '/' ? 'active' : ''}>HOME</Link>
-          <Link to="/appointments" className={location.pathname === '/appointments' ? 'active' : ''}>APPOINTMENTS</Link>
+          <Link to="/health-stock" className={location.pathname === '/health-stock' ? 'active' : ''}>HEALTH STOCK</Link>
           <Link to="/services" className={location.pathname === '/services' ? 'active' : ''}>SERVICES</Link>
           <Link to="/auth" className={location.pathname === '/auth' ? 'active' : ''}>SIGN IN / SIGN UP</Link>
           <Link to="/contact" className={location.pathname === '/contact' ? 'active' : ''}>CONTACT US</Link>

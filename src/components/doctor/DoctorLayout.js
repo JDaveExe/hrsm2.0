@@ -7,7 +7,6 @@ import PatientQueue from './components/PatientQueue';
 import TodaysCheckups from './components/TodaysCheckups';
 import Checkups from './components/Checkups';
 import PatientDatabase from './components/PatientDatabase';
-import Appointments from './components/Appointments';
 import DoctorSettings from './components/DoctorSettings';
 import LoadingSpinnerDoc from './components/LoadingSpinnerDoc';
 import { PerformanceIndicator } from '../../hooks/usePerformanceMonitor';
@@ -170,8 +169,6 @@ const DoctorLayout = () => {
           patientsData={patientsData}
           familiesData={familiesData}
         />;
-      case 'Appointments':
-        return <Appointments {...componentProps} />;
       case 'Settings':
         return <DoctorSettings {...componentProps} />;
       default:

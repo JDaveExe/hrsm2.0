@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Dashboard Test Helper</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        .test-button:hover {
+            background-color: #0056b3;
+        }
+        .results {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+        .info { color: #17a2b8; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Patient Dashboard Test Helper</h1>
+    
+    <div class="test-container">
+        <h2>Manual Testing Instructions</h2>
+        <ol>
+            <li>Open <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></li>
+            <li>Login with: <strong>kaleia@test.com</strong> / <strong>password123</strong></li>
+            <li>Look for notifications in the dashboard</li>
+            <li>Use the buttons below to test the API from browser console</li>
+        </ol>
+    </div>
+    
+    <div class="test-container">
+        <h2>Quick API Tests</h2>
+        <button class="test-button" onclick="testNotificationAPI()">Test Notification API</button>
+        <button class="test-button" onclick="testStatusUpdate()">Test Status Update</button>
+        <button class="test-button" onclick="createTestNotification()">Create Test Notification</button>
+        <button class="test-button" onclick="simulatePolling()">Simulate Polling</button>
+        <div id="results" class="results">Click buttons above to test API functionality...</div>
+    </div>
+    
+    <div class="test-container">
+        <h2>Browser Console Test Script</h2>
+        <p>Copy and paste this into your browser console on the patient dashboard:</p>
+        <textarea readonly style="width: 100%; height: 200px; font-family: monospace;">
+// Patient Dashboard Notification Test Script
+(async function testPatientDashboard() {
+    console.log('🧪 Testing Patient Dashboard Notifications...');
+    
+    // Get patient ID from localStorage
+    const patientId = localStorage.getItem('patientId') || '113';
+    console.log(`🆔 Patient ID: ${patientId}`);
+    
+    // Test API endpoint
+    try {
+        const response = await fetch(`http://localhost:5000/api/notifications/patient/${patientId}`);
+        const data = await response.json();
+        console.log('✅ API Response:', data);
+        
+        // Check UI elements
+        const notificationItems = document.querySelectorAll('.notification-item');
+        const notificationCounter = document.querySelector('.notification-counter');
+        
+        console.log(`📊 API shows ${data.count} notifications`);
+        console.log(`🎨 UI shows ${notificationItems.length} notification elements`);
+        console.log(`🔢 Counter shows: ${notificationCounter ? notificationCounter.textContent : 'Not found'}`);
+        
+        // Test status update if notifications exist
+        if (data.notifications && data.notifications.length > 0) {
+            const firstNotif = data.notifications[0];
+            console.log(`🎯 Testing status update for: "${firstNotif.title}"`);
+            
+            const updateResponse = await fetch(`http://localhost:5000/api/notifications/${firstNotif.id}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: 'read' })
+            });
+            
+            const updateData = await updateResponse.json();
+            console.log('✅ Status update:', updateData.success ? 'SUCCESS' : 'FAILED');
+        }
+        
+        console.log('🎉 Test complete! Check above results.');
+        
+    } catch (error) {
+        console.error('❌ Test failed:', error);
+    }
+})();
+        </textarea>
+    </div>
+
+    <script>
+        async function testNotificationAPI() {
+            const results = document.getElementById('results');
+            results.innerHTML = '🔄 Testing notification API...\n';
+            
+            try {
+                const response = await fetch('http://localhost:5000/api/notifications/patient/113');
+                const data = await response.json();
+                
+                results.innerHTML += `✅ API Response:\n`;
+                results.innerHTML += `   Count: ${data.count}\n`;
+                results.innerHTML += `   Notifications: ${data.notifications.length}\n`;
+                
+                data.notifications.forEach((notif, index) => {
+                    results.innerHTML += `   ${index + 1}. ${notif.title} (${notif.status})\n`;
+                });
+                
+            } catch (error) {
+                results.innerHTML += `❌ Error: ${error.message}\n`;
+            }
+        }
+        
+        async function testStatusUpdate() {
+            const results = document.getElementById('results');
+            results.innerHTML = '🔄 Testing status update...\n';
+            
+            try {
+                // First get a notification
+                const getResponse = await fetch('http://localhost:5000/api/notifications/patient/113');
+                const getData = await getResponse.json();
+                
+                if (getData.notifications && getData.notifications.length > 0) {
+                    const notif = getData.notifications[0];
+                    results.innerHTML += `🎯 Updating notification: ${notif.title}\n`;
+                    
+                    const updateResponse = await fetch(`http://localhost:5000/api/notifications/${notif.id}/status`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'read' })
+                    });
+                    
+                    const updateData = await updateResponse.json();
+                    results.innerHTML += `✅ Update result: ${updateData.success ? 'SUCCESS' : 'FAILED'}\n`;
+                    results.innerHTML += `📊 New status: ${updateData.notification.status}\n`;
+                } else {
+                    results.innerHTML += '⚠️ No notifications found to update\n';
+                }
+                
+            } catch (error) {
+                results.innerHTML += `❌ Error: ${error.message}\n`;
+            }
+        }
+        
+        async function createTestNotification() {
+            const results = document.getElementById('results');
+            results.innerHTML = '🔄 Creating test notification...\n';
+            
+            try {
+                const notification = {
+                    patient_id: 113,
+                    title: 'Test Notification from Browser',
+                    message: 'This notification was created from the test helper page',
+                    type: 'test',
+                    appointment_data: JSON.stringify({
+                        test: true,
+                        created_at: new Date().toISOString()
+                    })
+                };
+                
+                const response = await fetch('http://localhost:5000/api/notifications/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(notification)
+                });
+                
+                const data = await response.json();
+                results.innerHTML += `✅ Create result: ${data.success ? 'SUCCESS' : 'FAILED'}\n`;
+                
+                if (data.success) {
+                    results.innerHTML += `🆔 New notification ID: ${data.notification.id}\n`;
+                    results.innerHTML += `📊 Title: ${data.notification.title}\n`;
+                }
+                
+            } catch (error) {
+                results.innerHTML += `❌ Error: ${error.message}\n`;
+            }
+        }
+        
+        async function simulatePolling() {
+            const results = document.getElementById('results');
+            results.innerHTML = '🔄 Simulating API polling (3 polls, 2s interval)...\n';
+            
+            let pollCount = 0;
+            const pollInterval = setInterval(async () => {
+                pollCount++;
+                
+                try {
+                    const response = await fetch('http://localhost:5000/api/notifications/patient/113');
+                    const data = await response.json();
+                    results.innerHTML += `📡 Poll ${pollCount}: ${data.count} notifications\n`;
+                    
+                    if (pollCount >= 3) {
+                        clearInterval(pollInterval);
+                        results.innerHTML += '✅ Polling simulation complete\n';
+                    }
+                    
+                } catch (error) {
+                    results.innerHTML += `❌ Poll ${pollCount} failed: ${error.message}\n`;
+                    clearInterval(pollInterval);
+                }
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

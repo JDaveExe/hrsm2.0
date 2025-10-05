@@ -116,6 +116,24 @@ const createFamily = async (familyData) => {
 };
 
 /**
+ * Updates an existing family.
+ * @param {number} familyId - The ID of the family to update.
+ * @param {Object} familyData - The family data to update.
+ * @returns {Promise<Object>} A promise that resolves to the updated family.
+ */
+const updateFamily = async (familyId, familyData) => {
+  try {
+    const response = await axios.put(`/api/families/${familyId}`, familyData, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating family:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
  * Assigns a patient to a family using family ID.
  * @param {number} patientId - The ID of the patient to assign.
  * @param {number} familyId - The ID of the family to assign to.
@@ -517,6 +535,7 @@ const adminService = {
   getPatientById,
   getAllFamilies,
   createFamily,
+  updateFamily,
   assignPatientToFamily,
   autosortPatients,
   createFamiliesForPatients,

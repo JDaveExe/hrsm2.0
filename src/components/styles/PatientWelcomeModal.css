@@ -1,0 +1,174 @@
+/* Patient Welcome Modal Styles */
+.patient-welcome-modal .modal-content {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 50%, #2196f3 100%);
+  color: #1565c0;
+  overflow: hidden;
+}
+
+.patient-welcome-modal .modal-body {
+  background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 50%, #2196f3 100%);
+  border-radius: 16px;
+}
+
+.welcome-container {
+  animation: welcomeSlideIn 0.5s ease-out;
+}
+
+.welcome-icon {
+  font-size: 4rem;
+  color: #1976d2;
+  text-shadow: 0 2px 4px rgba(25, 118, 210, 0.3);
+  animation: welcomeIconPulse 2s infinite;
+}
+
+.welcome-title {
+  color: #0d47a1;
+  font-weight: 700;
+  font-size: 2rem;
+  text-shadow: 0 2px 4px rgba(13, 71, 161, 0.2);
+  margin-bottom: 1.5rem;
+}
+
+.patient-info-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(33, 150, 243, 0.3);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+  box-shadow: 0 4px 15px rgba(33, 150, 243, 0.1);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(33, 150, 243, 0.2);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #1565c0;
+  font-size: 0.95rem;
+}
+
+.info-value {
+  font-weight: 700;
+  color: #0d47a1;
+  font-size: 1rem;
+  text-align: right;
+}
+
+.status-message {
+  background: rgba(76, 175, 80, 0.15);
+  border: 1px solid rgba(76, 175, 80, 0.4);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: #2e7d32;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.status-message i {
+  color: #4caf50;
+  font-size: 1.1rem;
+}
+
+.auto-dismiss-indicator {
+  color: rgba(21, 101, 192, 0.7);
+  font-style: italic;
+}
+
+/* Animations */
+@keyframes welcomeSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes welcomeIconPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 576px) {
+  .patient-welcome-modal .modal-dialog {
+    margin: 1rem;
+  }
+  
+  .welcome-title {
+    font-size: 1.5rem;
+  }
+  
+  .welcome-icon {
+    font-size: 3rem;
+  }
+  
+  .patient-info-card {
+    padding: 1rem;
+  }
+  
+  .info-row {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.25rem;
+  }
+  
+  .info-value {
+    text-align: center;
+  }
+}
+
+/* Enhanced specificity to prevent conflicts */
+.patient-welcome-modal.patient-welcome-modal .modal-content {
+  background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 50%, #2196f3 100%) !important;
+  color: #1565c0 !important;
+}
+
+.patient-welcome-modal.patient-welcome-modal .modal-body {
+  background: linear-gradient(135deg, #ffffff 0%, #e3f2fd 50%, #2196f3 100%) !important;
+}
+
+.patient-welcome-modal.patient-welcome-modal .welcome-title {
+  color: #0d47a1 !important;
+}
+
+.patient-welcome-modal.patient-welcome-modal .welcome-icon {
+  color: #1976d2 !important;
+}
+
+.patient-welcome-modal.patient-welcome-modal .info-label {
+  color: #1565c0 !important;
+}
+
+.patient-welcome-modal.patient-welcome-modal .info-value {
+  color: #0d47a1 !important;
+}
+
+/* Dark mode support (if needed later) */
+.patient-welcome-modal.dark-mode .modal-content {
+  background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
+}
+
+.patient-welcome-modal.dark-mode .patient-info-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}

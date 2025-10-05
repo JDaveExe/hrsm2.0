@@ -1,0 +1,68 @@
+{
+  "timestamp": "2025-10-02T09:23:50.609Z",
+  "medications": {
+    "totalRecords": 32,
+    "sampleStructure": {
+      "id": 1,
+      "name": "Paracetamol",
+      "genericName": "Acetaminophen",
+      "brandName": "Tylenol, Biogesic",
+      "category": "Analgesics & Antipyretics",
+      "dosage": "500mg",
+      "form": "Tablet",
+      "strength": "500mg",
+      "manufacturer": "Unilab",
+      "batchNumber": "PAR-1010",
+      "unitsInStock": 1244,
+      "minimumStock": 200,
+      "unitCost": 1.5,
+      "sellingPrice": 2.5,
+      "expiryDate": "2027-11-11",
+      "storageConditions": "Store below 30°C",
+      "administrationRoute": "Oral",
+      "indication": "Pain relief, fever reduction",
+      "dosageInstructions": "Adults: 500mg every 4-6 hours, max 4g daily",
+      "sideEffects": "Rare: liver damage with overdose",
+      "contraindications": "Severe liver disease",
+      "interactions": "Warfarin, alcohol",
+      "precautions": "Monitor liver function in chronic use",
+      "isPrescriptionRequired": false,
+      "status": "Available",
+      "isActive": true,
+      "notes": "Most commonly used analgesic",
+      "updatedAt": "2025-10-02T08:46:03.003Z"
+    },
+    "criticalFields": {
+      "batchNumber": "Single batch per medication",
+      "unitsInStock": "Total stock without batch breakdown",
+      "expiryDate": "Single expiry date per medication"
+    }
+  },
+  "vaccines": {
+    "totalRecords": 24,
+    "sampleStructure": {
+      "id": 1,
+      "name": "BCG Vaccines",
+      "description": "Bacillus Calmette-Guérin - Administered at birth to prevent tuberculosis",
+      "manufacturer": "Sanofi",
+      "category": "Routine Childhood",
+      "batchNumber": "10",
+      "dosesInStock": 304,
+      "minimumStock": 50,
+      "unitCost": 25,
+      "expiryDate": "2027-12-31",
+      "storageTemp": "2-8°C",
+      "administrationRoute": "Intradermal",
+      "ageGroups": [
+        "Newborn"
+      ],
+      "dosageSchedule": "Single dose at birth",
+      "sideEffects": "Local reaction, lymphadenitis",
+      "contraindications": "Immunocompromised patients",
+      "status": "Available",
+      "isActive": true,
+      "notes": "Store in refrigerator, use within 6 hours of reconstitution",
+      "updatedAt": "2025-09-29T05:00:35.582Z"
+    }
+  }
+}

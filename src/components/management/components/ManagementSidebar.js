@@ -61,11 +61,11 @@ const ManagementSidebar = memo(({
             </Link>
           </li>
 
-          {/* Settings (renamed from Performance Monitor) */}
-          <li className={currentPath === 'Settings' ? 'active' : ''} onClick={() => handleNavigationClick('Settings')}>
+          {/* Healthcare Insights */}
+          <li className={currentPath === 'Healthcare Insights' ? 'active' : ''} onClick={() => handleNavigationClick('Healthcare Insights')}>
             <Link to="#">
-              <i className="bi bi-gear"></i>
-              <span>Settings</span>
+              <i className="bi bi-graph-up-arrow"></i>
+              <span>Healthcare Insights</span>
             </Link>
           </li>
         </ul>

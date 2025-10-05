@@ -23,6 +23,12 @@ const VaccineInventory = ({ currentDateTime, isDarkMode }) => {
   const [removeMode, setRemoveMode] = useState(false);
   const [selectedVaccinesForRemoval, setSelectedVaccinesForRemoval] = useState(new Set());
 
+  // Batch disposal states
+  const [showDisposalModal, setShowDisposalModal] = useState(false);
+  const [batchToDispose, setBatchToDispose] = useState(null);
+  const [disposalCountdown, setDisposalCountdown] = useState(5);
+  const [isDisposalActive, setIsDisposalActive] = useState(false);
+
   const [vaccineFormData, setVaccineFormData] = useState({
     name: '',
     description: '',
@@ -96,8 +102,14 @@ const VaccineInventory = ({ currentDateTime, isDarkMode }) => {
           aValue = aValue?.toLowerCase() || '';
           bValue = bValue?.toLowerCase() || '';
         } else if (sortConfig.key === 'quantityInStock' || sortConfig.key === 'unitCost') {
-          aValue = parseFloat(aValue) || 0;
-          bValue = parseFloat(bValue) || 0;
+          // Handle stock field - use dosesInStock or quantityInStock as fallback
+          if (sortConfig.key === 'quantityInStock') {
+            aValue = parseFloat(a.dosesInStock || a.quantityInStock) || 0;
+            bValue = parseFloat(b.dosesInStock || b.quantityInStock) || 0;
+          } else {
+            aValue = parseFloat(aValue) || 0;
+            bValue = parseFloat(bValue) || 0;
+          }
         } else if (sortConfig.key === 'expiryDate') {
           aValue = new Date(aValue);
           bValue = new Date(bValue);
@@ -159,18 +171,148 @@ const VaccineInventory = ({ currentDateTime, isDarkMode }) => {
 
   const handleAddStock = async () => {
     try {
-      await inventoryService.addVaccineStock(selectedVaccine.id, stockToAdd);
-      setShowAddStockModal(false);
-      setStockToAdd({ amount: '', expiryDate: '', batchNumber: '', lotNumber: '' });
-      loadVaccineData();
+      // Validate required fields
+      if (!stockToAdd.amount || !stockToAdd.expiryDate || !stockToAdd.batchNumber) {
+        alert('Please fill in all required fields: Amount, Expiry Date, and Batch Number');
+        return;
+      }
+
+      // Create new batch using the vaccine batch API (like medications)
+      const batchData = {
+        batchNumber: stockToAdd.batchNumber,
+        lotNumber: stockToAdd.lotNumber || stockToAdd.batchNumber,
+        dosesReceived: parseInt(stockToAdd.amount),
+        expiryDate: stockToAdd.expiryDate,
+        unitCost: selectedVaccine.unitCost || 0,
+        manufacturer: selectedVaccine.manufacturer || 'Unknown',
+        supplier: selectedVaccine.manufacturer || 'Unknown'
+      };
+
+      const response = await fetch(`http://localhost:5000/api/vaccine-batches/${selectedVaccine.id}/batches`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(batchData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ New vaccine batch created:', result.batch.batchNumber);
+        
+        setShowAddStockModal(false);
+        setStockToAdd({ amount: '', expiryDate: '', batchNumber: '', lotNumber: '' });
+        loadVaccineData(); // Refresh the vaccine list
+        
+        // Show success message
+        alert(`✅ Successfully added ${stockToAdd.amount} doses as batch ${stockToAdd.batchNumber}`);
+      } else {
+        const error = await response.json();
+        console.error('❌ Failed to create vaccine batch:', error);
+        alert(`Failed to add stock: ${error.error || 'Unknown error'}`);
+      }
     } catch (error) {
-      console.error('Error adding stock:', error);
+      console.error('Error adding vaccine stock:', error);
+      alert(`Error adding vaccine stock: ${error.message}`);
     }
   };
 
-  const handleViewVaccine = (vaccine) => {
-    setSelectedVaccine(vaccine);
-    setShowViewModal(true);
+  // Batch disposal functions
+  const handleExpiredBatchClick = (batch) => {
+    setBatchToDispose(batch);
+    setShowDisposalModal(true);
+    setDisposalCountdown(5);
+    setIsDisposalActive(false);
+  };
+
+  const startDisposalCountdown = () => {
+    setIsDisposalActive(true);
+    const interval = setInterval(() => {
+      setDisposalCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          confirmBatchDisposal();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const confirmBatchDisposal = async () => {
+    try {
+      // Call API to dispose of the batch
+      const response = await fetch(`/api/vaccine-batches/${batchToDispose.id}/dispose`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setShowDisposalModal(false);
+        setIsDisposalActive(false);
+        setBatchToDispose(null);
+        // Refresh the vaccine details
+        if (selectedVaccine) {
+          handleViewVaccine(selectedVaccine);
+        }
+        loadVaccineData();
+      } else {
+        throw new Error('Failed to dispose batch');
+      }
+    } catch (error) {
+      console.error('Error disposing batch:', error);
+      alert('Failed to dispose batch. Please try again.');
+    }
+  };
+
+  const cancelDisposal = () => {
+    setShowDisposalModal(false);
+    setIsDisposalActive(false);
+    setBatchToDispose(null);
+    setDisposalCountdown(5);
+  };
+
+  const handleViewVaccine = async (vaccine) => {
+    try {
+      setLoading(true);
+      
+      // Fetch vaccine batches from the new batch system
+      const response = await fetch(`/api/vaccine-batches/${vaccine.id}/enhanced`);
+      const enhancedVaccine = await response.json();
+      
+      if (response.ok) {
+        setSelectedVaccine({
+          ...vaccine,
+          batches: enhancedVaccine.batches || [],
+          totalDoses: enhancedVaccine.totalDoses || 0,
+          batchCount: enhancedVaccine.batchCount || 0
+        });
+      } else {
+        // Fallback to original vaccine data if batch fetch fails
+        setSelectedVaccine({
+          ...vaccine,
+          batches: [],
+          totalDoses: vaccine.dosesInStock || 0,
+          batchCount: 0
+        });
+      }
+      
+      setShowViewModal(true);
+    } catch (error) {
+      console.error('Error fetching vaccine details:', error);
+      // Fallback to original vaccine data
+      setSelectedVaccine({
+        ...vaccine,
+        batches: [],
+        totalDoses: vaccine.dosesInStock || 0,
+        batchCount: 0
+      });
+      setShowViewModal(true);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Remove mode functions
@@ -244,10 +386,10 @@ const VaccineInventory = ({ currentDateTime, isDarkMode }) => {
                   Total: {sortedAndFilteredVaccines.length}
                 </Badge>
                 <Badge bg="warning" className="me-1">
-                  Low Stock: {sortedAndFilteredVaccines.filter(v => getStockStatus(v.quantityInStock, v.minimumStock) === 'low').length}
+                  Low Stock: {sortedAndFilteredVaccines.filter(v => getStockStatus(v.dosesInStock || v.quantityInStock || 0, v.minimumStock) === 'low').length}
                 </Badge>
                 <Badge bg="danger">
-                  Critical: {sortedAndFilteredVaccines.filter(v => getStockStatus(v.quantityInStock, v.minimumStock) === 'critical').length}
+                  Critical: {sortedAndFilteredVaccines.filter(v => getStockStatus(v.dosesInStock || v.quantityInStock || 0, v.minimumStock) === 'critical').length}
                 </Badge>
               </div>
             </Col>
@@ -350,7 +492,8 @@ const VaccineInventory = ({ currentDateTime, isDarkMode }) => {
             </thead>
             <tbody>
               {currentVaccines.map((vaccine) => {
-                const stockStatus = getStockStatus(vaccine.quantityInStock, vaccine.minimumStock);
+                const currentStock = vaccine.dosesInStock || vaccine.quantityInStock || 0;
+                const stockStatus = getStockStatus(currentStock, vaccine.minimumStock);
                 const isExpiringSoon = new Date(vaccine.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
                 
                 return (
@@ -373,7 +516,7 @@ const VaccineInventory = ({ currentDateTime, isDarkMode }) => {
                     </td>
                     <td>
                       <div className="stock-info">
-                        <strong>{vaccine.quantityInStock}</strong>
+                        <strong>{vaccine.dosesInStock || vaccine.quantityInStock || 0}</strong>
                         <small className="text-muted d-block">Min: {vaccine.minimumStock}</small>
                       </div>
                     </td>
@@ -616,42 +759,85 @@ const VaccineInventory = ({ currentDateTime, isDarkMode }) => {
               <Row>
                 <Col md={6}>
                   <div className="detail-section">
-                    <h6 className="section-title">Basic Information</h6>
+                    <h6 className="section-title">BASIC INFORMATION</h6>
                     <div className="detail-item">
                       <strong>Name:</strong> {selectedVaccine.name}
                     </div>
                     <div className="detail-item">
-                      <strong>Type:</strong> {selectedVaccine.vaccineType}
+                      <strong>Category:</strong> {selectedVaccine.category}
                     </div>
                     <div className="detail-item">
                       <strong>Manufacturer:</strong> {selectedVaccine.manufacturer}
                     </div>
                     <div className="detail-item">
-                      <strong>Age Group:</strong> {selectedVaccine.ageGroup}
+                      <strong>Storage Temp:</strong> {selectedVaccine.storageTemp || selectedVaccine.storageTemperature}
                     </div>
                     <div className="detail-item">
-                      <strong>Route:</strong> {selectedVaccine.routeOfAdministration}
+                      <strong>Route:</strong> {selectedVaccine.administrationRoute || selectedVaccine.routeOfAdministration}
                     </div>
                   </div>
                 </Col>
                 <Col md={6}>
                   <div className="detail-section">
-                    <h6 className="section-title">Stock Information</h6>
+                    <h6 className="section-title">
+                      STOCK INFORMATION 
+                      <Badge bg="info" className="ms-2">
+                        {selectedVaccine.batchCount || 0} BATCHES
+                      </Badge>
+                    </h6>
                     <div className="detail-item">
-                      <strong>Current Stock:</strong> {selectedVaccine.quantityInStock}
+                      <strong>Total Stock:</strong> {selectedVaccine.totalDoses || selectedVaccine.dosesInStock || 0}
                     </div>
                     <div className="detail-item">
                       <strong>Minimum Stock:</strong> {selectedVaccine.minimumStock}
                     </div>
-                    <div className="detail-item">
-                      <strong>Unit Cost:</strong> ₱{selectedVaccine.unitCost}
-                    </div>
-                    <div className="detail-item">
-                      <strong>Storage Temp:</strong> {selectedVaccine.storageTemperature}°C
-                    </div>
-                    <div className="detail-item">
-                      <strong>Expiry Date:</strong> {new Date(selectedVaccine.expiryDate).toLocaleDateString()}
-                    </div>
+                  </div>
+                </Col>
+              </Row>
+              
+              {/* Batch Details Section */}
+              <Row className="mt-4">
+                <Col>
+                  <div className="detail-section">
+                    <h6 className="section-title">BATCH DETAILS</h6>
+                    {selectedVaccine.batches && selectedVaccine.batches.length > 0 ? (
+                      <div className="batch-list">
+                        {selectedVaccine.batches.map((batch, index) => {
+                          const isExpired = new Date(batch.expiryDate) < new Date();
+                          return (
+                            <div key={batch.id || index} className={`batch-item ${isExpired ? 'expired-batch' : ''}`}>
+                              <div className="batch-header">
+                                <strong className="batch-number">{batch.batchNumber}</strong>
+                                <div className="batch-badges">
+                                  <Badge bg="success" className="doses-badge">
+                                    {batch.dosesRemaining || batch.dosesInStock} doses
+                                  </Badge>
+                                  {isExpired && (
+                                    <Badge 
+                                      bg="danger" 
+                                      className="expired-badge clickable-badge"
+                                      onClick={() => handleExpiredBatchClick(batch)}
+                                    >
+                                      EXPIRED
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              <div className="batch-details">
+                                <span>Expires: {new Date(batch.expiryDate).toLocaleDateString()}</span>
+                                {batch.unitCost && <span> • Cost: ₱{batch.unitCost}</span>}
+                                {batch.lotNumber && <span> • Lot: {batch.lotNumber}</span>}
+                                {batch.supplierName && <span> • {batch.supplierName}</span>}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="no-batches">
+                        <p className="text-muted">No batch information available</p>
+                      </div>
+                    )}
                   </div>
                 </Col>
               </Row>
@@ -723,6 +909,62 @@ const VaccineInventory = ({ currentDateTime, isDarkMode }) => {
           </Button>
           <Button variant="success" onClick={handleAddStock}>
             Add Stock
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Batch Disposal Modal */}
+      <Modal 
+        show={showDisposalModal} 
+        onHide={cancelDisposal}
+        backdrop="static"
+        keyboard={false}
+        centered
+      >
+        <Modal.Header closeButton={!isDisposalActive}>
+          <Modal.Title className="text-danger">
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            Dispose Expired Batch
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {batchToDispose && (
+            <div className="disposal-confirmation">
+              <div className="alert alert-danger">
+                <strong>⚠️ Warning:</strong> This action cannot be undone!
+              </div>
+              
+              <div className="batch-disposal-details">
+                <h6>Batch to be disposed:</h6>
+                <div className="disposal-batch-info">
+                  <strong>Batch Number:</strong> {batchToDispose.batchNumber}<br/>
+                  <strong>Vaccine:</strong> {batchToDispose.vaccineName}<br/>
+                  <strong>Doses:</strong> {batchToDispose.dosesRemaining}<br/>
+                  <strong>Expired:</strong> {new Date(batchToDispose.expiryDate).toLocaleDateString()}
+                </div>
+              </div>
+
+              <div className="disposal-reason mt-3">
+                <p>This batch has expired and will be permanently removed from the inventory system.</p>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="secondary" 
+            onClick={cancelDisposal}
+            disabled={isDisposalActive}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="danger" 
+            onClick={startDisposalCountdown}
+            disabled={isDisposalActive}
+            className="disposal-confirm-btn"
+          >
+            {isDisposalActive ? `Disposing... ${disposalCountdown}s` : 'Confirm Disposal'}
           </Button>
         </Modal.Footer>
       </Modal>

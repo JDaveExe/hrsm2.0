@@ -60,18 +60,16 @@ const DoctorHeader = memo(({
       </div>
 
       <div className="header-right">
-        {/* Refresh Button */}
-        {(currentPath === 'Patient Queue' || currentPath === "Today's Checkup") && (
-          <button 
-            className={`refresh-btn ${isLoading ? 'loading' : ''}`}
-            onClick={onRefresh}
-            disabled={isLoading}
-            title="Refresh Data"
-          >
-            <i className={`bi ${isLoading ? 'bi-arrow-clockwise spin' : 'bi-arrow-clockwise'}`}></i>
-            <span>Refresh</span>
-          </button>
-        )}
+        {/* Permanent Refresh Button - Always visible */}
+        <button 
+          className={`refresh-btn ${isLoading ? 'loading' : ''}`}
+          onClick={onRefresh}
+          disabled={isLoading}
+          title="Refresh Data"
+        >
+          <i className={`bi ${isLoading ? 'bi-arrow-clockwise spin' : 'bi-arrow-clockwise'}`}></i>
+          <span>Refresh</span>
+        </button>
 
         {/* User Info */}
         <div className="user-info">

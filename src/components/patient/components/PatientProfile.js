@@ -1,5 +1,6 @@
 import React, { memo, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import PatientQRModal from './PatientQRModal';
 import '../styles/PatientProfile.css';
 
 const PatientProfile = memo(({ 
@@ -18,6 +19,10 @@ const PatientProfile = memo(({
   const [selectedConditions, setSelectedConditions] = useState([]);
   const [isEditingConditions, setIsEditingConditions] = useState(false);
   const [conditionSearchTerm, setConditionSearchTerm] = useState('');
+  
+  // QR Code Modal state
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -152,6 +157,29 @@ const PatientProfile = memo(({
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditFormData(null);
+  };
+
+  // Handle QR Code generation
+  const handleGenerateQR = () => {
+    if (!profileData) {
+      setError('No patient data available for QR code generation');
+      return;
+    }
+
+    // Generate a secure token for the patient check-in (same format as admin side)
+    const checkInToken = btoa(JSON.stringify({
+      patientId: profileData.patientId || profileData.id,
+      patientName: `${profileData.firstName} ${profileData.lastName}`,
+      timestamp: Date.now(),
+      action: 'checkin'
+    }));
+
+    // Create the check-in URL
+    const baseUrl = window.location.origin;
+    const checkInUrl = `${baseUrl}/patient-checkin?token=${checkInToken}`;
+    
+    setQrCodeData(checkInUrl);
+    setShowQRModal(true);
   };
 
   // Suffix options
@@ -386,7 +414,13 @@ const PatientProfile = memo(({
                   className="profile-btn profile-btn-primary"
                   onClick={handleEditToggle}
                 >
-                  �📝 Edit Information
+                  📝 Edit Information
+                </button>
+                <button 
+                  className="profile-btn profile-btn-success"
+                  onClick={handleGenerateQR}
+                >
+                  📱 Generate QR Code
                 </button>
                 <button 
                   className="profile-btn profile-btn-secondary"
@@ -651,6 +685,14 @@ const PatientProfile = memo(({
             </div>
           </div>
         )}
+        
+        {/* Patient QR Code Modal */}
+        <PatientQRModal
+          show={showQRModal}
+          onHide={() => setShowQRModal(false)}
+          patientData={profileData}
+          qrCodeData={qrCodeData}
+        />
       </div>
     </div>
   );

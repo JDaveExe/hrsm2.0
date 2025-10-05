@@ -9,10 +9,10 @@ import PatientMedicalRecords from './components/PatientMedicalRecords';
 import PatientImmunizationHistory from './components/PatientImmunizationHistory';
 import PatientLabResults from './components/PatientLabResults';
 import PatientPrescriptions from './components/PatientPrescriptions';
+import PatientHealthStock from './components/PatientHealthStock';
 import PatientSettings from './components/PatientSettings';
 import ComingSoonModal from './components/ComingSoonModal';
 import LoadingSpinnerPatient from './components/LoadingSpinnerPatient';
-import { PerformanceIndicator } from '../../hooks/usePerformanceMonitor';
 import axios from 'axios';
 import './styles/PatientLayout.css';
 import sealmainImage from '../../images/sealmain.png';
@@ -31,7 +31,6 @@ const PatientLayout = () => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showFPSMonitor, setShowFPSMonitor] = useState(false);
   const [showComingSoonModal, setShowComingSoonModal] = useState(false);
   const [modalFeatureName, setModalFeatureName] = useState('');
   const [notificationCount, setNotificationCount] = useState(3); // Mock count - replace with real data
@@ -154,10 +153,7 @@ const PatientLayout = () => {
     }
   }, [forceRefreshAllData, currentPath]);
 
-  // Handle FPS monitor toggle
-  const handleFPSToggle = useCallback(() => {
-    setShowFPSMonitor(prev => !prev);
-  }, []);
+
 
   // Current component renderer with optimized structure
   const CurrentComponent = useMemo(() => {
@@ -208,6 +204,10 @@ const PatientLayout = () => {
           {...componentProps}
           viewType={currentPath}
         />;
+      case 'Health Stock':
+        return <PatientHealthStock 
+          {...componentProps}
+        />;
       case 'Settings':
         return <PatientSettings {...componentProps} />;
       default:
@@ -228,9 +228,6 @@ const PatientLayout = () => {
 
   return (
     <div className="patient-layout">
-      {/* Performance Monitor */}
-      {showFPSMonitor && <PerformanceIndicator />}
-
       {/* Sidebar */}
       <PatientSidebar
         sidebarOpen={sidebarOpen}
@@ -239,8 +236,6 @@ const PatientLayout = () => {
         currentPath={currentPath}
         handleLogout={handleLogout}
         sealmainImage={sealmainImage}
-        showFPSMonitor={showFPSMonitor}
-        handleFPSToggle={handleFPSToggle}
         user={user}
         showComingSoonModal={showComingSoonModal}
         setShowComingSoonModal={setShowComingSoonModal}

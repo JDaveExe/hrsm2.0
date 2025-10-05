@@ -5,11 +5,11 @@
     "description": "Bacillus Calmette-Guérin - Administered at birth to prevent tuberculosis",
     "manufacturer": "Sanofi",
     "category": "Routine Childhood",
-    "batchNumber": "10",
-    "dosesInStock": 244,
+    "batchNumber": "SAMP-100",
+    "dosesInStock": 404,
     "minimumStock": 50,
     "unitCost": 25,
-    "expiryDate": "2025-09-06",
+    "expiryDate": "2027-10-06",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intradermal",
     "ageGroups": [
@@ -21,7 +21,8 @@
     "status": "Available",
     "isActive": true,
     "notes": "Store in refrigerator, use within 6 hours of reconstitution",
-    "updatedAt": "2025-09-16T06:29:35.101Z"
+    "updatedAt": "2025-10-02T11:11:49.556Z",
+    "lotNumber": "9"
   },
   {
     "id": 2,
@@ -33,7 +34,7 @@
     "dosesInStock": 180,
     "minimumStock": 40,
     "unitCost": 30,
-    "expiryDate": "2025-09-14",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -48,7 +49,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Can be given with other vaccines",
-    "updatedAt": "2025-09-11T04:00:39.827Z"
+    "updatedAt": "2025-09-29T05:00:35.620Z"
   },
   {
     "id": 3,
@@ -60,7 +61,7 @@
     "dosesInStock": 149,
     "minimumStock": 30,
     "unitCost": 45,
-    "expiryDate": "2025-09-29",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -72,7 +73,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Shake well before use",
-    "updatedAt": "2025-09-17T00:14:48.505Z"
+    "updatedAt": "2025-09-29T05:00:35.643Z"
   },
   {
     "id": 4,
@@ -109,7 +110,7 @@
     "dosesInStock": 120,
     "minimumStock": 25,
     "unitCost": 35,
-    "expiryDate": "2025-08-20",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -120,7 +121,8 @@
     "contraindications": "Severe allergic reaction",
     "status": "Available",
     "isActive": true,
-    "notes": "Can be given with other vaccines"
+    "notes": "Can be given with other vaccines",
+    "updatedAt": "2025-09-29T05:00:35.665Z"
   },
   {
     "id": 6,
@@ -132,7 +134,7 @@
     "dosesInStock": 90,
     "minimumStock": 20,
     "unitCost": 85,
-    "expiryDate": "2025-07-10",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -144,7 +146,8 @@
     "contraindications": "Previous severe allergic reaction",
     "status": "Available",
     "isActive": true,
-    "notes": "Protects against pneumococcal disease"
+    "notes": "Protects against pneumococcal disease",
+    "updatedAt": "2025-09-29T05:00:35.683Z"
   },
   {
     "id": 7,
@@ -156,7 +159,7 @@
     "dosesInStock": 160,
     "minimumStock": 35,
     "unitCost": 55,
-    "expiryDate": "2025-06-25",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C (after reconstitution)",
     "administrationRoute": "Subcutaneous",
     "ageGroups": [
@@ -168,7 +171,8 @@
     "contraindications": "Pregnancy, immunodeficiency",
     "status": "Available",
     "isActive": true,
-    "notes": "Live vaccine, reconstitute before use"
+    "notes": "Live vaccine, reconstitute before use",
+    "updatedAt": "2025-09-29T05:00:35.708Z"
   },
   {
     "id": 8,
@@ -180,7 +184,7 @@
     "dosesInStock": 75,
     "minimumStock": 15,
     "unitCost": 120,
-    "expiryDate": "2025-05-15",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -191,7 +195,8 @@
     "contraindications": "Severe allergic reaction",
     "status": "Available",
     "isActive": true,
-    "notes": "Endemic areas vaccination"
+    "notes": "Endemic areas vaccination",
+    "updatedAt": "2025-09-29T05:00:35.733Z"
   },
   {
     "id": 9,
@@ -203,7 +208,7 @@
     "dosesInStock": 400,
     "minimumStock": 100,
     "unitCost": 25,
-    "expiryDate": "2025-04-30",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -217,7 +222,8 @@
     "contraindications": "Severe egg allergy",
     "status": "Available",
     "isActive": true,
-    "notes": "Annual reformulation required"
+    "notes": "Annual reformulation required",
+    "updatedAt": "2025-09-29T05:00:35.757Z"
   },
   {
     "id": 10,
@@ -229,7 +235,7 @@
     "dosesInStock": 200,
     "minimumStock": 50,
     "unitCost": 60,
-    "expiryDate": "2025-03-20",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C",
     "administrationRoute": "Oral",
     "ageGroups": [
@@ -240,7 +246,8 @@
     "contraindications": "Immunodeficiency, intussusception",
     "status": "Available",
     "isActive": true,
-    "notes": "Live oral vaccine"
+    "notes": "Live oral vaccine",
+    "updatedAt": "2025-09-29T05:00:35.783Z"
   },
   {
     "id": 11,
@@ -252,7 +259,7 @@
     "dosesInStock": 50,
     "minimumStock": 10,
     "unitCost": 150,
-    "expiryDate": "2025-02-10",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -264,7 +271,8 @@
     "contraindications": "Previous severe allergic reaction",
     "status": "Available",
     "isActive": true,
-    "notes": "For pre and post-exposure prophylaxis"
+    "notes": "For pre and post-exposure prophylaxis",
+    "updatedAt": "2025-09-29T05:00:35.805Z"
   },
   {
     "id": 12,
@@ -372,7 +380,7 @@
     "dosesInStock": 100,
     "minimumStock": 25,
     "unitCost": 65,
-    "expiryDate": "2025-09-15",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -384,7 +392,8 @@
     "contraindications": "Severe allergic reaction",
     "status": "Available",
     "isActive": true,
-    "notes": "Highly effective vaccine"
+    "notes": "Highly effective vaccine",
+    "updatedAt": "2025-09-29T05:00:35.826Z"
   },
   {
     "id": 17,
@@ -396,7 +405,7 @@
     "dosesInStock": 60,
     "minimumStock": 15,
     "unitCost": 120,
-    "expiryDate": "2025-08-05",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -408,7 +417,8 @@
     "contraindications": "Previous severe reaction",
     "status": "Available",
     "isActive": true,
-    "notes": "Protects against serious bacterial infection"
+    "notes": "Protects against serious bacterial infection",
+    "updatedAt": "2025-09-29T05:00:35.848Z"
   },
   {
     "id": 18,
@@ -420,7 +430,7 @@
     "dosesInStock": 90,
     "minimumStock": 20,
     "unitCost": 200,
-    "expiryDate": "2025-07-25",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -431,7 +441,8 @@
     "contraindications": "Pregnancy",
     "status": "Available",
     "isActive": true,
-    "notes": "Cancer prevention vaccine"
+    "notes": "Cancer prevention vaccine",
+    "updatedAt": "2025-09-29T05:00:35.872Z"
   },
   {
     "id": 19,
@@ -443,7 +454,7 @@
     "dosesInStock": 40,
     "minimumStock": 10,
     "unitCost": 180,
-    "expiryDate": "2025-06-10",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C",
     "administrationRoute": "Subcutaneous",
     "ageGroups": [
@@ -454,7 +465,8 @@
     "contraindications": "Immunodeficiency, egg allergy",
     "status": "Available",
     "isActive": true,
-    "notes": "Required for travel certification"
+    "notes": "Required for travel certification",
+    "updatedAt": "2025-09-29T05:00:35.894Z"
   },
   {
     "id": 20,
@@ -466,7 +478,7 @@
     "dosesInStock": 50,
     "minimumStock": 10,
     "unitCost": 45,
-    "expiryDate": "2025-05-20",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -478,7 +490,8 @@
     "contraindications": "Acute illness",
     "status": "Available",
     "isActive": true,
-    "notes": "For travelers to endemic areas"
+    "notes": "For travelers to endemic areas",
+    "updatedAt": "2025-09-29T05:00:35.921Z"
   },
   {
     "id": 21,
@@ -490,7 +503,7 @@
     "dosesInStock": 500,
     "minimumStock": 100,
     "unitCost": 25,
-    "expiryDate": "2025-04-15",
+    "expiryDate": "2027-12-31",
     "storageTemp": "-70°C (ultra-cold)",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -504,7 +517,8 @@
     "contraindications": "Severe allergic reaction to components",
     "status": "Available",
     "isActive": true,
-    "notes": "Ultra-cold storage required"
+    "notes": "Ultra-cold storage required",
+    "updatedAt": "2025-09-29T05:00:35.947Z"
   },
   {
     "id": 22,
@@ -516,7 +530,7 @@
     "dosesInStock": 300,
     "minimumStock": 75,
     "unitCost": 28,
-    "expiryDate": "2025-03-30",
+    "expiryDate": "2027-12-31",
     "storageTemp": "-20°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -529,7 +543,8 @@
     "contraindications": "Severe allergic reaction to components",
     "status": "Available",
     "isActive": true,
-    "notes": "Freezer storage required"
+    "notes": "Freezer storage required",
+    "updatedAt": "2025-09-29T05:00:35.978Z"
   },
   {
     "id": 23,
@@ -541,7 +556,7 @@
     "dosesInStock": 200,
     "minimumStock": 50,
     "unitCost": 15,
-    "expiryDate": "2025-02-28",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -552,7 +567,8 @@
     "contraindications": "History of blood clots with low platelets",
     "status": "Available",
     "isActive": true,
-    "notes": "Standard refrigerator storage"
+    "notes": "Standard refrigerator storage",
+    "updatedAt": "2025-09-29T05:00:36.002Z"
   },
   {
     "id": 24,
@@ -564,7 +580,7 @@
     "dosesInStock": 80,
     "minimumStock": 20,
     "unitCost": 250,
-    "expiryDate": "2025-01-31",
+    "expiryDate": "2027-12-31",
     "storageTemp": "2-8°C",
     "administrationRoute": "Intramuscular",
     "ageGroups": [
@@ -576,6 +592,7 @@
     "contraindications": "Severe allergic reaction",
     "status": "Available",
     "isActive": true,
-    "notes": "New vaccine for RSV prevention"
+    "notes": "New vaccine for RSV prevention",
+    "updatedAt": "2025-09-29T05:00:36.030Z"
   }
 ]

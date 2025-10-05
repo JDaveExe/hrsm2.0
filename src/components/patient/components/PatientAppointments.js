@@ -21,9 +21,15 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
   const [availableServices, setAvailableServices] = useState([]);
   const [lastBookingTime, setLastBookingTime] = useState(null);
   const [todayBookingCount, setTodayBookingCount] = useState(0);
-  const [notifications, setNotifications] = useState([]);
-  const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(0);
+  // Modal states for appointment management
+  const [selectedAppointmentForView, setSelectedAppointmentForView] = useState(null);
+  const [selectedAppointmentForCancel, setSelectedAppointmentForCancel] = useState(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  
+  // Daily limit checking
+  const [isDailyLimitReached, setIsDailyLimitReached] = useState(false);
+  const [dailyAppointmentCount, setDailyAppointmentCount] = useState(0);
 
   // Booking form state
   const [bookingForm, setBookingForm] = useState({
@@ -40,124 +46,17 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
     return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
   };
 
-  // Load notifications from localStorage
-  const loadNotifications = useCallback(() => {
-    if (!user || !user.id) return;
+  // Check if appointment can be cancelled (not if date/time has passed and status allows cancellation)
+  const canCancelAppointment = (appointment) => {
+    if (!appointment || appointment.status === 'Cancelled' || appointment.status === 'Completed') {
+      return false;
+    }
     
-    try {
-      const storedNotifications = localStorage.getItem('patientNotifications');
-      if (storedNotifications) {
-        const allNotifications = JSON.parse(storedNotifications);
-        const userNotifications = allNotifications.filter(notif => 
-          notif.patientId === user.id && notif.status === 'pending'
-        );
-        setNotifications(userNotifications);
-        setNotificationCount(userNotifications.length);
-      }
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-    }
-  }, [user]);
-
-  // Load notifications on component mount and set up polling
-  useEffect(() => {
-    loadNotifications();
-    const interval = setInterval(loadNotifications, 30000); // Poll every 30 seconds
-    return () => clearInterval(interval);
-  }, [loadNotifications]);
-
-  // Handle notification acceptance
-  const handleAcceptNotification = async (notificationId) => {
-    try {
-      setIsLoading(true);
-      
-      const storedNotifications = localStorage.getItem('patientNotifications');
-      if (!storedNotifications) {
-        throw new Error('No notifications found');
-      }
-      
-      const allNotifications = JSON.parse(storedNotifications);
-      const notification = allNotifications.find(notif => notif.id === notificationId);
-      
-      if (!notification) {
-        throw new Error('Notification not found');
-      }
-      
-      // Create the actual appointment in the system
-      const appointmentData = {
-        patientId: user.patientId || user.id,
-        patientName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.name || 'Patient',
-        appointmentDate: notification.appointmentDate,
-        appointmentTime: notification.appointmentTime,
-        type: notification.serviceType || 'General Consultation',
-        serviceType: notification.serviceType || 'General Consultation',
-        notes: notification.notes || '',
-        status: 'accepted', // Patient accepted
-        duration: 30,
-        createdBy: 'patient_acceptance',
-        acceptedAt: new Date().toISOString(),
-        originalNotificationId: notificationId
-      };
-      
-      // Try to create appointment via API
-      try {
-        await appointmentService.createAppointment(appointmentData);
-        console.log('✅ Appointment created via API:', appointmentData);
-      } catch (apiError) {
-        // If API fails, store locally
-        console.warn('API failed, storing appointment locally:', apiError);
-        const existingAppointments = JSON.parse(localStorage.getItem('patient_appointments') || '[]');
-        const newAppointment = {
-          ...appointmentData,
-          id: Date.now(),
-          date: appointmentData.appointmentDate,
-          time: appointmentData.appointmentTime
-        };
-        existingAppointments.push(newAppointment);
-        localStorage.setItem('patient_appointments', JSON.stringify(existingAppointments));
-      }
-      
-      // Update notification status
-      const updatedNotifications = allNotifications.map(notif => 
-        notif.id === notificationId ? { ...notif, status: 'accepted', acceptedAt: new Date().toISOString() } : notif
-      );
-      localStorage.setItem('patientNotifications', JSON.stringify(updatedNotifications));
-      
-      // Refresh both notifications and appointments
-      loadNotifications();
-      await loadAppointments();
-      
-      setSuccess('Appointment accepted and added to your schedule!');
-      setTimeout(() => setSuccess(''), 5000);
-      
-    } catch (error) {
-      console.error('Error accepting notification:', error);
-      setError(`Failed to accept appointment: ${error.message}`);
-      setTimeout(() => setError(''), 5000);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Handle notification decline
-  const handleDeclineNotification = async (notificationId) => {
-    try {
-      const storedNotifications = localStorage.getItem('patientNotifications');
-      if (storedNotifications) {
-        const allNotifications = JSON.parse(storedNotifications);
-        const updatedNotifications = allNotifications.map(notif => 
-          notif.id === notificationId ? { ...notif, status: 'declined', declinedAt: new Date().toISOString() } : notif
-        );
-        localStorage.setItem('patientNotifications', JSON.stringify(updatedNotifications));
-        loadNotifications(); // Refresh notifications
-        setSuccess('Appointment declined.');
-        setTimeout(() => setSuccess(''), 3000);
-      }
-    } catch (error) {
-      console.error('Error declining notification:', error);
-      setError('Failed to decline appointment');
-      setTimeout(() => setError(''), 3000);
-    }
+    const now = new Date();
+    const appointmentDateTime = new Date(`${appointment.date}T${appointment.time}`);
+    
+    // Can cancel if appointment is in the future
+    return appointmentDateTime > now;
   };
 
   // Get the minimum bookable date (2 days ahead, excluding weekends)
@@ -202,42 +101,9 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
     return allServices;
   };
 
-  // Get approved appointments that need patient acceptance
-  const getApprovedAppointments = () => {
-    return appointments.filter(apt => 
-      apt.status === 'approved' && 
-      apt.needsPatientAcceptance === true
-    );
-  };
 
-  // Handle accepting an admin-scheduled appointment
-  const handleAcceptAppointment = async (appointmentId) => {
-    try {
-      setIsLoading(true);
-      
-      // Update appointment status to 'accepted'
-      const updatedAppointment = {
-        status: 'accepted',
-        needsPatientAcceptance: false,
-        patientAcceptedAt: new Date().toISOString()
-      };
-      
-      await appointmentService.updateAppointment(appointmentId, updatedAppointment);
-      
-      // Refresh appointments
-      await loadAppointments();
-      
-      setSuccess('Appointment accepted successfully!');
-      setTimeout(() => setSuccess(''), 3000);
-      
-    } catch (error) {
-      console.error('Error accepting appointment:', error);
-      setError('Failed to accept appointment. Please try again.');
-      setTimeout(() => setError(''), 5000);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+
+
 
   // Automatically update overdue appointments
   const updateOverdueAppointments = useCallback(async () => {
@@ -268,6 +134,16 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
       setIsLoading(false);
     }
   };
+
+  // Modal handlers
+  const handleViewAppointment = (appointment) => {
+    setSelectedAppointmentForView(appointment);
+    setShowViewModal(true);
+  };
+
+
+
+
 
   // Load appointments
   const loadAppointments = useCallback(async () => {
@@ -384,7 +260,7 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
   const checkBookingRestrictions = useCallback(() => {
     const today = new Date().toISOString().split('T')[0];
     const todayAppointmentsCount = appointments.filter(apt => 
-      apt.date === today && apt.status !== 'cancelled'
+      apt.date === today && apt.status !== 'Cancelled'
     ).length;
     
     setTodayBookingCount(todayAppointmentsCount);
@@ -419,6 +295,14 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
       // Enable service dropdown only if date and time are filled
       const hasDateTime = updated.date && updated.time;
       setIsServiceDisabled(!hasDateTime);
+      
+      // Check daily limit when date changes
+      if (field === 'date' && value) {
+        checkDailyLimit(value).then(result => {
+          setDailyAppointmentCount(result.count);
+          setIsDailyLimitReached(result.isLimitReached);
+        });
+      }
       
       // Check service availability when date or time changes
       if (field === 'date' || field === 'time') {
@@ -460,6 +344,21 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
   }, [showConfirmation, confirmationTimer]);
 
   // Book appointment handler
+  // Function to check daily appointment limit
+  const checkDailyLimit = async (selectedDate) => {
+    try {
+      const response = await fetch(`/api/appointments/daily-count?date=${selectedDate}`);
+      const data = await response.json();
+      return {
+        count: data.count || 0,
+        isLimitReached: data.count >= 12
+      };
+    } catch (error) {
+      console.error('Error checking daily limit:', error);
+      return { count: 0, isLimitReached: false };
+    }
+  };
+
   const handleBookAppointment = useCallback(async (e) => {
     e.preventDefault();
     if (!user?.patientId) return;
@@ -470,15 +369,20 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
       return;
     }
 
-    // Check restrictions
-    if (todayBookingCount >= 2) {
-      setError('You can only book 2 appointments per day. Please try again tomorrow.');
+    // Check daily appointment limit before proceeding
+    const dailyCheck = await checkDailyLimit(bookingForm.date);
+    if (dailyCheck.isLimitReached) {
+      setError('This date is fully booked (12 appointments maximum per day). Please select a different date.');
       return;
     }
 
-    if (lastBookingTime) {
-      const remainingMinutes = 30 - Math.floor((new Date() - lastBookingTime) / (1000 * 60));
-      setError(`Please wait ${remainingMinutes} more minutes before booking another appointment.`);
+    // Check if patient already has an active appointment
+    const hasActiveAppointment = appointments.some(apt => 
+      apt.status === 'Scheduled'
+    );
+
+    if (hasActiveAppointment) {
+      setError('You already have an active appointment. Please cancel your existing appointment before booking a new one.');
       return;
     }
 
@@ -510,22 +414,21 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
         notes: bookingForm.notes
       });
 
-      // Submit appointment request to admin instead of directly creating appointment
-      const result = await appointmentService.submitAppointmentRequest({
+      // Create appointment directly (no approval needed)
+      const result = await appointmentService.createAppointment({
         patientId: user.patientId,
-        patientName: user.name || `${user.firstName} ${user.lastName}`,
-        appointmentType: bookingForm.serviceType,
-        requestedDate: bookingForm.date,
-        requestedTime: bookingForm.time,
+        appointmentDate: bookingForm.date,
+        appointmentTime: bookingForm.time,
+        type: bookingForm.serviceType,
+        duration: 30, // Default 30 minutes duration
         symptoms: bookingForm.symptoms,
         notes: bookingForm.notes,
-        status: 'pending',
-        requestDate: new Date().toISOString()
+        priority: 'Normal'
       });
 
-      console.log('✅ Appointment request submitted successfully:', result);
+      console.log('✅ Appointment created successfully:', result);
 
-      setSuccess('Appointment request submitted successfully! You will be notified once the admin reviews your request.');
+      setSuccess('Appointment booked successfully! Your appointment has been scheduled.');
       setShowBookingModal(false);
       setShowDateModal(false);
       setShowConfirmation(false);
@@ -542,7 +445,26 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
       setRefreshTrigger(prev => prev + 1);
     } catch (err) {
       console.error('Error submitting appointment request:', err);
-      setError('Failed to submit appointment request. Please try again.');
+      
+      // Handle specific error codes from backend
+      const errorData = err.response?.data;
+      if (errorData?.errorCode) {
+        switch (errorData.errorCode) {
+          case 'DAILY_LIMIT_REACHED':
+            setError('This date is fully booked. Please select a different date.');
+            break;
+          case 'EXACT_TIME_CONFLICT':
+            setError(errorData.error || 'This time slot is already taken. Please choose a different time.');
+            break;
+          case 'BUFFER_TIME_CONFLICT':
+            setError(errorData.error || 'This time is too close to another appointment. Please choose a time at least 30 minutes away.');
+            break;
+          default:
+            setError(errorData.error || errorData.msg || 'Failed to book appointment. Please try again.');
+        }
+      } else {
+        setError(errorData?.error || errorData?.msg || 'Failed to submit appointment request. Please try again.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -551,32 +473,70 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
   // Assign function to ref for auto-submit
   handleBookAppointmentRef.current = handleBookAppointment;
 
-  // Cancel appointment
-  const handleCancelAppointment = useCallback(async (appointmentId) => {
-    if (!window.confirm('Are you sure you want to cancel this appointment?')) return;
+  // Cancel appointment - updated to work with modal system
+  const handleCancelAppointment = useCallback((appointment) => {
+    // If it's just an ID (old usage), find the appointment
+    if (typeof appointment === 'string' || typeof appointment === 'number') {
+      const foundAppointment = appointments.find(apt => apt.id === appointment);
+      if (foundAppointment) {
+        setSelectedAppointmentForCancel(foundAppointment);
+        setShowCancelModal(true);
+      }
+    } else {
+      // New usage - appointment object passed directly
+      setSelectedAppointmentForCancel(appointment);
+      setShowCancelModal(true);
+    }
+  }, [appointments]);
+
+  // Confirm cancel appointment
+  const handleConfirmCancel = useCallback(async () => {
+    if (!selectedAppointmentForCancel) return;
 
     try {
-      await appointmentService.updateAppointment(appointmentId, { status: 'cancelled' });
+      await appointmentService.cancelAppointment(selectedAppointmentForCancel.id);
       setSuccess('Appointment cancelled successfully.');
+      setShowCancelModal(false);
+      setSelectedAppointmentForCancel(null);
       setRefreshTrigger(prev => prev + 1);
     } catch (err) {
       console.error('Error cancelling appointment:', err);
       setError('Failed to cancel appointment. Please try again.');
+      setShowCancelModal(false);
+      setSelectedAppointmentForCancel(null);
     }
-  }, []);
+  }, [selectedAppointmentForCancel]);
 
-  // Filter appointments
+  // Filter appointments - exclude cancelled appointments from today's schedule
   const todaysAppointments = appointments.filter(apt => {
     const today = new Date().toDateString();
     const aptDate = new Date(apt.date).toDateString();
-    return aptDate === today;
+    return aptDate === today && apt.status !== 'Cancelled';
   });
 
+  // Upcoming appointments - only admin-scheduled appointments within 3 days that need patient action
   const upcomingAppointments = appointments.filter(apt => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
     const aptDate = new Date(apt.date);
-    return aptDate > today;
-  });
+    aptDate.setHours(0, 0, 0, 0);
+    
+    // Calculate days difference
+    const daysDifference = (aptDate - today) / (1000 * 60 * 60 * 24);
+    
+    // Only show appointments:
+    // 1. Within 3 days (0 to 3 days from now)
+    // 2. That are scheduled and within 3 days
+    // 3. OR accepted appointments within 3 days
+    const isWithin3Days = daysDifference >= 0 && daysDifference <= 3;
+    const isScheduledAndNear = apt.status === 'scheduled' && isWithin3Days;
+    
+    return isWithin3Days && isScheduledAndNear;
+  }).sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  // All appointments history (sorted by date descending - most recent first)
+  const allAppointmentsHistory = appointments
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
 
   // Generate calendar for current month
   const generateCalendar = () => {
@@ -598,12 +558,16 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
         return aptDate.toDateString() === currentDate.toDateString();
       });
       
+      const isSaturday = currentDate.getDay() === 6; // 6 = Saturday
+      
       days.push({
         date: currentDate,
         isCurrentMonth: currentDate.getMonth() === month,
         hasAppointment,
         isToday: currentDate.toDateString() === today.toDateString(),
-        isValidBookingDate: isValidBookingDate(currentDate.toISOString().split('T')[0])
+        isValidBookingDate: isValidBookingDate(currentDate.toISOString().split('T')[0]) && !isSaturday,
+        isSaturday: isSaturday,
+        isUnavailable: isSaturday // Mark Saturdays as unavailable
       });
     }
     
@@ -636,45 +600,7 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
         </div>
       )}
 
-      {/* Admin Scheduled Appointments Notification */}
-      {getApprovedAppointments().length > 0 && (
-        <div className="alert alert-warning d-flex align-items-center" role="alert" style={{ backgroundColor: '#fff3cd', borderColor: '#ffeaa7', color: '#856404' }}>
-          <div className="me-3">
-            <i className="bi bi-exclamation-triangle-fill fs-4"></i>
-          </div>
-          <div className="flex-grow-1">
-            <h6 className="mb-2">
-              <strong>New Appointment{getApprovedAppointments().length > 1 ? 's' : ''} Scheduled</strong>
-            </h6>
-            <p className="mb-2">
-              Your healthcare provider has scheduled {getApprovedAppointments().length} appointment{getApprovedAppointments().length > 1 ? 's' : ''} for you. 
-              Please review and accept to confirm your attendance.
-            </p>
-            <div className="d-flex flex-wrap gap-2">
-              {getApprovedAppointments().map(appointment => (
-                <div key={appointment.id} className="admin-appointment-notification">
-                  <div className="d-flex align-items-center justify-content-between bg-light rounded p-2">
-                    <div className="me-3">
-                      <div className="fw-bold">{appointment.serviceType || appointment.type}</div>
-                      <div className="text-muted small">
-                        {new Date(appointment.date).toLocaleDateString()} at {appointment.time}
-                      </div>
-                    </div>
-                    <button 
-                      className="btn btn-success btn-sm"
-                      onClick={() => handleAcceptAppointment(appointment.id)}
-                      disabled={isLoading}
-                    >
-                      <i className="bi bi-check-circle me-1"></i>
-                      Accept
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Page Header with Stats and Actions */}
       <div className="page-header">
@@ -721,157 +647,186 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
         </div>
       </div>
 
-      {/* Main Content Layout - Side by Side */}
-      <div className="main-content-layout">
+      {/* Main Content Layout - New Three-Section Grid Design */}
+      <div className="patient-appointments-main-grid">
         
-        {/* Left Side - Today's Schedule */}
-        <div className="todays-schedule-column">
-          <div className="todays-schedule-section">
-            <div className="section-header">
-              <h2 className="section-title">
-                <i className="bi bi-calendar-day"></i>
-                Today's Schedule - {new Date().toLocaleDateString()}
-              </h2>
-            </div>
+        {/* Left Content - Contains top row and all appointments */}
+        <div className="patient-appointments-left-content">
+          
+          {/* Top Row - Today's Schedule and Upcoming Appointments Side by Side */}
+          <div className="patient-appointments-top-row">
             
-            <div className="appointments-container">
-              {todaysAppointments.length > 0 ? (
-                <div className="appointments-list">
-                  {todaysAppointments.map(appointment => (
-                    <div key={appointment.id} className="appointment-card doctor-style">
-                      <div className="appointment-time-badge">
-                        <i className="bi bi-clock"></i>
-                        {appointment.time}
-                      </div>
-                      <div className="appointment-content">
-                        <div className="appointment-header">
-                          <h4 className="appointment-type">
-                            <i className="bi bi-clipboard-pulse"></i>
-                            {appointment.serviceType || 'General Consultation'}
-                          </h4>
-                          <span className={`status-badge status-${appointment.status?.toLowerCase() || 'scheduled'}`}>
+            {/* Today's Schedule Section */}
+            <div className="patient-appointments-todays-schedule">
+              <div className="patient-appointments-section-header">
+                <h2 className="patient-appointments-section-title">
+                  <i className="bi bi-calendar-day"></i>
+                  Today's Schedule - {new Date().toLocaleDateString()}
+                </h2>
+              </div>
+              
+              <div className="patient-appointments-todays-content">
+                {todaysAppointments.length > 0 ? (
+                  <div className="patient-appointments-todays-cards">
+                    {todaysAppointments.map(appointment => (
+                      <div key={appointment.id} className="patient-appointment-today-card">
+                        <div className="patient-appointment-card-header">
+                          <div className="patient-appointment-time">
+                            <i className="bi bi-clock me-2"></i>
+                            {appointment.time}
+                          </div>
+                          <span className={`patient-appointment-status-badge patient-appointment-status-${appointment.status?.toLowerCase() || 'scheduled'}`}>
                             {appointment.status || 'Scheduled'}
                           </span>
                         </div>
-                        <div className="appointment-details">
+                        <div className="patient-appointment-card-body">
+                          <h4 className="patient-appointment-service">
+                            <i className="bi bi-clipboard-pulse me-2"></i>
+                            {appointment.serviceType || 'General Consultation'}
+                          </h4>
                           {appointment.symptoms && (
-                            <p className="appointment-symptoms">
-                              <i className="bi bi-chat-dots"></i>
+                            <p className="patient-appointment-symptoms">
+                              <i className="bi bi-heart-pulse me-2"></i>
                               {appointment.symptoms}
                             </p>
                           )}
-                          {appointment.notes && (
-                            <p className="appointment-notes">
-                              <i className="bi bi-sticky"></i>
-                              {appointment.notes}
-                            </p>
+                        </div>
+                        <div className="patient-appointment-card-actions">
+                          <button 
+                            className="patient-appointment-btn patient-appointment-btn-view"
+                            onClick={() => handleViewAppointment(appointment)}
+                          >
+                            <i className="bi bi-eye me-1"></i>
+                            View Details
+                          </button>
+                          {appointment.status !== 'Cancelled' && (
+                            <button
+                              className="patient-appointment-btn patient-appointment-btn-cancel"
+                              onClick={() => handleCancelAppointment(appointment)}
+                            >
+                              <i className="bi bi-x-circle me-1"></i>
+                              Cancel
+                            </button>
                           )}
                         </div>
-                        <div className="appointment-meta">
-                          <span className="appointment-date">
-                            <i className="bi bi-calendar"></i>
-                            {new Date(appointment.date).toLocaleDateString()}
-                          </span>
-                        </div>
                       </div>
-                      <div className="appointment-actions">
-                        <button className="btn btn-sm btn-outline-primary">
-                          <i className="bi bi-eye"></i>
-                          View
-                        </button>
-                        {appointment.status === 'Confirmed' && (
-                          <button
-                            className="btn btn-sm btn-outline-success"
-                            onClick={() => handleMarkCompleted(appointment.id)}
-                            title="Mark appointment as completed"
-                          >
-                            <i className="bi bi-check-circle"></i>
-                            Complete
-                          </button>
-                        )}
-                        {appointment.status !== 'Cancelled' && appointment.status !== 'Completed' && appointment.status !== 'No Show' && (
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => handleCancelAppointment(appointment.id)}
-                          >
-                            <i className="bi bi-x-circle"></i>
-                            Cancel
-                          </button>
-                        )}
-                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="patient-appointments-todays-empty">
+                    <div className="patient-appointments-empty-state">
+                      <i className="bi bi-calendar-x"></i>
+                      <p>No appointments scheduled for today</p>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="appointments-list">
-                  {/* Backend Integration Ready:
-                      - Container optimized for appointment cards
-                      - Proper scrolling with flex layout
-                      - Gap spacing for multiple cards
-                      - Hover effects and transitions ready
-                  */}
-                </div>
-              )}
-            </div>
-          </div>
-          
-          {/* All Appointments Section - Table Format */}
-          <div className="all-appointments-section">
-            <div className="section-header" style={{display: 'flex', alignItems: 'center', justifyContent: 'space-between'}}>
-              <h2 className="section-title">
-                <i className="bi bi-list-check"></i>
-                All Appointments
-              </h2>
-              <div className="patient-notification-section">
-                <button 
-                  className={`patient-notification-btn ${notificationCount > 0 ? 'has-notifications' : ''}`}
-                  onClick={() => setShowNotificationModal(true)}
-                  title={`${notificationCount} notification${notificationCount !== 1 ? 's' : ''}`}
-                >
-                  <i className="bi bi-bell"></i>
-                  {notificationCount > 0 && (
-                    <span className="patient-notification-badge">{notificationCount}</span>
-                  )}
-                  Notifications
-                </button>
+                  </div>
+                )}
               </div>
             </div>
             
-            <div className="all-appointments-container">
-              {appointments.length > 0 ? (
-                <div className="appointments-table-container">
-                  <table className="appointments-table">
+            {/* Upcoming Appointments Section - Card Format */}
+            <div className="patient-appointments-upcoming-section">
+              <div className="patient-appointments-section-header">
+                <h2 className="patient-appointments-section-title">
+                  <i className="bi bi-calendar-plus"></i>
+                  Upcoming Appointments
+                </h2>
+              </div>
+              
+              <div className="patient-appointments-upcoming-content">
+                {upcomingAppointments.length > 0 ? (
+                  <div className="patient-appointments-upcoming-cards">
+                    {upcomingAppointments.map(appointment => (
+                      <div key={appointment.id} className="patient-appointment-upcoming-card">
+                        <div className="patient-appointment-card-header">
+                          <div className="patient-appointment-date">
+                            <i className="bi bi-calendar3 me-2"></i>
+                            {new Date(appointment.date).toLocaleDateString('en-US', { 
+                              weekday: 'short',
+                              month: 'short', 
+                              day: 'numeric'
+                            })}
+                          </div>
+                          <div className="patient-appointment-time">
+                            <i className="bi bi-clock me-2"></i>
+                            {appointment.time}
+                          </div>
+                        </div>
+                        <div className="patient-appointment-card-body">
+                          <h4 className="patient-appointment-service">
+                            <i className="bi bi-clipboard-pulse me-2"></i>
+                            {appointment.serviceType || 'General Consultation'}
+                          </h4>
+                          <span className={`patient-appointment-status-badge patient-appointment-status-${appointment.status?.toLowerCase() || 'scheduled'}`}>
+                            {appointment.status || 'Scheduled'}
+                          </span>
+                        </div>
+                        <div className="patient-appointment-card-actions">
+                          <button 
+                            className="patient-appointment-btn patient-appointment-btn-view"
+                            onClick={() => handleViewAppointment(appointment)}
+                            title="View details"
+                          >
+                            <i className="bi bi-eye me-1"></i>
+                            View Details
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="patient-appointments-upcoming-empty">
+                    <div className="patient-appointments-empty-state">
+                      <i className="bi bi-calendar-x"></i>
+                      <h4>No upcoming appointments</h4>
+                      <p>You don't have any upcoming appointments scheduled.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* All Appointments History Section - Below the top row */}
+          <div className="patient-appointments-history-section">
+            <div className="patient-appointments-section-header">
+              <h2 className="patient-appointments-section-title">
+                <i className="bi bi-list-check"></i>
+                All Appointments History
+              </h2>
+            </div>
+            
+            <div className="patient-appointments-history-content">
+              {allAppointmentsHistory.length > 0 ? (
+                <div className="patient-appointments-history-wrapper">
+                  <table className="patient-appointments-history-table">
                     <thead>
                       <tr>
-                        <th className="col-date">
+                        <th className="patient-appointments-col-date">
                           <i className="bi bi-calendar3"></i>
                           Date
                         </th>
-                        <th className="col-time">
+                        <th className="patient-appointments-col-time">
                           <i className="bi bi-clock"></i>
                           Time
                         </th>
-                        <th className="col-type">
+                        <th className="patient-appointments-col-type">
                           <i className="bi bi-clipboard-pulse"></i>
                           Type
                         </th>
-                        <th className="col-symptoms">
-                          <i className="bi bi-chat-dots"></i>
-                          Symptoms/Notes
-                        </th>
-                        <th className="col-status">
+                        <th className="patient-appointments-col-status">
                           <i className="bi bi-info-circle"></i>
                           Status
+                        </th>
+                        <th className="patient-appointments-col-actions">
+                          Actions
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {appointments
-                        .sort((a, b) => new Date(b.date) - new Date(a.date))
-                        .map(appointment => (
-                        <tr key={appointment.id} className={`appointment-row status-${appointment.status?.toLowerCase() || 'pending'}`}>
-                          <td className="col-date">
-                            <div className="date-cell">
+                      {allAppointmentsHistory.map(appointment => (
+                        <tr key={appointment.id} className={`patient-appointments-history-row patient-appointments-status-${appointment.status?.toLowerCase() || 'scheduled'}`}>
+                          <td className="patient-appointments-col-date">
+                            <div className="patient-appointments-date-cell">
                               {new Date(appointment.date).toLocaleDateString('en-US', { 
                                 weekday: 'short',
                                 month: 'short', 
@@ -880,47 +835,40 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
                               })}
                             </div>
                           </td>
-                          <td className="col-time">
-                            <div className="time-cell">
+                          <td className="patient-appointments-col-time">
+                            <div className="patient-appointments-time-cell">
                               {appointment.time}
                             </div>
                           </td>
-                          <td className="col-type">
-                            <div className="type-cell">
-                              <span className="service-type">
-                                {appointment.serviceType || 'General Consultation'}
-                              </span>
+                          <td className="patient-appointments-col-type">
+                            <div className="patient-appointments-type-cell">
+                              {appointment.serviceType || 'General Consultation'}
                             </div>
                           </td>
-                          <td className="col-symptoms">
-                            <div className="symptoms-cell">
-                              {(appointment.symptoms || appointment.notes) ? (
+                          <td className="patient-appointments-col-status">
+                            <span className={`patient-appointments-status-badge patient-appointments-status-${appointment.status?.toLowerCase() || 'scheduled'}`}>
+                              {appointment.status || 'Scheduled'}
+                            </span>
+                          </td>
+                          <td className="patient-appointments-col-actions">
+                            <div className="patient-appointments-actions-cell">
+                              <button 
+                                className="patient-appointments-btn patient-appointments-btn-view" 
+                                onClick={() => handleViewAppointment(appointment)}
+                                title="View details"
+                              >
+                                View Details
+                              </button>
+                              {canCancelAppointment(appointment) && (
                                 <button 
-                                  className="details-btn btn btn-sm btn-outline-info"
-                                  onClick={() => {
-                                    const details = [];
-                                    if (appointment.symptoms) {
-                                      details.push(`Symptoms:\n${appointment.symptoms}`);
-                                    }
-                                    if (appointment.notes) {
-                                      details.push(`Notes:\n${appointment.notes}`);
-                                    }
-                                    alert(details.join('\n\n'));
-                                  }}
-                                  title="View symptoms and notes details"
+                                  className="patient-appointments-btn patient-appointments-btn-cancel" 
+                                  onClick={() => handleCancelAppointment(appointment)}
+                                  title="Cancel appointment"
                                 >
-                                  <i className="bi bi-info-circle"></i>
-                                  Details
+                                  Cancel
                                 </button>
-                              ) : (
-                                <span className="no-details text-muted">No details</span>
                               )}
                             </div>
-                          </td>
-                          <td className="col-status">
-                            <span className={`status-badge status-${appointment.status?.toLowerCase() || 'pending'}`}>
-                              {appointment.status?.charAt(0).toUpperCase() + appointment.status?.slice(1) || 'Pending'}
-                            </span>
                           </td>
                         </tr>
                       ))}
@@ -928,13 +876,11 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
                   </table>
                 </div>
               ) : (
-                <div className="no-all-appointments">
-                  <div className="empty-state">
-                    <div className="empty-icon">
-                      <i className="bi bi-inbox"></i>
-                    </div>
-                    <h4>No appointments yet</h4>
-                    <p>You haven't booked any appointments yet. Use the calendar to schedule your first appointment.</p>
+                <div className="patient-appointments-history-empty">
+                  <div className="patient-appointments-empty-state">
+                    <i className="bi bi-inbox"></i>
+                    <h4>No appointment history</h4>
+                    <p>Your appointment history will appear here once you have appointments.</p>
                   </div>
                 </div>
               )}
@@ -942,71 +888,72 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
           </div>
         </div>
 
-        {/* Right Side - Calendar */}
-        <div className="calendar-column">
-          <div className="calendar-section">
-            <div className="calendar-container">
-              <div className="calendar-header">
-                <div className="calendar-nav">
+        {/* Right Column - Calendar */}
+        <div className="patient-appointments-right-column">
+          <div className="patient-appointments-calendar-section">
+            <div className="patient-appointments-calendar-container">
+              <div className="patient-appointments-calendar-header">
+                <div className="patient-appointments-calendar-nav">
                   <button 
-                    className="btn btn-outline-secondary btn-sm nav-btn"
+                    className="patient-appointments-calendar-nav-btn patient-appointments-nav-prev"
                     onClick={() => {
                       const prevMonth = new Date();
                       prevMonth.setMonth(prevMonth.getMonth() - 1);
                       // Handle month navigation
                     }}
                   >
-                    <span className="nav-arrow nav-arrow-left"></span>
+                    <i className="bi bi-chevron-left"></i>
                   </button>
-                  <h3 className="calendar-title">
+                  <h3 className="patient-appointments-calendar-title">
                     <i className="bi bi-calendar3"></i>
                     {currentMonth} {currentYear}
                   </h3>
                   <button 
-                    className="btn btn-outline-secondary btn-sm nav-btn"
+                    className="patient-appointments-calendar-nav-btn patient-appointments-nav-next"
                     onClick={() => {
                       const nextMonth = new Date();
                       nextMonth.setMonth(nextMonth.getMonth() + 1);
                       // Handle month navigation
                     }}
                   >
-                    <span className="nav-arrow nav-arrow-right"></span>
+                    <i className="bi bi-chevron-right"></i>
                   </button>
                 </div>
               </div>
               
-              <div className="calendar-grid">
-                <div className="calendar-weekdays">
-                  <div className="calendar-day-name">Sun</div>
-                  <div className="calendar-day-name">Mon</div>
-                  <div className="calendar-day-name">Tue</div>
-                  <div className="calendar-day-name">Wed</div>
-                  <div className="calendar-day-name">Thu</div>
-                  <div className="calendar-day-name">Fri</div>
-                  <div className="calendar-day-name">Sat</div>
+              <div className="patient-appointments-calendar-grid">
+                <div className="patient-appointments-calendar-weekdays">
+                  <div className="patient-appointments-calendar-day-name">Sun</div>
+                  <div className="patient-appointments-calendar-day-name">Mon</div>
+                  <div className="patient-appointments-calendar-day-name">Tue</div>
+                  <div className="patient-appointments-calendar-day-name">Wed</div>
+                  <div className="patient-appointments-calendar-day-name">Thu</div>
+                  <div className="patient-appointments-calendar-day-name">Fri</div>
+                  <div className="patient-appointments-calendar-day-name">Sat</div>
                 </div>
-                <div className="calendar-days">
+                <div className="patient-appointments-calendar-days">
                   {calendarDays.map((day, index) => (
                     <div
                       key={index}
-                      className={`calendar-day ${!day.isCurrentMonth ? 'other-month' : ''} ${day.isToday ? 'today' : ''} ${day.hasAppointment ? 'has-appointment' : ''} ${!isValidBookingDate(day.date.toISOString().split('T')[0]) ? 'date-disabled' : ''}`}
+                      className={`patient-appointments-calendar-day ${!day.isCurrentMonth ? 'patient-appointments-other-month' : ''} ${day.isToday ? 'patient-appointments-today' : ''} ${day.hasAppointment ? 'patient-appointments-has-appointment' : ''} ${!isValidBookingDate(day.date.toISOString().split('T')[0]) ? 'patient-appointments-date-disabled' : ''} ${day.isSaturday ? 'patient-appointments-saturday-unavailable' : ''}`}
                       onClick={() => {
                         const dateStr = day.date.toISOString().split('T')[0];
-                        if (day.isCurrentMonth && isValidBookingDate(dateStr)) {
+                        if (day.isCurrentMonth && isValidBookingDate(dateStr) && !day.isSaturday) {
                           setSelectedDate(day.date);
                           setShowDateModal(true);
                         }
                       }}
-                      style={{
-                        cursor: !isValidBookingDate(day.date.toISOString().split('T')[0]) ? 'not-allowed' : 'pointer',
-                        opacity: !isValidBookingDate(day.date.toISOString().split('T')[0]) ? 0.5 : 1
-                      }}
                     >
-                      <span className="day-number">{day.date.getDate()}</span>
-                      {day.hasAppointment && <div className="appointment-indicator"></div>}
-                      {!isValidBookingDate(day.date.toISOString().split('T')[0]) && (
-                        <div className="date-disabled-indicator">
-                          <i className="bi bi-x-circle" style={{ fontSize: '0.8rem', color: '#dc3545' }}></i>
+                      <span className="patient-appointments-day-number">{day.date.getDate()}</span>
+                      {day.hasAppointment && <div className="patient-appointments-appointment-indicator"></div>}
+                      {day.isSaturday && (
+                        <div className="patient-appointments-saturday-indicator">
+                          <i className="bi bi-calendar-x"></i>
+                        </div>
+                      )}
+                      {!isValidBookingDate(day.date.toISOString().split('T')[0]) && !day.isSaturday && (
+                        <div className="patient-appointments-date-disabled-indicator">
+                          <i className="bi bi-x-circle"></i>
                         </div>
                       )}
                     </div>
@@ -1015,18 +962,26 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
               </div>
               
               {/* Calendar Legend */}
-              <div className="calendar-legend">
-                <div className="legend-item">
-                  <div className="legend-color today-indicator"></div>
+              <div className="patient-appointments-calendar-legend">
+                <div className="patient-appointments-legend-item">
+                  <div className="patient-appointments-legend-color patient-appointments-today-indicator"></div>
                   <span>Today ({new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})</span>
                 </div>
-                <div className="legend-item">
-                  <i className="bi bi-x-circle legend-icon"></i>
-                  <span>Unavailable (weekends & dates within 2 days)</span>
+                <div className="patient-appointments-legend-item">
+                  <i className="bi bi-calendar-x patient-appointments-legend-icon"></i>
+                  <span>Saturdays (Unavailable)</span>
                 </div>
-                <div className="legend-item">
-                  <div className="legend-color available-indicator"></div>
+                <div className="patient-appointments-legend-item">
+                  <i className="bi bi-x-circle patient-appointments-legend-icon"></i>
+                  <span>Unavailable (Sundays & dates within 2 days)</span>
+                </div>
+                <div className="patient-appointments-legend-item">
+                  <div className="patient-appointments-legend-color patient-appointments-available-indicator"></div>
                   <span>Available for booking</span>
+                </div>
+                <div className="patient-appointments-legend-item">
+                  <div className="patient-appointments-legend-color patient-appointments-has-appointment-indicator"></div>
+                  <span>Has appointment</span>
                 </div>
               </div>
             </div>
@@ -1034,59 +989,7 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
         </div>
       </div>
 
-      {/* Upcoming Appointments */}
-      {upcomingAppointments.length > 0 && (
-        <div className="appointments-section">
-          <h2 className="section-title">
-            <i className="bi bi-calendar-plus"></i>
-            Upcoming Appointments
-          </h2>
-          <div className="appointments-grid">
-            {upcomingAppointments.map(appointment => (
-              <div key={appointment.id} className="appointment-card appointment-upcoming">
-                <div className="appointment-header">
-                  <div className="appointment-type">
-                    <i className="bi bi-clipboard-pulse"></i>
-                    {appointment.serviceType || 'General Consultation'}
-                  </div>
-                  <span className={`status-badge status-${appointment.status?.toLowerCase() || 'scheduled'}`}>
-                    {appointment.status || 'Scheduled'}
-                  </span>
-                </div>
-                <div className="appointment-details">
-                  <div>
-                    <i className="bi bi-clock"></i>
-                    <span className="appointment-time">{appointment.time}</span>
-                  </div>
-                  <div>
-                    <i className="bi bi-calendar"></i>
-                    <span className="appointment-datetime">
-                      {new Date(appointment.date).toLocaleDateString()}
-                    </span>
-                  </div>
-                  {appointment.symptoms && (
-                    <div>
-                      <i className="bi bi-chat-dots"></i>
-                      <span className="appointment-symptoms">{appointment.symptoms}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="appointment-actions">
-                  {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
-                    <button
-                      className="btn btn-outline-danger btn-sm"
-                      onClick={() => handleCancelAppointment(appointment.id)}
-                    >
-                      <i className="bi bi-x-circle"></i>
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+
 
       {/* Booking Modal */}
       {showBookingModal && (
@@ -1104,6 +1007,18 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
                 <i className="bi bi-x"></i>
               </button>
             </div>
+            
+            {/* Daily Limit Message */}
+            {isDailyLimitReached && bookingForm.date && (
+              <div className="daily-limit-message booking-disabled">
+                <h3>This Date is Fully Booked</h3>
+                <p>
+                  {dailyAppointmentCount}/12 appointments have been scheduled for this date. 
+                  Please select a different date to continue booking.
+                </p>
+              </div>
+            )}
+            
             <form className="booking-form" onSubmit={handleBookAppointment}>
               <div className="form-row">
                 <div className="form-group">
@@ -1232,6 +1147,7 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
                     todayBookingCount >= 2 || 
                     lastBookingTime ||
                     (bookingForm.date && isWeekend(bookingForm.date)) ||
+                    isDailyLimitReached ||
                     isServiceDisabled
                   }
                 >
@@ -1239,6 +1155,7 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
                   {isLoading ? 'Booking...' : 
                    showConfirmation ? `Confirm (${confirmationTimer}s)` : 
                    bookingForm.date && isWeekend(bookingForm.date) ? 'Weekends Not Available' :
+                   isDailyLimitReached ? 'Date Fully Booked' :
                    'Book Appointment'}
                 </button>
               </div>
@@ -1263,6 +1180,18 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
                 <i className="bi bi-x"></i>
               </button>
             </div>
+            
+            {/* Daily Limit Message for Date Modal */}
+            {isDailyLimitReached && (
+              <div className="daily-limit-message booking-disabled">
+                <h3>This Date is Fully Booked</h3>
+                <p>
+                  {dailyAppointmentCount}/12 appointments have been scheduled for this date. 
+                  Please select a different date to continue booking.
+                </p>
+              </div>
+            )}
+            
             <div className="date-modal-content">
               <div className="patient-info">
                 <div className="patient-details">
@@ -1416,6 +1345,7 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
                       !bookingForm.time || 
                       !bookingForm.serviceType || 
                       (selectedDate && isWeekend(selectedDate)) ||
+                      isDailyLimitReached ||
                       todayBookingCount >= 2 ||
                       lastBookingTime ||
                       isLoading
@@ -1425,6 +1355,7 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
                     {isLoading ? 'Booking...' : 
                      showConfirmation ? `Confirm (${confirmationTimer}s)` : 
                      selectedDate && isWeekend(selectedDate) ? 'Weekends Not Available' :
+                     isDailyLimitReached ? 'Date Fully Booked' :
                      'Book Appointment'}
                   </button>
                 </div>
@@ -1434,73 +1365,53 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
         </div>
       )}
 
-      {/* Notification Modal */}
-      {showNotificationModal && (
-        <div className="modal fade show patient-notification-modal" style={{ display: 'block' }}>
-          <div className="modal-dialog modal-lg">
+
+
+      {/* View Appointment Modal */}
+      {showViewModal && selectedAppointmentForView && (
+        <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+          <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">
-                  <i className="bi bi-bell"></i>
-                  Your Notifications ({notificationCount})
-                </h5>
+                <h5 className="modal-title">Appointment Details</h5>
                 <button
                   type="button"
                   className="btn-close"
-                  onClick={() => setShowNotificationModal(false)}
+                  onClick={() => setShowViewModal(false)}
                 ></button>
               </div>
               <div className="modal-body">
-                {notifications.length > 0 ? (
-                  <div className="notifications-list">
-                    {notifications.map(notification => (
-                      <div key={notification.id} className="notification-item">
-                        <div className="notification-content">
-                          <div className="notification-header">
-                            <h6 className="notification-title">
-                              <i className="bi bi-calendar-plus"></i>
-                              New Appointment Scheduled
-                            </h6>
-                            <span className="notification-time">
-                              {new Date(notification.createdAt).toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="notification-details">
-                            <p><strong>Date:</strong> {new Date(notification.appointmentDate).toLocaleDateString()}</p>
-                            <p><strong>Time:</strong> {notification.appointmentTime}</p>
-                            <p><strong>Service:</strong> {notification.serviceType}</p>
-                            <p><strong>Doctor:</strong> {notification.doctorName || 'Dr. Smith'}</p>
-                            {notification.notes && (
-                              <p><strong>Notes:</strong> {notification.notes}</p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="notification-actions">
-                          <button
-                            className="btn btn-success btn-sm"
-                            onClick={() => handleAcceptNotification(notification.id)}
-                          >
-                            <i className="bi bi-check-circle"></i>
-                            Accept
-                          </button>
-                          <button
-                            className="btn btn-outline-danger btn-sm"
-                            onClick={() => handleDeclineNotification(notification.id)}
-                          >
-                            <i className="bi bi-x-circle"></i>
-                            Decline
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                <div className="row mb-3">
+                  <div className="col-sm-3"><strong>Date:</strong></div>
+                  <div className="col-sm-9">
+                    {new Date(selectedAppointmentForView.date).toLocaleDateString('en-US', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })}
                   </div>
-                ) : (
-                  <div className="no-notifications">
-                    <div className="empty-state">
-                      <i className="bi bi-bell-slash"></i>
-                      <h6>No New Notifications</h6>
-                      <p>You're all caught up! No new appointment notifications at this time.</p>
-                    </div>
+                </div>
+                <div className="row mb-3">
+                  <div className="col-sm-3"><strong>Time:</strong></div>
+                  <div className="col-sm-9">{selectedAppointmentForView.time}</div>
+                </div>
+                <div className="row mb-3">
+                  <div className="col-sm-3"><strong>Service:</strong></div>
+                  <div className="col-sm-9">{selectedAppointmentForView.serviceType || 'General Consultation'}</div>
+                </div>
+                <div className="row mb-3">
+                  <div className="col-sm-3"><strong>Status:</strong></div>
+                  <div className="col-sm-9">
+                    <span className={`appointments-status-badge appointments-status-${selectedAppointmentForView.status?.toLowerCase() || 'scheduled'}`}>
+                      {selectedAppointmentForView.status?.charAt(0).toUpperCase() + selectedAppointmentForView.status?.slice(1) || 'Scheduled'}
+                    </span>
+                  </div>
+                </div>
+                {selectedAppointmentForView.notes && (
+                  <div className="row mb-3">
+                    <div className="col-sm-3"><strong>Notes:</strong></div>
+                    <div className="col-sm-9">{selectedAppointmentForView.notes}</div>
                   </div>
                 )}
               </div>
@@ -1508,15 +1419,64 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => setShowNotificationModal(false)}
+                  onClick={() => setShowViewModal(false)}
                 >
                   Close
+                </button>
+
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Appointment Modal */}
+      {showCancelModal && selectedAppointmentForCancel && (
+        <div className="modal fade show" style={{ display: 'block' }} tabIndex="-1">
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Cancel Appointment</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowCancelModal(false)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <p>Are you sure you want to cancel this appointment?</p>
+                <div className="appointment-summary">
+                  <div><strong>Date:</strong> {new Date(selectedAppointmentForCancel.date).toLocaleDateString()}</div>
+                  <div><strong>Time:</strong> {selectedAppointmentForCancel.time}</div>
+                  <div><strong>Service:</strong> {selectedAppointmentForCancel.serviceType || 'General Consultation'}</div>
+                </div>
+                <div className="alert alert-warning mt-3">
+                  <i className="bi bi-exclamation-triangle"></i>
+                  This action cannot be undone. You may need to reschedule if you change your mind.
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowCancelModal(false)}
+                >
+                  Keep Appointment
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={handleConfirmCancel}
+                >
+                  Cancel Appointment
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+
     </div>
   );
 });

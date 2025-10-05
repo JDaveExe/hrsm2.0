@@ -926,6 +926,8 @@ const CheckupManager = () => {
     switch (method) {
       case 'qr-code':
         return <i className="bi bi-qr-code text-primary" title="QR Code Check-in"></i>;
+      case 'qr-scan':
+        return <i className="bi bi-qr-code-scan text-primary" title="QR Code Scan Check-in"></i>;
       case 'staff-assisted':
         return <i className="bi bi-person-check text-success" title="Staff Assisted"></i>;
       case 'online':
@@ -1306,33 +1308,6 @@ const CheckupManager = () => {
                     <i className="bi bi-arrow-clockwise me-1"></i>
                     Refresh
                   </Button>
-                  <Button 
-                    variant={isRemoveMode ? "danger" : "outline-danger"} 
-                    onClick={startRemoveMode}
-                    disabled={todaysCheckups.length === 0}
-                    style={!isRemoveMode ? {
-                      backgroundColor: '#dc3545',
-                      borderColor: '#dc3545',
-                      color: 'white'
-                    } : {}}
-                  >
-                    <i className="bi bi-trash me-1"></i>
-                    {isRemoveMode ? `Remove Selected (${selectedForRemoval.length})` : 'Remove Patients'}
-                  </Button>
-                  {isRemoveMode && (
-                    <Button 
-                      variant="secondary" 
-                      onClick={cancelRemoveMode}
-                      style={{
-                        backgroundColor: '#6c757d',
-                        borderColor: '#6c757d',
-                        color: 'white'
-                      }}
-                    >
-                      <i className="bi bi-x me-1"></i>
-                      Cancel
-                    </Button>
-                  )}
                 </div>
               </Col>
             </Row>

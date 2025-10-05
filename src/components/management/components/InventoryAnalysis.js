@@ -18,6 +18,11 @@ const InventoryAnalysis = ({ currentDateTime, isDarkMode, timePeriod = '30days',
   const [showFullView, setShowFullView] = useState(false);
   const [prescriptionTrendsPeriod, setPrescriptionTrendsPeriod] = useState('days');
   const [showDetailModal, setShowDetailModal] = useState(null); // 'categoryDistribution', 'prescriptionUsage', 'vaccineUsage', 'prescriptionSummary'
+  
+  // Expiring items modal states
+  const [showExpiringModal, setShowExpiringModal] = useState(false);
+  const [expiringItems, setExpiringItems] = useState([]);
+  const [loadingExpiring, setLoadingExpiring] = useState(false);
 
   // Process real inventory data efficiently (limit to prevent performance issues)
   const processInventoryData = useMemo(() => {
@@ -949,6 +954,82 @@ const InventoryAnalysis = ({ currentDateTime, isDarkMode, timePeriod = '30days',
     return metrics;
   }, [processInventoryData, medicineUsageData]);
 
+  // Handler for expiring items card click
+  const handleExpiringCardClick = async () => {
+    setLoadingExpiring(true);
+    setShowExpiringModal(true);
+    
+    try {
+      // Fetch expired batches from both medications and vaccines
+      const [medicationBatches, vaccineBatches] = await Promise.all([
+        fetch('/api/medication-batches/expiring/30').then(res => res.json()),
+        fetch('/api/vaccine-batches/expiring/30').then(res => res.json())
+      ]);
+
+      const expiredItems = [];
+      
+      // Process medication batches
+      if (medicationBatches.batches) {
+        medicationBatches.batches.forEach(batch => {
+          if (new Date(batch.expiryDate) < new Date()) {
+            expiredItems.push({
+              id: batch.id,
+              name: batch.medicationName || batch.medication?.name,
+              batchNumber: batch.batchNumber,
+              expiryDate: batch.expiryDate,
+              units: batch.quantityRemaining,
+              type: 'medication',
+              medicationId: batch.medicationId
+            });
+          }
+        });
+      }
+
+      // Process vaccine batches
+      if (vaccineBatches.batches) {
+        vaccineBatches.batches.forEach(batch => {
+          if (new Date(batch.expiryDate) < new Date()) {
+            expiredItems.push({
+              id: batch.id,
+              name: batch.vaccineName,
+              batchNumber: batch.batchNumber,
+              expiryDate: batch.expiryDate,
+              units: batch.dosesRemaining,
+              type: 'vaccine',
+              vaccineId: batch.vaccineId
+            });
+          }
+        });
+      }
+
+      setExpiringItems(expiredItems);
+    } catch (error) {
+      console.error('Error fetching expired items:', error);
+      setExpiringItems([]);
+    } finally {
+      setLoadingExpiring(false);
+    }
+  };
+
+  // Handler for navigating to specific item
+  const handleNavigateToItem = (item) => {
+    setShowExpiringModal(false);
+    
+    // Navigate to the specific inventory tab and item
+    if (item.type === 'medication') {
+      // Navigate to prescription inventory with the specific medication
+      window.location.hash = `#prescription-${item.medicationId}`;
+    } else if (item.type === 'vaccine') {
+      // Navigate to vaccine inventory with the specific vaccine
+      window.location.hash = `#vaccine-${item.vaccineId}`;
+    }
+    
+    // If there's a navigation callback, use it
+    if (onNavigateToReports) {
+      onNavigateToReports(item.type === 'medication' ? 'prescription' : 'vaccine', item);
+    }
+  };
+
   // Secure chart options
   const chartOptions = {
     responsive: true,
@@ -1022,7 +1103,11 @@ const InventoryAnalysis = ({ currentDateTime, isDarkMode, timePeriod = '30days',
         </Col>
 
         <Col md={3}>
-          <Card className="metric-card border-0 shadow-sm">
+          <Card 
+            className="metric-card border-0 shadow-sm" 
+            style={{ cursor: 'pointer' }}
+            onClick={handleExpiringCardClick}
+          >
             <Card.Body>
               <div className="d-flex align-items-center">
                 <div className="metric-icon bg-info text-white rounded-circle me-3">
@@ -2125,6 +2210,104 @@ const InventoryAnalysis = ({ currentDateTime, isDarkMode, timePeriod = '30days',
         </Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowDetailModal(null)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Expiring Items Modal */}
+      <Modal 
+        show={showExpiringModal} 
+        onHide={() => setShowExpiringModal(false)}
+        size="lg"
+        className="expiring-items-modal"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-calendar-x me-2"></i>
+            Expiring Items (≤30 days)
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {expiringItems.length === 0 ? (
+            <div className="text-center text-muted py-4">
+              <i className="bi bi-check-circle text-success display-4"></i>
+              <p className="mt-3">No expiring items found!</p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-muted mb-3">
+                Found {expiringItems.length} batch{expiringItems.length !== 1 ? 'es' : ''} expiring within 30 days or already expired.
+              </p>
+              
+              <div className="row">
+                {expiringItems.map((item, index) => (
+                  <div key={index} className="col-12 mb-3">
+                    <Card className="border-0 shadow-sm">
+                      <Card.Body>
+                        <div className="d-flex justify-content-between align-items-start">
+                          <div className="flex-grow-1">
+                            <div className="d-flex align-items-center mb-2">
+                              <span className="badge bg-secondary me-2">
+                                {item.type === 'medication' ? 'Prescription' : 'Vaccine'}
+                              </span>
+                              <strong>{item.itemName}</strong>
+                              {item.isExpired && (
+                                <span className="badge bg-danger ms-2 expired-badge">
+                                  EXPIRED
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="row">
+                              <div className="col-md-6">
+                                <small className="text-muted">Batch: </small>
+                                <span className="fw-medium">{item.batchNumber}</span>
+                              </div>
+                              <div className="col-md-6">
+                                <small className="text-muted">Expires: </small>
+                                <span className={item.isExpired ? 'text-danger fw-bold' : 'text-warning fw-medium'}>
+                                  {new Date(item.expirationDate).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="row mt-1">
+                              <div className="col-md-6">
+                                <small className="text-muted">Quantity: </small>
+                                <span>{item.quantity} {item.unit}</span>
+                              </div>
+                              <div className="col-md-6">
+                                <small className="text-muted">Days {item.isExpired ? 'expired' : 'until expiry'}: </small>
+                                <span className={item.isExpired ? 'text-danger fw-bold' : 'text-warning fw-medium'}>
+                                  {Math.abs(item.daysUntilExpiry)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="ms-3">
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              onClick={() => handleNavigateToItem(item)}
+                              className="mb-1"
+                            >
+                              <i className="bi bi-arrow-right-circle me-1"></i>
+                              View Item
+                            </Button>
+                          </div>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowExpiringModal(false)}>
             Close
           </Button>
         </Modal.Footer>

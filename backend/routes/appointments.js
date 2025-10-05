@@ -1,6 +1,7 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const { Op } = require('sequelize');
+const { Op, Sequelize } = require('sequelize');
+const { sequelize } = require('../config/database');
 const Appointment = require('../models/Appointment');
 const Patient = require('../models/Patient');
 const User = require('../models/User');
@@ -12,6 +13,108 @@ const router = express.Router();
 // TODO: Replace with database when AppointmentRequest model is created
 let appointmentRequests = [];
 let pendingAppointments = []; // Store approved/rejected appointments with status
+
+// Appointment limits configuration
+const APPOINTMENT_LIMITS = {
+  DAILY_LIMIT_PER_PATIENT: 2,
+  WEEKLY_LIMIT_PER_PATIENT: 5,
+  DAILY_LIMIT_TOTAL: 50, // Total appointments per day
+  HOURLY_SLOTS: {
+    '08:00': 5, '09:00': 5, '10:00': 5, '11:00': 5,
+    '14:00': 5, '15:00': 5, '16:00': 5, '17:00': 5
+  }
+};
+
+// Helper function to check appointment limits
+const checkAppointmentLimits = async (patientId, appointmentDate, appointmentTime) => {
+  const startOfDay = new Date(appointmentDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(appointmentDate);
+  endOfDay.setHours(23, 59, 59, 999);
+  
+  // Check daily limit for patient
+  const patientDailyCount = await Appointment.count({
+    where: {
+      patientId,
+      appointmentDate,
+      status: { [Op.notIn]: ['Cancelled', 'rejected'] },
+      isActive: true
+    }
+  });
+  
+  if (patientDailyCount >= APPOINTMENT_LIMITS.DAILY_LIMIT_PER_PATIENT) {
+    return {
+      allowed: false,
+      reason: `Patient has reached daily limit of ${APPOINTMENT_LIMITS.DAILY_LIMIT_PER_PATIENT} appointments per day`
+    };
+  }
+  
+  // Check weekly limit for patient
+  const startOfWeek = new Date(appointmentDate);
+  startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+  startOfWeek.setHours(0, 0, 0, 0);
+  const endOfWeek = new Date(startOfWeek);
+  endOfWeek.setDate(endOfWeek.getDate() + 6);
+  endOfWeek.setHours(23, 59, 59, 999);
+  
+  const patientWeeklyCount = await Appointment.count({
+    where: {
+      patientId,
+      appointmentDate: {
+        [Op.between]: [startOfWeek.toISOString().split('T')[0], endOfWeek.toISOString().split('T')[0]]
+      },
+      status: { [Op.notIn]: ['Cancelled', 'rejected'] },
+      isActive: true
+    }
+  });
+  
+  if (patientWeeklyCount >= APPOINTMENT_LIMITS.WEEKLY_LIMIT_PER_PATIENT) {
+    return {
+      allowed: false,
+      reason: `Patient has reached weekly limit of ${APPOINTMENT_LIMITS.WEEKLY_LIMIT_PER_PATIENT} appointments per week`
+    };
+  }
+  
+  // Check total daily limit
+  const totalDailyCount = await Appointment.count({
+    where: {
+      appointmentDate,
+      status: { [Op.notIn]: ['Cancelled', 'rejected'] },
+      isActive: true
+    }
+  });
+  
+  if (totalDailyCount >= APPOINTMENT_LIMITS.DAILY_LIMIT_TOTAL) {
+    return {
+      allowed: false,
+      reason: `Daily appointment limit of ${APPOINTMENT_LIMITS.DAILY_LIMIT_TOTAL} has been reached`
+    };
+  }
+  
+  // Check hourly slot limits
+  const hour = appointmentTime.split(':')[0].padStart(2, '0') + ':00';
+  if (APPOINTMENT_LIMITS.HOURLY_SLOTS[hour]) {
+    const hourlyCount = await Appointment.count({
+      where: {
+        appointmentDate,
+        appointmentTime: {
+          [Op.like]: `${hour}%`
+        },
+        status: { [Op.notIn]: ['Cancelled', 'rejected'] },
+        isActive: true
+      }
+    });
+    
+    if (hourlyCount >= APPOINTMENT_LIMITS.HOURLY_SLOTS[hour]) {
+      return {
+        allowed: false,
+        reason: `Time slot ${hour} is fully booked (${APPOINTMENT_LIMITS.HOURLY_SLOTS[hour]} appointments max)`
+      };
+    }
+  }
+  
+  return { allowed: true };
+};
 
 // @route   GET api/appointments
 // @desc    Get all appointments with optional filters
@@ -254,9 +357,39 @@ router.post('/requests', [
       appointmentType,
       requestedDate,
       requestedTime,
+      duration,
       symptoms,
       notes
     } = req.body;
+
+    // Check for duplicate appointments (same patient, date, and time)
+    const isDuplicate = appointmentRequests.some(request => 
+      request.patientId === patientId &&
+      request.requestedDate === requestedDate &&
+      request.requestedTime === requestedTime &&
+      request.status === 'pending'
+    ) || pendingAppointments.some(appointment => 
+      appointment.patientId === patientId &&
+      appointment.appointmentDate === requestedDate &&
+      appointment.appointmentTime === requestedTime &&
+      (appointment.status === 'pending' || appointment.status === 'approved' || appointment.status === 'accepted')
+    );
+
+    if (isDuplicate) {
+      return res.status(400).json({ 
+        msg: 'Duplicate appointment detected',
+        error: 'You already have an appointment scheduled for this date and time. Please choose a different time slot.'
+      });
+    }
+
+    // Check appointment limits
+    const limitsCheck = await checkAppointmentLimits(patientId, requestedDate, requestedTime);
+    if (!limitsCheck.allowed) {
+      return res.status(400).json({ 
+        msg: 'Appointment limit exceeded',
+        error: limitsCheck.reason
+      });
+    }
 
     // Create appointment request
     const appointmentRequest = {
@@ -266,6 +399,7 @@ router.post('/requests', [
       appointmentType,
       requestedDate,
       requestedTime,
+      duration: duration || 30, // Default to 30 minutes
       symptoms: symptoms || '',
       notes: notes || '',
       status: 'pending',
@@ -280,6 +414,7 @@ router.post('/requests', [
       patientName,
       appointmentDate: requestedDate,
       appointmentTime: requestedTime,
+      duration: duration || 30, // Default to 30 minutes
       type: appointmentType,
       symptoms: symptoms || '',
       notes: notes || '',
@@ -320,6 +455,60 @@ router.get('/requests', auth, async (req, res) => {
     
     console.log('📋 Fetching appointment requests, total:', appointmentRequests.length);
     
+    // Clean up expired appointment requests automatically
+    const now = new Date();
+    const currentDateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+    const currentTimeStr = now.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
+    
+    const initialCount = appointmentRequests.length;
+    const initialPendingCount = pendingAppointments.length;
+    
+    // Remove expired requests (requests where date/time has passed)
+    appointmentRequests = appointmentRequests.filter(request => {
+      if (request.status !== 'pending') return true; // Keep non-pending requests
+      
+      try {
+        const requestDate = request.requestedDate;
+        const requestTime = request.requestedTime;
+        
+        // If date is before today, it's expired
+        if (requestDate < currentDateStr) {
+          console.log(`⏰ Removing expired appointment request: ${request.id} (date: ${requestDate})`);
+          return false;
+        }
+        
+        // If date is today but time has passed, it's expired
+        if (requestDate === currentDateStr && requestTime < currentTimeStr) {
+          console.log(`⏰ Removing expired appointment request: ${request.id} (time: ${requestTime})`);
+          return false;
+        }
+        
+        return true; // Keep valid requests
+      } catch (error) {
+        console.warn('Invalid date/time in request:', request.id, error);
+        return false; // Remove invalid requests
+      }
+    });
+    
+    // Also remove corresponding pending appointments for expired requests
+    const validRequestIds = appointmentRequests.map(req => req.id);
+    pendingAppointments = pendingAppointments.filter(apt => {
+      if (apt.status !== 'pending' || !apt.requestId) return true; // Keep non-pending or approved appointments
+      
+      const isValidRequest = validRequestIds.includes(apt.requestId);
+      if (!isValidRequest) {
+        console.log(`⏰ Removing expired pending appointment: ${apt.id} (linked to expired request: ${apt.requestId})`);
+      }
+      return isValidRequest;
+    });
+    
+    const removedRequests = initialCount - appointmentRequests.length;
+    const removedPending = initialPendingCount - pendingAppointments.length;
+    
+    if (removedRequests > 0 || removedPending > 0) {
+      console.log(`🧹 Cleaned up ${removedRequests} expired requests and ${removedPending} expired pending appointments`);
+    }
+    
     // Apply filters if provided
     const { status, patientId, date } = req.query;
     let filteredRequests = [...appointmentRequests];
@@ -355,6 +544,140 @@ router.get('/requests/count', auth, async (req, res) => {
     res.json({ count });
   } catch (err) {
     console.error('Error getting appointment requests count:', err.message);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
+// @route   GET api/appointments/available-slots
+// @desc    Get available time slots for a specific date and patient
+// @access  Private
+router.get('/available-slots', auth, async (req, res) => {
+  try {
+    const { date, patientId } = req.query;
+    
+    if (!date) {
+      return res.status(400).json({ msg: 'Date is required' });
+    }
+
+    // Generate time slots (9 AM to 5 PM, 30-minute intervals)
+    const timeSlots = [];
+    for (let hour = 9; hour < 17; hour++) {
+      timeSlots.push(`${hour.toString().padStart(2, '0')}:00`);
+      timeSlots.push(`${hour.toString().padStart(2, '0')}:30`);
+    }
+
+    const availableSlots = [];
+    
+    for (const time of timeSlots) {
+      // Check if slot is already booked
+      const existingAppointment = await Appointment.findOne({
+        where: {
+          appointmentDate: date,
+          appointmentTime: time,
+          status: { [Op.notIn]: ['Cancelled', 'Completed', 'rejected'] },
+          isActive: true
+        }
+      });
+
+      if (existingAppointment) {
+        continue; // Skip booked slots
+      }
+
+      // Check appointment limits if patient ID is provided
+      let limitStatus = { allowed: true, reason: null };
+      if (patientId) {
+        limitStatus = await checkAppointmentLimits(patientId, date, time);
+      }
+
+      availableSlots.push({
+        time,
+        available: limitStatus.allowed,
+        reason: limitStatus.reason
+      });
+    }
+
+    res.json({
+      date,
+      slots: availableSlots,
+      totalSlots: timeSlots.length,
+      availableCount: availableSlots.filter(slot => slot.available).length
+    });
+  } catch (err) {
+    console.error('Error getting available slots:', err.message);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
+// @route   GET api/appointments/limits
+// @desc    Get appointment limits configuration and current usage
+// @access  Private
+router.get('/limits', auth, async (req, res) => {
+  try {
+    const { patientId, date } = req.query;
+    
+    const response = {
+      limits: APPOINTMENT_LIMITS,
+      usage: {}
+    };
+
+    if (patientId && date) {
+      const requestedDate = new Date(date);
+      const startOfDay = new Date(requestedDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(requestedDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      // Get daily count for patient
+      const dailyCount = await Appointment.count({
+        where: {
+          patientId: patientId,
+          appointmentDate: date,
+          status: { [Op.notIn]: ['Cancelled', 'rejected'] },
+          isActive: true
+        }
+      });
+
+      // Get weekly count for patient
+      const startOfWeek = new Date(requestedDate);
+      startOfWeek.setDate(requestedDate.getDate() - requestedDate.getDay());
+      startOfWeek.setHours(0, 0, 0, 0);
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
+
+      const weeklyCount = await Appointment.count({
+        where: {
+          patientId: patientId,
+          appointmentDate: {
+            [Op.between]: [startOfWeek.toISOString().split('T')[0], endOfWeek.toISOString().split('T')[0]]
+          },
+          status: { [Op.notIn]: ['Cancelled', 'rejected'] },
+          isActive: true
+        }
+      });
+
+      // Get total daily count
+      const totalDailyCount = await Appointment.count({
+        where: {
+          appointmentDate: date,
+          status: { [Op.notIn]: ['Cancelled', 'rejected'] },
+          isActive: true
+        }
+      });
+
+      response.usage = {
+        patientDaily: dailyCount,
+        patientWeekly: weeklyCount,
+        totalDaily: totalDailyCount,
+        dailyRemaining: Math.max(0, APPOINTMENT_LIMITS.maxPerPatientPerDay - dailyCount),
+        weeklyRemaining: Math.max(0, APPOINTMENT_LIMITS.maxPerPatientPerWeek - weeklyCount),
+        totalDailyRemaining: Math.max(0, APPOINTMENT_LIMITS.maxTotalPerDay - totalDailyCount)
+      };
+    }
+
+    res.json(response);
+  } catch (err) {
+    console.error('Error getting appointment limits:', err.message);
     res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });
@@ -395,6 +718,7 @@ router.post('/requests/:id/approve', auth, async (req, res) => {
         patientName: appointmentRequest.patientName,
         appointmentDate: appointmentRequest.requestedDate,
         appointmentTime: appointmentRequest.requestedTime,
+        duration: appointmentRequest.duration || 30, // Default to 30 minutes
         type: appointmentRequest.appointmentType,
         symptoms: appointmentRequest.symptoms,
         notes: appointmentRequest.notes,
@@ -599,21 +923,127 @@ router.post('/', [
       }
     }
 
-    // Check for scheduling conflicts
-    const conflictingAppointment = await Appointment.findOne({
+    // Check if patient already has an active appointment (limit 1 per patient)
+    const existingActiveAppointment = await Appointment.findOne({
       where: {
-        appointmentDate,
-        appointmentTime,
-        doctorId: doctorId || null,
-        status: { [Op.notIn]: ['Cancelled', 'Completed'] },
+        patientId,
+        status: { [Op.in]: ['Scheduled'] }, // Only allow one scheduled appointment
         isActive: true
       }
     });
 
-    if (conflictingAppointment) {
+    if (existingActiveAppointment) {
       return res.status(400).json({ 
-        msg: 'Time slot already booked for this doctor' 
+        msg: 'Active appointment exists',
+        error: 'You already have an active appointment. Please cancel your existing appointment before booking a new one.'
       });
+    }
+
+    // Check for cancellation cooldown (1 day after last cancellation)
+    const lastCancellation = await Appointment.findOne({
+      where: {
+        patientId,
+        status: 'Cancelled',
+        isActive: true
+      },
+      order: [['updatedAt', 'DESC']]
+    });
+
+    if (lastCancellation) {
+      const cooldownEnd = new Date(lastCancellation.updatedAt);
+      cooldownEnd.setDate(cooldownEnd.getDate() + 1); // Add 1 day
+      const now = new Date();
+      
+      if (now < cooldownEnd) {
+        const hoursLeft = Math.ceil((cooldownEnd - now) / (1000 * 60 * 60));
+        return res.status(400).json({ 
+          msg: 'Cancellation cooldown active',
+          error: `You must wait ${hoursLeft} hours after cancelling an appointment before booking a new one.`
+        });
+      }
+    }
+
+    // Check for daily appointment limit (12 appointments per day)
+    const dailyAppointmentCount = await Appointment.count({
+      where: {
+        appointmentDate,
+        status: { [Op.notIn]: ['Cancelled'] },
+        isActive: true
+      }
+    });
+
+    if (dailyAppointmentCount >= 12) {
+      return res.status(400).json({ 
+        msg: 'Daily appointment limit reached',
+        error: 'The daily appointment limit of 12 has been reached for this date. Please choose a different date.',
+        errorCode: 'DAILY_LIMIT_REACHED'
+      });
+    }
+
+    // Check for exact time conflicts (no two appointments at exact same date+time)
+    const exactTimeConflict = await Appointment.findOne({
+      where: {
+        appointmentDate,
+        appointmentTime,
+        status: { [Op.notIn]: ['Cancelled', 'Completed', 'No Show'] },
+        isActive: true
+      },
+      include: [
+        {
+          model: Patient,
+          as: 'patient',
+          attributes: ['firstName', 'lastName']
+        }
+      ]
+    });
+
+    if (exactTimeConflict) {
+      const conflictPatientName = exactTimeConflict.patient 
+        ? `${exactTimeConflict.patient.firstName} ${exactTimeConflict.patient.lastName}`
+        : 'Another patient';
+      
+      return res.status(400).json({ 
+        msg: 'Time slot unavailable',
+        error: `This exact time slot is already booked by ${conflictPatientName}. Please choose a different time.`,
+        errorCode: 'EXACT_TIME_CONFLICT'
+      });
+    }
+
+    // Check for 30-minute buffer conflicts (optional - can be removed if only exact conflicts matter)
+    const conflictingAppointments = await Appointment.findAll({
+      where: {
+        appointmentDate,
+        status: { [Op.notIn]: ['Cancelled', 'Completed', 'No Show'] },
+        isActive: true,
+        appointmentTime: { [Op.ne]: appointmentTime } // Exclude exact time (already checked above)
+      },
+      include: [
+        {
+          model: Patient,
+          as: 'patient',
+          attributes: ['firstName', 'lastName']
+        }
+      ]
+    });
+
+    // Check if any existing appointment is within 30 minutes of the requested time
+    const requestedTimeMinutes = parseInt(appointmentTime.split(':')[0]) * 60 + parseInt(appointmentTime.split(':')[1]);
+    
+    for (const existingAppt of conflictingAppointments) {
+      const existingTimeMinutes = parseInt(existingAppt.appointmentTime.split(':')[0]) * 60 + parseInt(existingAppt.appointmentTime.split(':')[1]);
+      const timeDifference = Math.abs(requestedTimeMinutes - existingTimeMinutes);
+      
+      if (timeDifference < 30) { // Less than 30 minutes apart
+        const conflictPatientName = existingAppt.patient 
+          ? `${existingAppt.patient.firstName} ${existingAppt.patient.lastName}`
+          : 'Another patient';
+        
+        return res.status(400).json({ 
+          msg: 'Time slot too close',
+          error: `This time slot is too close to an existing appointment by ${conflictPatientName} at ${existingAppt.appointmentTime}. Please choose a time at least 30 minutes away.`,
+          errorCode: 'BUFFER_TIME_CONFLICT'
+        });
+      }
     }
 
     const appointment = await Appointment.create({
@@ -627,6 +1057,7 @@ router.post('/', [
       notes,
       symptoms,
       vitalSignsRequired,
+      status: 'Scheduled', // All appointments go directly to scheduled status
       createdBy: req.user.id
     });
 
@@ -645,6 +1076,43 @@ router.post('/', [
         }
       ]
     });
+
+    // Create notification for the patient about the new appointment
+    try {
+      const appointmentData = {
+        date: appointmentDate,
+        time: appointmentTime,
+        service: type,
+        doctor: newAppointment.doctor ? 
+          `${newAppointment.doctor.firstName} ${newAppointment.doctor.lastName}` : 
+          'Dr. Smith',
+        notes: notes || 'Please arrive 15 minutes early for your appointment'
+      };
+
+      const notificationTitle = 'New Appointment Scheduled';
+      const notificationMessage = `You have a new ${type} appointment scheduled for ${appointmentDate} at ${appointmentTime}. Please review and accept to confirm your attendance.`;
+
+      // Create notification in database
+      await sequelize.query(
+        `INSERT INTO notifications (patient_id, title, message, type, appointment_data, status) 
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        { 
+          replacements: [
+            patientId, 
+            notificationTitle, 
+            notificationMessage, 
+            'appointment_scheduled',
+            JSON.stringify(appointmentData),
+            'pending'
+          ]
+        }
+      );
+
+      console.log(`✅ Notification created for patient ${patientId} - appointment on ${appointmentDate}`);
+    } catch (notificationError) {
+      console.error('Error creating notification (appointment still created):', notificationError.message);
+      // Don't fail the whole request if notification creation fails
+    }
 
     res.status(201).json({
       msg: 'Appointment created successfully',
@@ -669,7 +1137,7 @@ router.put('/:id', [
       'Out-Patient', 'Emergency', 'Lab Test'
     ]),
     body('status', 'Status must be valid').optional().isIn([
-      'Scheduled', 'Confirmed', 'In Progress', 'Completed', 'Cancelled', 'No Show'
+      'Scheduled', 'Completed', 'Cancelled', 'No Show'
     ]),
     body('priority', 'Priority must be valid').optional().isIn(['Low', 'Normal', 'High', 'Emergency'])
   ]
@@ -693,20 +1161,32 @@ router.put('/:id', [
       const checkTime = updateData.appointmentTime || appointment.appointmentTime;
       const checkDoctorId = updateData.doctorId !== undefined ? updateData.doctorId : appointment.doctorId;
 
-      const conflictingAppointment = await Appointment.findOne({
+      // Check for ANY appointment conflicts at the same time slot (regardless of patient or doctor)
+      const timeSlotConflict = await Appointment.findOne({
         where: {
-          id: { [Op.ne]: appointment.id },
+          id: { [Op.ne]: appointment.id }, // Exclude current appointment from conflict check
           appointmentDate: checkDate,
           appointmentTime: checkTime,
-          doctorId: checkDoctorId,
-          status: { [Op.notIn]: ['Cancelled', 'Completed'] },
+          status: { [Op.notIn]: ['Cancelled', 'Completed', 'No Show'] },
           isActive: true
-        }
+        },
+        include: [
+          {
+            model: Patient,
+            as: 'patient',
+            attributes: ['firstName', 'lastName']
+          }
+        ]
       });
 
-      if (conflictingAppointment) {
+      if (timeSlotConflict) {
+        const conflictPatientName = timeSlotConflict.patient 
+          ? `${timeSlotConflict.patient.firstName} ${timeSlotConflict.patient.lastName}`
+          : 'Another patient';
+        
         return res.status(400).json({ 
-          msg: 'Time slot already booked for this doctor' 
+          msg: 'Time slot already booked',
+          error: `This time slot is already reserved by ${conflictPatientName}. Please choose a different time.`
         });
       }
     }
@@ -931,16 +1411,17 @@ router.put('/:id/accept', auth, async (req, res) => {
     }
 
     // Validate current status - only approved appointments can be accepted
-    if (appointment.status !== 'Scheduled') { // Using 'Scheduled' as 'approved' equivalent for now
+    if (appointment.status !== 'approved') {
       return res.status(400).json({ 
         msg: 'Only approved appointments can be accepted',
         currentStatus: appointment.status 
       });
     }
 
-    // Update status to accepted (using 'Confirmed' as 'accepted' equivalent)
+    // Update status to accepted
     await appointment.update({ 
-      status: 'Confirmed',
+      status: 'accepted',
+      needsPatientAcceptance: false,
       updatedBy: req.user.id,
       acceptedAt: new Date()
     });
@@ -996,16 +1477,18 @@ router.put('/:id/reject', auth, async (req, res) => {
     }
 
     // Validate current status - only approved appointments can be rejected
-    if (appointment.status !== 'Scheduled') {
+    if (appointment.status !== 'approved') {
       return res.status(400).json({ 
         msg: 'Only approved appointments can be rejected',
         currentStatus: appointment.status 
       });
     }
 
-    // Update status to cancelled with rejection reason
+    // Update status to rejected with rejection reason
     await appointment.update({ 
-      status: 'Cancelled',
+      status: 'rejected',
+      needsPatientAcceptance: false,
+      rejectionReason: reason || 'No reason provided',
       notes: appointment.notes ? `${appointment.notes}\n\nPatient Rejection: ${reason || 'No reason provided'}` : `Patient Rejection: ${reason || 'No reason provided'}`,
       updatedBy: req.user.id,
       rejectedAt: new Date()
@@ -1327,5 +1810,35 @@ router.put('/:id/mark-completed', auth, async (req, res) => {
 // @desc    Submit appointment request (Patient booking)
 // @access  Private
 
+// GET /api/appointments/daily-count
+// @desc    Get daily appointment count for a specific date
+// @access  Public (for frontend validation)
+router.get('/daily-count', async (req, res) => {
+  try {
+    const { date } = req.query;
+    
+    if (!date) {
+      return res.status(400).json({ msg: 'Date parameter is required' });
+    }
+    
+    const count = await Appointment.count({
+      where: {
+        appointmentDate: date,
+        status: { [Op.notIn]: ['Cancelled'] },
+        isActive: true
+      }
+    });
+    
+    res.json({ 
+      date,
+      count,
+      limit: 12,
+      isLimitReached: count >= 12
+    });
+  } catch (error) {
+    console.error('Error checking daily appointment count:', error);
+    res.status(500).json({ msg: 'Server error while checking daily limit' });
+  }
+});
 
 module.exports = router;

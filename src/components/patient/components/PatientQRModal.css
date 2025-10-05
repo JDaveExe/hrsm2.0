@@ -1,0 +1,362 @@
+/* Patient QR Modal Sty/* Modal Header */
+.patient-qr-modal-header.patient-qr-modal-header {
+  background: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%) !important;
+  color: white !important;
+  border-bottom: none !important;
+  padding: 1.5rem !important;
+  border-radius: 16px 16px 0 0 !important;
+}olated to prevent conflicts */
+
+/* Modal Container */
+.patient-qr-modal .modal-dialog {
+  margin: 1rem auto;
+}
+
+.patient-qr-modal .modal-dialog.modal-lg {
+  max-width: 800px;
+  width: 90vw;
+  max-height: 90vh;
+}
+
+.patient-qr-modal .modal-content {
+  border-radius: 12px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+  border: none;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+/* Modal Header */
+.patient-qr-modal-header.patient-qr-modal-header {
+  background: linear-gradient(135deg, #be0032 0%, #8a0025 100%) !important;
+  color: white !important;
+  border-bottom: none !important;
+  padding: 1rem 1.5rem !important;
+  border-radius: 12px 12px 0 0 !important;
+}
+
+.patient-qr-modal-header .modal-title {
+  color: white !important;
+  font-weight: 600 !important;
+  font-size: 1.25rem !important;
+}
+
+.patient-qr-modal-header .btn-close {
+  filter: invert(1) !important;
+  opacity: 0.8 !important;
+  transition: opacity 0.2s ease !important;
+}
+
+.patient-qr-modal-header .btn-close:hover {
+  opacity: 1 !important;
+}
+
+/* Modal Body */
+.patient-qr-modal-body.patient-qr-modal-body {
+  padding: 2rem !important;
+  background: white !important;
+  flex: 1 !important;
+  overflow-y: auto !important;
+}
+
+/* Patient Name and Subtitle */
+.patient-qr-title.patient-qr-title {
+  color: #be0032 !important;
+  font-weight: 700 !important;
+  font-size: 1.5rem !important;
+  margin-bottom: 0.5rem !important;
+}
+
+.patient-qr-subtitle.patient-qr-subtitle {
+  color: #1565c0 !important;
+  font-size: 1rem !important;
+  margin-bottom: 1.5rem !important;
+}
+
+/* QR Code Container */
+.patient-qr-container.patient-qr-container {
+  box-shadow: 0 8px 25px rgba(33, 150, 243, 0.15) !important;
+  border: 2px solid #e3f2fd !important;
+  border-radius: 12px !important;
+  transition: all 0.3s ease !important;
+  background: white !important;
+}
+
+.patient-qr-container.patient-qr-container:hover {
+  transform: scale(1.02) !important;
+  box-shadow: 0 12px 35px rgba(33, 150, 243, 0.25) !important;
+}
+
+/* Info Cards */
+.patient-qr-instructions-card.patient-qr-instructions-card,
+.patient-qr-info-card.patient-qr-info-card {
+  border: 1px solid #e9ecef !important;
+  border-radius: 10px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.3s ease !important;
+  height: 100% !important;
+}
+
+.patient-qr-instructions-card.patient-qr-instructions-card:hover,
+.patient-qr-info-card.patient-qr-info-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1) !important;
+}
+
+.patient-qr-card-header.patient-qr-card-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+  border-bottom: 1px solid #dee2e6 !important;
+  padding: 0.75rem 1rem !important;
+  border-radius: 10px 10px 0 0 !important;
+}
+
+.patient-qr-card-header h6 {
+  color: #495057 !important;
+  font-weight: 600 !important;
+  margin: 0 !important;
+}
+
+.patient-qr-card-body.patient-qr-card-body {
+  padding: 1rem !important;
+  background: white !important;
+}
+
+/* Instructions List */
+.patient-qr-instructions.patient-qr-instructions {
+  color: #495057 !important;
+  font-size: 0.95rem !important;
+  line-height: 1.6 !important;
+  margin: 0 !important;
+}
+
+.patient-qr-instructions.patient-qr-instructions li {
+  margin-bottom: 0.5rem !important;
+  padding-left: 0.25rem !important;
+}
+
+.patient-qr-instructions.patient-qr-instructions li:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Notes List */
+.patient-qr-notes.patient-qr-notes {
+  color: #495057 !important;
+  font-size: 0.95rem !important;
+  line-height: 1.6 !important;
+  list-style-type: disc !important;
+  margin: 0 !important;
+  padding-left: 1.25rem !important;
+}
+
+.patient-qr-notes.patient-qr-notes li {
+  margin-bottom: 0.5rem !important;
+}
+
+.patient-qr-notes.patient-qr-notes li:last-child {
+  margin-bottom: 0 !important;
+}
+
+/* Alert */
+.patient-qr-alert.patient-qr-alert {
+  background: linear-gradient(135deg, #e7f3ff 0%, #cce7ff 100%) !important;
+  border: 1px solid #b8daff !important;
+  color: #0c5460 !important;
+  border-radius: 8px !important;
+  padding: 1rem !important;
+  margin-top: 1rem !important;
+}
+
+.patient-qr-alert.patient-qr-alert i {
+  color: #0c5460 !important;
+}
+
+/* Modal Footer */
+.patient-qr-modal-footer.patient-qr-modal-footer {
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(10px) !important;
+  border-top: 1px solid rgba(33, 150, 243, 0.3) !important;
+  padding: 1.5rem !important;
+  border-radius: 0 0 16px 16px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 15px !important;
+  flex-wrap: wrap !important;
+}
+
+/* Override Bootstrap classes */
+.patient-qr-modal .modal-footer {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 15px !important;
+}
+
+/* Button Styles */
+.patient-qr-btn-download.patient-qr-btn-download {
+  background: linear-gradient(135deg, #1976d2 0%, #0d47a1 100%) !important;
+  border: none !important;
+  color: white !important;
+  font-weight: 500 !important;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+  min-width: 130px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  font-size: 0.95rem !important;
+}
+
+.patient-qr-btn-download.patient-qr-btn-download:hover {
+  background: linear-gradient(135deg, #0d47a1 0%, #1a237e 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4) !important;
+  color: white !important;
+}
+
+.patient-qr-btn-print.patient-qr-btn-print {
+  background: white !important;
+  border: 2px solid #1976d2 !important;
+  color: #1976d2 !important;
+  font-weight: 500 !important;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+  min-width: 130px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  font-size: 0.95rem !important;
+}
+
+.patient-qr-btn-print.patient-qr-btn-print:hover {
+  background: #1976d2 !important;
+  color: white !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 16px rgba(25, 118, 210, 0.4) !important;
+}
+
+.patient-qr-btn-close.patient-qr-btn-close {
+  background: #6c757d !important;
+  border: none !important;
+  color: white !important;
+  font-weight: 500 !important;
+  padding: 0.75rem 1.5rem !important;
+  border-radius: 8px !important;
+  transition: all 0.3s ease !important;
+  min-width: 100px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.95rem !important;
+}
+
+.patient-qr-btn-close.patient-qr-btn-close:hover {
+  background: #545b62 !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(108, 117, 125, 0.3) !important;
+}
+
+/* Button disabled state */
+.patient-qr-btn-download.patient-qr-btn-download:disabled,
+.patient-qr-btn-print.patient-qr-btn-print:disabled {
+  opacity: 0.6 !important;
+  transform: none !important;
+  cursor: not-allowed !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .patient-qr-modal .modal-dialog {
+    margin: 0.5rem;
+    width: calc(100% - 1rem);
+  }
+  
+  .patient-qr-modal-body.patient-qr-modal-body {
+    padding: 1.5rem !important;
+  }
+  
+  .patient-qr-container.patient-qr-container svg {
+    width: 200px !important;
+    height: 200px !important;
+  }
+  
+  .patient-qr-modal-footer.patient-qr-modal-footer {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  
+  .patient-qr-btn-download.patient-qr-btn-download,
+  .patient-qr-btn-print.patient-qr-btn-print,
+  .patient-qr-btn-close.patient-qr-btn-close {
+    width: 100% !important;
+    min-width: unset !important;
+    gap: 1rem !important;
+    align-items: stretch !important;
+  }
+  
+  .patient-qr-modal-footer.patient-qr-modal-footer > div {
+    display: flex !important;
+    gap: 0.5rem !important;
+  }
+  
+  .patient-qr-btn-download.patient-qr-btn-download,
+  .patient-qr-btn-print.patient-qr-btn-print,
+  .patient-qr-btn-close.patient-qr-btn-close {
+    flex: 1 !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .patient-qr-modal-body.patient-qr-modal-body {
+    padding: 1rem !important;
+  }
+  
+  .patient-qr-container.patient-qr-container svg {
+    width: 180px !important;
+    height: 180px !important;
+  }
+  
+  .patient-qr-title.patient-qr-title {
+    font-size: 1.25rem !important;
+  }
+}
+
+/* Loading State */
+.patient-qr-modal .spinner-border {
+  color: #be0032 !important;
+}
+
+/* High specificity to override Bootstrap defaults */
+.patient-qr-modal.patient-qr-modal .modal-content,
+.patient-qr-modal.patient-qr-modal .modal-header,
+.patient-qr-modal.patient-qr-modal .modal-body,
+.patient-qr-modal.patient-qr-modal .modal-footer,
+.patient-qr-modal.patient-qr-modal .card,
+.patient-qr-modal.patient-qr-modal .card-header,
+.patient-qr-modal.patient-qr-modal .card-body,
+.patient-qr-modal.patient-qr-modal .alert {
+  box-sizing: border-box !important;
+}
+
+/* Animation for modal entrance */
+.patient-qr-modal .modal.show .modal-dialog {
+  animation: patientQRModalSlideIn 0.3s ease-out;
+}
+
+@keyframes patientQRModalSlideIn {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

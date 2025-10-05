@@ -1,0 +1,275 @@
+/* Weather Prescription Widget Styles */
+
+.weather-prescription-widget {
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+.weather-prescription-widget:hover {
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.widget-header {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f8f9fa 100%);
+  border-bottom: 1px solid #dee2e6;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+.widget-body {
+  padding: 1rem;
+}
+
+/* Weather Summary Styles */
+.weather-summary {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #e9ecef;
+}
+
+.weather-icon {
+  font-size: 2rem;
+  text-align: center;
+  line-height: 1;
+}
+
+.weather-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.weather-temp {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #495057;
+  line-height: 1;
+}
+
+.weather-desc {
+  font-size: 0.9rem;
+  color: #6c757d;
+  text-transform: capitalize;
+  margin-bottom: 0.25rem;
+}
+
+.weather-humidity {
+  font-size: 0.8rem;
+}
+
+/* Typhoon Information Styles */
+.typhoon-info {
+  border-top: 1px solid #fee2e2;
+  padding-top: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.typhoon-info .badge {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Section Titles */
+.section-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 0.5rem;
+  text-align: left;
+}
+
+/* Medication List Styles */
+.medication-list {
+  border: none;
+}
+
+.medication-item {
+  border: none;
+  border-bottom: 1px solid #f8f9fa;
+  padding: 0.75rem 0;
+}
+
+.medication-item:last-child {
+  border-bottom: none;
+}
+
+.medication-item-compact {
+  border: none;
+  border-bottom: 1px solid #f8f9fa;
+  padding: 0.5rem 0;
+}
+
+.med-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #495057;
+  line-height: 1.2;
+}
+
+.med-name-compact {
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: #495057;
+}
+
+.med-indication {
+  margin-top: 0.25rem;
+  line-height: 1.3;
+}
+
+.stock-info {
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.stock-alert {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+.stock-alert .progress {
+  height: 4px;
+  margin-bottom: 0.25rem;
+}
+
+/* Urgent Alerts */
+.urgent-alert-item {
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.urgent-alert-item:last-child {
+  margin-bottom: 0;
+}
+
+/* Additional Recommendations */
+.additional-recommendations {
+  background: #f8f9fa;
+  border-radius: 6px;
+  padding: 0.75rem;
+  border: 1px solid #e9ecef;
+}
+
+.recommendations-section {
+  margin-bottom: 0;
+}
+
+/* Widget Footer */
+.widget-footer {
+  border-top: 1px solid #f8f9fa;
+  padding-top: 0.75rem;
+  margin-top: 1rem;
+}
+
+/* Priority Badge Customization */
+.medication-item .badge {
+  font-size: 0.7rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .weather-prescription-widget {
+    margin-bottom: 1rem;
+  }
+  
+  .widget-body {
+    padding: 0.75rem;
+  }
+  
+  .weather-summary {
+    padding: 0.5rem;
+  }
+  
+  .weather-temp {
+    font-size: 1.25rem;
+  }
+  
+  .weather-icon {
+    font-size: 1.5rem;
+  }
+  
+  .med-name {
+    font-size: 0.85rem;
+  }
+  
+  .section-title {
+    font-size: 0.85rem;
+  }
+}
+
+/* Loading and Error States */
+.weather-prescription-widget .spinner-border {
+  color: #007bff;
+}
+
+.weather-prescription-widget .alert {
+  margin-bottom: 0.5rem;
+}
+
+.weather-prescription-widget .alert:last-child {
+  margin-bottom: 0;
+}
+
+/* Hover Effects */
+.medication-item:hover {
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  margin: 0 -0.5rem;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.widget-footer .btn:hover {
+  transform: translateY(-1px);
+  transition: transform 0.2s ease;
+}
+
+/* Compact Widget Variant */
+.weather-prescription-widget.compact .widget-body {
+  padding: 0.75rem;
+}
+
+.weather-prescription-widget.compact .weather-summary {
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.weather-prescription-widget.compact .section-title {
+  font-size: 0.85rem;
+  margin-bottom: 0.5rem;
+}
+
+.weather-prescription-widget.compact .medication-item {
+  padding: 0.5rem 0;
+}
+
+/* Accessibility */
+.weather-prescription-widget:focus-within {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+.weather-prescription-widget .btn:focus {
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Animation for new data */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.weather-prescription-widget .medication-item {
+  animation: fadeIn 0.3s ease;
+}

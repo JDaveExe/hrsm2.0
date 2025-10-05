@@ -6,7 +6,6 @@ import patientService from '../../../services/patientService';
 import userService from '../../../services/userService';
 import './AppointmentManager.css';
 import './AppointmentManager_overlay.css';
-import './AppointmentRequestsModal.css';
 
 const AppointmentManager = () => {
   const { authData, isAuthenticated, user, token } = useAuth();
@@ -37,35 +36,31 @@ const AppointmentManager = () => {
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(0);
-  const cardsPerPage = 4;
+  const [cardsPerPage, setCardsPerPage] = useState(10);
+  const [sortBy, setSortBy] = useState('status-priority'); // Default sort by status priority
   
-  // Appointment requests states
+  // Additional state variables needed for the component
   const [showAppointmentRequests, setShowAppointmentRequests] = useState(false);
   const [appointmentRequests, setAppointmentRequests] = useState([]);
   const [requestsLoading, setRequestsLoading] = useState(false);
   const [requestCount, setRequestCount] = useState(0);
-  
-  // Confirmation and rejection states
   const [showApproveConfirmation, setShowApproveConfirmation] = useState(false);
   const [showRejectConfirmation, setShowRejectConfirmation] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
   const [selectedRequestId, setSelectedRequestId] = useState(null);
   const [rejectionReason, setRejectionReason] = useState('');
-  const [selectedRequest, setSelectedRequest] = useState(null);
-
-  // Search and sorting states for appointment requests
+  const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [smartSuggestions, setSmartSuggestions] = useState([]);
+  const [appointmentLimits, setAppointmentLimits] = useState(null);
+  const [limitsLoading, setLimitsLoading] = useState(false);
+  const [availableSlots, setAvailableSlots] = useState([]);
   const [requestSearchTerm, setRequestSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('date'); // 'date', 'patient', 'type'
-  const [sortOrder, setSortOrder] = useState('asc'); // 'asc', 'desc'
-
-  // Mock data removed - using real data from database
-
-
-
-
+  const [requestSortBy, setRequestSortBy] = useState('date');
+  const [sortOrder, setSortOrder] = useState('desc');
 
   const [formData, setFormData] = useState({
     patientId: '',
-    doctorId: '1', // Default to first doctor (admin scheduling)
+    // doctorId removed - doctor availability is not predictable
     appointmentDate: '',
     appointmentTime: '',
     duration: 30,
@@ -75,78 +70,187 @@ const AppointmentManager = () => {
     symptoms: ''
   });
 
-  // Function to fetch appointment requests
+  // Rejection templates constant
+  const REJECTION_TEMPLATES = [
+    { id: 'unavailable', title: 'Time Unavailable', reason: 'The requested time slot is not available. Please select an alternative time.' },
+    { id: 'duplicate', title: 'Duplicate Request', reason: 'You already have an appointment scheduled for this date.' },
+    { id: 'insufficient_info', title: 'Insufficient Information', reason: 'Please provide more details about your symptoms or reason for visit.' },
+    { id: 'emergency', title: 'Emergency Required', reason: 'Based on your symptoms, please visit the emergency department immediately.' },
+    { id: 'specialist', title: 'Specialist Needed', reason: 'Your condition requires a specialist consultation. Please contact the appropriate department.' }
+  ];
+
+  // Function to get display status based on appointment date and current status
+  const getDisplayStatus = (appointment) => {
+    if (appointment.status === 'Completed' || appointment.status === 'No Show' || appointment.status === 'Cancelled') {
+      return appointment.status;
+    }
+    
+    // Check if appointment is within 2 days (upcoming)
+    const appointmentDate = new Date(appointment.appointmentDate || appointment.date);
+    const today = new Date();
+    const diffTime = appointmentDate - today;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    // If appointment is within 2 days (including today), show as "Upcoming"
+    if (diffDays >= 0 && diffDays <= 2) {
+      return 'Upcoming';
+    }
+    
+    // Otherwise show as "Scheduled" 
+    return 'Scheduled';
+  };
+
+  // Filter and sort appointment requests
+  const getFilteredAndSortedRequests = () => {
+    if (!appointmentRequests || !Array.isArray(appointmentRequests)) return [];
+    
+    let filtered = appointmentRequests.filter(request => {
+      if (!request) return false;
+      
+      const patientName = request.patientName || 
+        `${patients.find(p => p.id === request.patientId)?.firstName || ''} 
+        ${patients.find(p => p.id === request.patientId)?.lastName || ''}`;
+      
+      return patientName.toLowerCase().includes(requestSearchTerm.toLowerCase());
+    });
+
+    // Sort the filtered results
+    filtered.sort((a, b) => {
+      let valueA, valueB;
+      
+      switch (requestSortBy) {
+        case 'date':
+          valueA = new Date(a.requestedDate || a.appointmentDate || '1970-01-01');
+          valueB = new Date(b.requestedDate || b.appointmentDate || '1970-01-01');
+          break;
+        case 'patient':
+          valueA = a.patientName || `${patients.find(p => p.id === a.patientId)?.firstName || ''} ${patients.find(p => p.id === a.patientId)?.lastName || ''}`;
+          valueB = b.patientName || `${patients.find(p => p.id === b.patientId)?.firstName || ''} ${patients.find(p => p.id === b.patientId)?.lastName || ''}`;
+          break;
+        case 'type':
+          valueA = a.type || a.appointmentType || '';
+          valueB = b.type || b.appointmentType || '';
+          break;
+        default:
+          return 0;
+      }
+      
+      if (sortOrder === 'asc') {
+        return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+      } else {
+        return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+      }
+    });
+
+    return filtered;
+  };
+
+  // Function to fetch appointment requests (no longer used since request system is removed)
   const fetchAppointmentRequests = async () => {
     try {
       setRequestsLoading(true);
-      const requests = await appointmentService.getAppointmentRequests();
-      setAppointmentRequests(requests || []);
-      setRequestCount(requests?.length || 0);
-    } catch (err) {
-      console.error('Error fetching appointment requests:', err);
-      setError('Failed to load appointment requests');
+      // No longer fetching requests since the appointment request system was removed
+      setAppointmentRequests([]);
+    } catch (error) {
+      console.error('Error fetching appointment requests:', error);
+      setAppointmentRequests([]);
     } finally {
       setRequestsLoading(false);
     }
   };
 
-  // Filter and sort appointment requests
-  const getFilteredAndSortedRequests = () => {
-    let filteredRequests = appointmentRequests.filter(request => {
-      const patientName = request.patientName || 
-        `${patients.find(p => p.id === request.patientId)?.firstName || ''} 
-        ${patients.find(p => p.id === request.patientId)?.lastName || ''}`.trim();
-      return patientName.toLowerCase().includes(requestSearchTerm.toLowerCase());
-    });
-
-    return filteredRequests.sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (sortBy) {
-        case 'patient':
-          aValue = a.patientName || `${patients.find(p => p.id === a.patientId)?.firstName || ''} ${patients.find(p => p.id === a.patientId)?.lastName || ''}`.trim();
-          bValue = b.patientName || `${patients.find(p => p.id === b.patientId)?.firstName || ''} ${patients.find(p => p.id === b.patientId)?.lastName || ''}`.trim();
-          break;
-        case 'type':
-          aValue = a.appointmentType || a.type || 'Consultation';
-          bValue = b.appointmentType || b.type || 'Consultation';
-          break;
-        case 'date':
-        default:
-          aValue = new Date(a.requestedDate || a.appointmentDate);
-          bValue = new Date(b.requestedDate || b.appointmentDate);
-          break;
-      }
-
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : -1;
-      } else {
-        return aValue < bValue ? 1 : -1;
-      }
-    });
-  };
-  
-  // Function to initiate approval confirmation
+  // Function to initiate approval process
   const initiateApproval = (request) => {
     setSelectedRequest(request);
     setSelectedRequestId(request.id);
     setShowApproveConfirmation(true);
   };
-  
-  // Function to initiate rejection confirmation
+
+  // Function to initiate rejection process
   const initiateRejection = (request) => {
     setSelectedRequest(request);
     setSelectedRequestId(request.id);
     setRejectionReason('');
+    setSelectedTemplate('');
+    setSmartSuggestions([]);
     setShowRejectConfirmation(true);
   };
-  
-  // Function to confirm and execute approval
+
+  // Function to handle template selection
+  const selectTemplate = (template) => {
+    setSelectedTemplate(template.id);
+    setRejectionReason(template.reason);
+  };
+
+  // Function to handle suggestion selection
+  const selectSuggestion = (suggestion) => {
+    setRejectionReason(suggestion.reason);
+    setSelectedTemplate('custom_suggestion');
+  };
+
+  // Function to handle custom reason input
+  const handleCustomReason = (value) => {
+    setRejectionReason(value);
+    setSelectedTemplate('custom');
+  };
+
+  // Function to fetch appointment limits for a patient and date
+  const fetchAppointmentLimits = async (patientId, date) => {
+    if (!patientId || !date) {
+      setAppointmentLimits(null);
+      return;
+    }
+
+    try {
+      setLimitsLoading(true);
+      const response = await fetch(`/api/appointments/limits?patientId=${patientId}&date=${date}`);
+      
+      if (response.ok) {
+        const limitsData = await response.json();
+        setAppointmentLimits(limitsData);
+      } else {
+        console.error('Failed to fetch appointment limits');
+        setAppointmentLimits(null);
+      }
+    } catch (error) {
+      console.error('Error fetching appointment limits:', error);
+      setAppointmentLimits(null);
+    } finally {
+      setLimitsLoading(false);
+    }
+  };
+
+  // Function to fetch available time slots for a date and patient
+  const fetchAvailableSlots = async (date, patientId) => {
+    if (!date) {
+      setAvailableSlots([]);
+      return;
+    }
+
+    try {
+      const queryParams = new URLSearchParams({ date });
+      if (patientId) queryParams.append('patientId', patientId);
+      
+      const response = await fetch(`/api/appointments/available-slots?${queryParams}`);
+      
+      if (response.ok) {
+        const slotsData = await response.json();
+        setAvailableSlots(slotsData.slots || []);
+      } else {
+        console.error('Failed to fetch available slots');
+        setAvailableSlots([]);
+      }
+    } catch (error) {
+      console.error('Error fetching available slots:', error);
+      setAvailableSlots([]);
+    }
+  };
+
+  // Function to confirm and execute approval (disabled since request system is removed)
   const confirmApproval = async () => {
     try {
-      console.log('Approving appointment request:', selectedRequestId);
-      await appointmentService.approveAppointmentRequest(selectedRequestId);
-      setSuccess('Appointment request approved successfully - refreshing appointments...');
+      console.log('Appointment request system is disabled');
+      setError('Appointment request system has been removed. Appointments are now created directly.');
       
       // Close confirmation modal
       setShowApproveConfirmation(false);
@@ -154,13 +258,8 @@ const AppointmentManager = () => {
       // Refresh appointment requests first
       await fetchAppointmentRequests();
       
-      // Update request count for the badge
-      try {
-        const requestsCount = await appointmentService.getAppointmentRequestsCount();
-        setRequestCount(requestsCount || 0);
-      } catch (countError) {
-        console.error('Error updating request count:', countError);
-      }
+      // Update request count for the badge (set to 0 since request system is removed)
+      setRequestCount(0);
       
       // Wait a moment for backend processing
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -170,11 +269,14 @@ const AppointmentManager = () => {
         const updatedAppointments = await appointmentService.getAppointments();
         setAppointments(updatedAppointments || []);
         
-        // Filter today's appointments
+        // Filter today's appointments - exclude No Show and Cancelled appointments from today's schedule
         const today = new Date().toDateString();
         const todaysAppts = (updatedAppointments || []).filter(apt => {
           const aptDate = new Date(apt.appointmentDate || apt.date).toDateString();
-          return aptDate === today;
+          const isToday = aptDate === today;
+          const isNotNoShow = apt.status !== 'No Show';
+          const isNotCancelled = apt.status !== 'Cancelled';
+          return isToday && isNotNoShow && isNotCancelled;
         });
         setTodayAppointments(todaysAppts);
         
@@ -203,15 +305,13 @@ const AppointmentManager = () => {
     }
     
     try {
-      await appointmentService.rejectAppointmentRequest(selectedRequestId, rejectionReason);
-      setSuccess('Appointment request rejected');
+      // Since appointment request system is removed, this function is disabled
+      console.warn('Appointment request system has been removed');
+      setError('Appointment request system is no longer available');
       
       // Close confirmation modal
       setShowRejectConfirmation(false);
       setRejectionReason('');
-      
-      // Refresh the requests list
-      await fetchAppointmentRequests();
     } catch (err) {
       console.error('Error rejecting appointment request:', err);
       setError('Failed to reject appointment request');
@@ -308,6 +408,17 @@ const AppointmentManager = () => {
       setTodayAppointments([]);
     }
   }, [isAuthenticated, authData]);
+
+  // Fetch appointment limits and available slots when patient or date changes
+  useEffect(() => {
+    if (formData.patientId && formData.appointmentDate) {
+      fetchAppointmentLimits(formData.patientId, formData.appointmentDate);
+      fetchAvailableSlots(formData.appointmentDate, formData.patientId);
+    } else {
+      setAppointmentLimits(null);
+      setAvailableSlots([]);
+    }
+  }, [formData.patientId, formData.appointmentDate]);
 
   const loadInitialData = async () => {
     if (loading) return;
@@ -445,27 +556,30 @@ const AppointmentManager = () => {
       console.log('Filtered doctors:', doctorUsers);
       setDoctors(doctorUsers);
       
-      // Filter today's appointments
+      // Filter today's appointments - exclude No Show appointments
       const today = new Date().toISOString().split('T')[0];
       const todayAppts = appointmentsData.filter(apt => {
+        let isToday = false;
         if (apt.date) {
           const aptDate = new Date(apt.date).toISOString().split('T')[0];
-          return aptDate === today;
+          isToday = aptDate === today;
+        } else if (apt.appointmentDate) {
+          const aptDate = new Date(apt.appointmentDate).toISOString().split('T')[0];
+          isToday = aptDate === today;
         }
-        return false;
+        
+        // Exclude No Show and Cancelled appointments from today's schedule
+        const isNotNoShow = apt.status !== 'No Show';
+        const isNotCancelled = apt.status !== 'Cancelled';
+        
+        return isToday && isNotNoShow && isNotCancelled;
       });
       
       console.log('Today\'s appointments found:', todayAppts.length);
       setTodayAppointments(todayAppts);
       
-      // Also fetch appointment requests count
-      try {
-        const requestsCount = await appointmentService.getAppointmentRequestsCount();
-        setRequestCount(requestsCount || 0);
-      } catch (reqErr) {
-        console.error('Error getting appointment requests count:', reqErr);
-        // Not critical, so just log error but don't show to user
-      }
+      // Set request count to 0 since appointment request system is removed
+      setRequestCount(0);
       
     } catch (err) {
       console.error('Error loading data:', err);
@@ -517,6 +631,8 @@ const AppointmentManager = () => {
           doctor: 'Admin Scheduled', // Admin is scheduling for patient
           appointmentDate: formData.appointmentDate,
           appointmentTime: formData.appointmentTime,
+          date: formData.appointmentDate, // Ensure both date properties exist
+          time: formData.appointmentTime, // Ensure both time properties exist
           type: formData.type,
           status: 'approved', // Auto-approved by admin
           duration: formData.duration,
@@ -524,7 +640,8 @@ const AppointmentManager = () => {
           symptoms: formData.symptoms,
           createdBy: 'admin',
           needsPatientAcceptance: true,
-          statusColor: '#28a745' // Green for approved
+          statusColor: '#28a745', // Green for approved
+          isActive: true // Ensure isActive property
         };
 
         try {
@@ -544,9 +661,10 @@ const AppointmentManager = () => {
         // Check if appointment is for today and add to today's schedule
         const today = new Date().toISOString().split('T')[0];
         if (formData.appointmentDate === today) {
+          // Ensure today's appointment has consistent structure
           const todayAppointment = {
             ...newAppointment,
-            time: formData.appointmentTime,
+            // No need to add extra time property as it's already in appointmentTime
             duration: `${formData.duration}min`
           };
           setTodayAppointments(prev => [...prev, todayAppointment]);
@@ -813,22 +931,38 @@ const AppointmentManager = () => {
     return doctor ? `Dr. ${doctor.lastName || doctor.firstName || 'Unknown'}` : 'Unknown Doctor';
   };
 
-  // Get status color based on status
+  // Get status color based on status (returns color string for backgroundColor)
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'approved':
-        return { backgroundColor: '#28a745', color: 'white' }; // Green
-      case 'pending':
-        return { backgroundColor: '#fd7e14', color: 'black' }; // Dark orange with black text
-      case 'accepted':
-        return { backgroundColor: '#ffc107', color: 'black' }; // Yellow with black text
+      case 'upcoming':
+        return '#ff6b35'; // Orange for upcoming appointments
+      case 'scheduled':
+        return '#007bff'; // Blue for scheduled appointments
       case 'completed':
-        return { backgroundColor: '#6c757d', color: 'white' }; // Gray
+        return '#28a745'; // Green for completed appointments
+      case 'no show':
+        return '#dc3545'; // Red for no show appointments
       case 'cancelled':
-        return { backgroundColor: '#dc3545', color: 'white' }; // Red
+        return '#6c757d'; // Gray for cancelled appointments
+      // Legacy statuses (for backward compatibility)
+      case 'approved':
+        return '#28a745'; // Green
+      case 'pending':
+        return '#fd7e14'; // Orange
+      case 'accepted':
+        return '#ffc107'; // Yellow
       default:
-        return { backgroundColor: '#007bff', color: 'white' }; // Blue (default)
+        return '#007bff'; // Blue (default)
     }
+  };
+
+  // Get status style object (for components that expect style object)
+  const getStatusStyle = (status) => {
+    const backgroundColor = getStatusColor(status);
+    return {
+      backgroundColor,
+      color: ['#ffc107', '#fd7e14'].includes(backgroundColor) ? 'black' : 'white'
+    };
   };
 
   // Patient search functions
@@ -942,37 +1076,6 @@ const AppointmentManager = () => {
         </button>
         
         <div className="tab-actions">
-          <button className="btn btn-primary me-2" onClick={() => {
-            console.log('Add Appointment button clicked, navigating to Patient Database');
-            // Navigate to Patient Database with Individual Members tab active
-            if (window.navigateToPatientDatabase) {
-              window.navigateToPatientDatabase('Patient Database', 'members');
-            } else {
-              // Fallback navigation method
-              console.log('Global navigation function not available, using fallback');
-              window.dispatchEvent(new CustomEvent('navigate-to-patient-database', {
-                detail: { path: 'Patient Database', tab: 'members' }
-              }));
-            }
-          }}>
-            <i className="bi bi-person-plus me-2"></i>
-            Add Appointment
-          </button>
-          <button 
-            className="btn btn-info me-2" 
-            onClick={() => {
-              console.log('Appointment Requests button clicked');
-              fetchAppointmentRequests();
-              setShowAppointmentRequests(true);
-              console.log('Modal should be showing now');
-            }}
-          >
-            <i className="bi bi-bell me-2"></i>
-            Appointment Requests
-            {requestCount > 0 && (
-              <span className="badge">{requestCount}</span>
-            )}
-          </button>
           <button className="btn btn-secondary" onClick={loadInitialData}>
             <i className="bi bi-arrow-clockwise me-2"></i>
             Refresh
@@ -1006,9 +1109,8 @@ const AppointmentManager = () => {
                       <span className="duration">{appointment.duration}</span>
                     </div>
                     <div className="card-content">
-                      <div className="patient-name">{appointment.patient}</div>
+                      <div className="patient-name">{getPatientName(appointment)}</div>
                       <div className="appointment-type">{appointment.type}</div>
-                      <div className="doctor-name">{appointment.doctor}</div>
                     </div>
                     <div className="card-status">
                       <span className={`status-indicator`} style={{ backgroundColor: getStatusColor(appointment.status) }}>
@@ -1068,7 +1170,7 @@ const AppointmentManager = () => {
                   All Appointments
                 </div>
                 <div className="content-card-body">
-                  <div className="section-actions" style={{ marginBottom: '1rem' }}>
+                  <div className="section-actions" style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div className="search-bar">
                       <i className="bi bi-search search-icon"></i>
                       <input
@@ -1076,8 +1178,44 @@ const AppointmentManager = () => {
                         placeholder="Search appointments..."
                         className="search-input"
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => {
+                          setSearchTerm(e.target.value);
+                          setCurrentPage(0); // Reset to first page when searching
+                        }}
                       />
+                    </div>
+                    <div className="appointments-per-page-selector">
+                      <span>Show: </span>
+                      <select 
+                        value={cardsPerPage} 
+                        onChange={(e) => {
+                          setCardsPerPage(parseInt(e.target.value));
+                          setCurrentPage(0);
+                        }}
+                        style={{ marginLeft: '5px', padding: '4px', borderRadius: '4px', border: '1px solid #ddd' }}
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={15}>15</option>
+                        <option value={20}>20</option>
+                      </select>
+                    </div>
+                    <div className="appointments-sort-selector">
+                      <span>Sort by: </span>
+                      <select 
+                        value={sortBy} 
+                        onChange={(e) => {
+                          setSortBy(e.target.value);
+                          setCurrentPage(0);
+                        }}
+                        style={{ marginLeft: '5px', padding: '4px', borderRadius: '4px', border: '1px solid #ddd' }}
+                      >
+                        <option value="status-priority">Status Priority</option>
+                        <option value="date-desc">Date (Newest First)</option>
+                        <option value="date-asc">Date (Oldest First)</option>
+                        <option value="time-desc">Time (Latest First)</option>
+                        <option value="time-asc">Time (Earliest First)</option>
+                      </select>
                     </div>
                   </div>
 
@@ -1086,31 +1224,266 @@ const AppointmentManager = () => {
                       <thead>
                         <tr>
                           <th>Patient</th>
-                          <th>Date</th>
-                          <th>Time</th>
+                          <th style={{ cursor: 'pointer' }} onClick={() => setSortBy(sortBy === 'date-asc' ? 'date-desc' : 'date-asc')}>
+                            Date {sortBy === 'date-asc' ? '↑' : sortBy === 'date-desc' ? '↓' : ''}
+                          </th>
+                          <th style={{ cursor: 'pointer' }} onClick={() => setSortBy(sortBy === 'time-asc' ? 'time-desc' : 'time-asc')}>
+                            Time {sortBy === 'time-asc' ? '↑' : sortBy === 'time-desc' ? '↓' : ''}
+                          </th>
                           <th>Type</th>
                           <th>Status</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {appointments.filter(appointment =>
-                          (getPatientName(appointment).toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (appointment.type && appointment.type.toLowerCase().includes(searchTerm.toLowerCase())))
-                        ).map((appointment) => (
-                          <tr key={appointment.id}>
-                            <td>{getPatientName(appointment)}</td>
-                            <td>{new Date(appointment.appointmentDate).toLocaleDateString()}</td>
-                            <td>{formatTime(appointment.appointmentTime)}</td>
-                            <td>{appointment.type || 'Consultation'}</td>
-                            <td>
-                              <span className={`status-indicator`} style={{ backgroundColor: getStatusColor(appointment.status) }}>
-                                {appointment.status}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
+                        {(() => {
+                          // Filter and sort appointments with null checks
+                          if (!appointments || !Array.isArray(appointments)) {
+                            return (
+                              <tr>
+                                <td colSpan="5" style={{ textAlign: 'center', padding: '20px' }}>
+                                  No appointments data available
+                                </td>
+                              </tr>
+                            );
+                          }
+
+                          let filteredAppointments = appointments.filter(appointment => {
+                            // Add null checks to prevent errors
+                            if (!appointment || !appointment.id) return false;
+                            
+                            // Filter out cancelled appointments from admin view (only show: Scheduled, Completed, No Show)
+                            // Note: "Upcoming" is derived from "Scheduled" appointments based on date
+                            const allowedStatuses = ['Scheduled', 'Completed', 'No Show'];
+                            const statusFilter = allowedStatuses.includes(appointment.status);
+                            
+                            // Filter by search term with null checks
+                            try {
+                              const patientName = getPatientName(appointment) || '';
+                              const appointmentType = appointment.type || '';
+                              const searchFilter = patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                  appointmentType.toLowerCase().includes(searchTerm.toLowerCase());
+                              
+                              return statusFilter && searchFilter;
+                            } catch (error) {
+                              console.warn('Error filtering appointment:', appointment.id, error);
+                              return false;
+                            }
+                          });
+                          
+                          // Sort appointments with null checks
+                          filteredAppointments.sort((a, b) => {
+                            try {
+                              if (sortBy === 'status-priority') {
+                                // Status priority order based on display status: Upcoming, Scheduled, Completed, No Show
+                                const statusOrder = { 'Upcoming': 1, 'Scheduled': 2, 'Completed': 3, 'No Show': 4 };
+                                const displayStatusA = getDisplayStatus(a);
+                                const displayStatusB = getDisplayStatus(b);
+                                const statusA = statusOrder[displayStatusA] || 999;
+                                const statusB = statusOrder[displayStatusB] || 999;
+                                if (statusA !== statusB) return statusA - statusB;
+                                // If same status, sort by date (newest first)
+                                const dateA = new Date(a.appointmentDate || a.date || '1970-01-01');
+                                const dateB = new Date(b.appointmentDate || b.date || '1970-01-01');
+                                return dateB - dateA;
+                              } else if (sortBy === 'date-asc') {
+                                const dateA = new Date(a.appointmentDate || a.date || '1970-01-01');
+                                const dateB = new Date(b.appointmentDate || b.date || '1970-01-01');
+                                return dateA - dateB;
+                              } else if (sortBy === 'date-desc') {
+                                const dateA = new Date(a.appointmentDate || a.date || '1970-01-01');
+                                const dateB = new Date(b.appointmentDate || b.date || '1970-01-01');
+                                return dateB - dateA;
+                              } else if (sortBy === 'time-asc') {
+                                const timeA = a.appointmentTime || a.time || '00:00';
+                                const timeB = b.appointmentTime || b.time || '00:00';
+                                return timeA.localeCompare(timeB);
+                              } else if (sortBy === 'time-desc') {
+                                const timeA = a.appointmentTime || a.time || '00:00';
+                                const timeB = b.appointmentTime || b.time || '00:00';
+                                return timeB.localeCompare(timeA);
+                              }
+                              return 0;
+                            } catch (error) {
+                              console.warn('Error sorting appointments:', error);
+                              return 0;
+                            }
+                          });
+                          
+                          // Calculate pagination
+                          const startIndex = currentPage * cardsPerPage;
+                          const endIndex = startIndex + cardsPerPage;
+                          const paginatedAppointments = filteredAppointments.slice(startIndex, endIndex);
+                          
+                          return paginatedAppointments.map((appointment) => {
+                            // Add individual appointment error handling
+                            try {
+                              if (!appointment || !appointment.id) {
+                                return null;
+                              }
+
+                              const appointmentDate = appointment.appointmentDate || appointment.date;
+                              const appointmentTime = appointment.appointmentTime || appointment.time;
+                              
+                              return (
+                                <tr key={`appointment-${appointment.id}`}>
+                                  <td>
+                                    {(() => {
+                                      try {
+                                        const patientName = getPatientName(appointment);
+                                        return typeof patientName === 'string' ? patientName : 'Unknown Patient';
+                                      } catch (error) {
+                                        console.warn('Patient name rendering error:', error);
+                                        return 'Unknown Patient';
+                                      }
+                                    })()}
+                                  </td>
+                                  <td>
+                                    {(() => {
+                                      try {
+                                        if (!appointmentDate) return 'No Date';
+                                        const date = new Date(appointmentDate);
+                                        return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
+                                      } catch (error) {
+                                        console.warn('Date rendering error:', error);
+                                        return 'Invalid Date';
+                                      }
+                                    })()}
+                                  </td>
+                                  <td>
+                                    {(() => {
+                                      try {
+                                        const formattedTime = formatTime(appointmentTime);
+                                        return typeof formattedTime === 'string' ? formattedTime : 'N/A';
+                                      } catch (error) {
+                                        console.warn('Time rendering error:', error);
+                                        return 'N/A';
+                                      }
+                                    })()}
+                                  </td>
+                                  <td>
+                                    {(() => {
+                                      try {
+                                        const appointmentType = appointment.type || 'Consultation';
+                                        return typeof appointmentType === 'string' ? appointmentType : 'Consultation';
+                                      } catch (error) {
+                                        console.warn('Appointment type rendering error:', error);
+                                        return 'Consultation';
+                                      }
+                                    })()}
+                                  </td>
+                                  <td>
+                                    {(() => {
+                                      try {
+                                        const status = appointment.status || 'Unknown';
+                                        const statusStyle = getStatusStyle(status);
+                                        return (
+                                          <span 
+                                            className="status-indicator" 
+                                            style={statusStyle}
+                                          >
+                                            {typeof status === 'string' ? status : 'Unknown'}
+                                          </span>
+                                        );
+                                      } catch (error) {
+                                        console.warn('Status rendering error:', error);
+                                        return (
+                                          <span className="status-indicator">
+                                            Unknown
+                                          </span>
+                                        );
+                                      }
+                                    })()}
+                                  </td>
+                                </tr>
+                              );
+                            } catch (error) {
+                              console.error('Error rendering appointment:', appointment?.id, error);
+                              return (
+                                <tr key={`error-${appointment?.id || Math.random()}`}>
+                                  <td colSpan="5" style={{ color: 'red', textAlign: 'center' }}>
+                                    Error loading appointment data
+                                  </td>
+                                </tr>
+                              );
+                            }
+                          }).filter(Boolean);
+                        })()}
                       </tbody>
                     </table>
+                    
+                    {/* Pagination Controls */}
+                    {(() => {
+                      if (!appointments || !Array.isArray(appointments)) {
+                        return null;
+                      }
+                      
+                      const filteredCount = appointments.filter(appointment => {
+                        if (!appointment || !appointment.id) return false;
+                        
+                        try {
+                          const statusFilter = appointment.status !== 'pending';
+                          const patientName = getPatientName(appointment) || '';
+                          const appointmentType = appointment.type || '';
+                          const searchFilter = patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                              appointmentType.toLowerCase().includes(searchTerm.toLowerCase());
+                          return statusFilter && searchFilter;
+                        } catch (error) {
+                          console.warn('Error in pagination filter:', error);
+                          return false;
+                        }
+                      }).length;
+                      
+                      const totalPages = Math.ceil(filteredCount / cardsPerPage);
+                      
+                      if (totalPages <= 1) return null;
+                      
+                      return (
+                        <div className="pagination-controls" style={{ 
+                          display: 'flex', 
+                          justifyContent: 'center', 
+                          alignItems: 'center', 
+                          gap: '10px', 
+                          marginTop: '15px',
+                          padding: '10px'
+                        }}>
+                          <button 
+                            className="btn btn-sm"
+                            disabled={currentPage === 0}
+                            onClick={() => setCurrentPage(0)}
+                            style={{ opacity: currentPage === 0 ? 0.5 : 1 }}
+                          >
+                            <i className="bi bi-chevron-double-left"></i>
+                          </button>
+                          <button 
+                            className="btn btn-sm"
+                            disabled={currentPage === 0}
+                            onClick={() => setCurrentPage(currentPage - 1)}
+                            style={{ opacity: currentPage === 0 ? 0.5 : 1 }}
+                          >
+                            <i className="bi bi-chevron-left"></i>
+                          </button>
+                          <span style={{ padding: '0 15px', fontSize: '14px' }}>
+                            Page {currentPage + 1} of {totalPages}
+                          </span>
+                          <button 
+                            className="btn btn-sm"
+                            disabled={currentPage >= totalPages - 1}
+                            onClick={() => setCurrentPage(currentPage + 1)}
+                            style={{ opacity: currentPage >= totalPages - 1 ? 0.5 : 1 }}
+                          >
+                            <i className="bi bi-chevron-right"></i>
+                          </button>
+                          <button 
+                            className="btn btn-sm"
+                            disabled={currentPage >= totalPages - 1}
+                            onClick={() => setCurrentPage(totalPages - 1)}
+                            style={{ opacity: currentPage >= totalPages - 1 ? 0.5 : 1 }}
+                          >
+                            <i className="bi bi-chevron-double-right"></i>
+                          </button>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -1247,8 +1620,8 @@ const AppointmentManager = () => {
                     </td>
                     <td>Dr. Santos</td>
                     <td>
-                      <span className={`status-badge`} style={{ backgroundColor: getStatusColor(appointment.status) }}>
-                        {appointment.status}
+                      <span className={`status-badge`} style={{ backgroundColor: getStatusColor(getDisplayStatus(appointment)) }}>
+                        {getDisplayStatus(appointment)}
                       </span>
                     </td>
                     <td>30 min</td>
@@ -1307,22 +1680,7 @@ const AppointmentManager = () => {
                   </select>
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="doctorId">Doctor *</label>
-                  <select 
-                    id="doctorId"
-                    value={formData.doctorId} 
-                    onChange={(e) => setFormData({...formData, doctorId: e.target.value})}
-                    required
-                  >
-                    <option value="">Select Doctor</option>
-                    {doctors.map(doctor => (
-                      <option key={doctor.id} value={doctor.id}>
-                        {doctor.name || `Dr. ${doctor.firstName} ${doctor.lastName}`}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* Doctor selection removed - doctor availability is not predictable */}
               </div>
 
               <div className="form-row three-col">
@@ -1347,6 +1705,68 @@ const AppointmentManager = () => {
                     required
                   />
                 </div>
+
+                {/* Appointment Limits Information */}
+                {(appointmentLimits || availableSlots.length > 0) && (
+                  <div className="appointment-limits-section">
+                    <h4>
+                      <i className="bi bi-info-circle me-2"></i>
+                      Appointment Availability
+                    </h4>
+                    
+                    {limitsLoading && (
+                      <div className="limits-loading">
+                        <i className="bi bi-clock"></i> Checking availability...
+                      </div>
+                    )}
+
+                    {appointmentLimits && !limitsLoading && (
+                      <div className="limits-info">
+                        <div className="limits-grid">
+                          <div className="limit-item">
+                            <span className="limit-label">Patient Daily Limit:</span>
+                            <span className={`limit-value ${appointmentLimits.usage.patientDaily >= appointmentLimits.limits.maxPerPatientPerDay ? 'limit-exceeded' : 'limit-ok'}`}>
+                              {appointmentLimits.usage.patientDaily} / {appointmentLimits.limits.maxPerPatientPerDay}
+                            </span>
+                          </div>
+                          <div className="limit-item">
+                            <span className="limit-label">Patient Weekly Limit:</span>
+                            <span className={`limit-value ${appointmentLimits.usage.patientWeekly >= appointmentLimits.limits.maxPerPatientPerWeek ? 'limit-exceeded' : 'limit-ok'}`}>
+                              {appointmentLimits.usage.patientWeekly} / {appointmentLimits.limits.maxPerPatientPerWeek}
+                            </span>
+                          </div>
+                          <div className="limit-item">
+                            <span className="limit-label">Facility Daily Capacity:</span>
+                            <span className={`limit-value ${appointmentLimits.usage.totalDaily >= appointmentLimits.limits.maxTotalPerDay ? 'limit-exceeded' : 'limit-ok'}`}>
+                              {appointmentLimits.usage.totalDaily} / {appointmentLimits.limits.maxTotalPerDay}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {availableSlots.length > 0 && (
+                      <div className="available-slots-section">
+                        <h5>Available Time Slots:</h5>
+                        <div className="slots-grid">
+                          {availableSlots.map((slot, index) => (
+                            <button
+                              key={index}
+                              type="button"
+                              className={`slot-button ${slot.available ? 'slot-available' : 'slot-unavailable'} ${formData.appointmentTime === slot.time ? 'slot-selected' : ''}`}
+                              onClick={() => slot.available && setFormData({...formData, appointmentTime: slot.time})}
+                              disabled={!slot.available}
+                              title={slot.reason || (slot.available ? 'Available' : 'Not available')}
+                            >
+                              {slot.time}
+                              {!slot.available && <i className="bi bi-x-circle ms-1"></i>}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label htmlFor="duration">Duration (minutes)</label>
@@ -1604,15 +2024,11 @@ const AppointmentManager = () => {
                   <div className="appointment-details">
                     <div className="appointment-header">
                       <h4>{getPatientName(appointment)}</h4>
-                      <span className={`status-badge`} style={{ backgroundColor: getStatusColor(appointment.status) }}>
-                        {appointment.status}
+                      <span className={`status-badge`} style={{ backgroundColor: getStatusColor(getDisplayStatus(appointment)) }}>
+                        {getDisplayStatus(appointment)}
                       </span>
                     </div>
                     <div className="appointment-info">
-                      <div className="info-row">
-                        <i className="bi bi-person-check me-2"></i>
-                        <span>{getDoctorName(appointment.doctorId)}</span>
-                      </div>
                       <div className="info-row">
                         <i className="bi bi-clipboard-heart me-2"></i>
                         <span>{appointment.type}</span>
@@ -1715,10 +2131,10 @@ const AppointmentManager = () => {
                     <div className="sort-section">
                       <select
                         className="sort-select"
-                        value={`${sortBy}-${sortOrder}`}
+                        value={`${requestSortBy}-${sortOrder}`}
                         onChange={(e) => {
                           const [newSortBy, newSortOrder] = e.target.value.split('-');
-                          setSortBy(newSortBy);
+                          setRequestSortBy(newSortBy);
                           setSortOrder(newSortOrder);
                         }}
                       >
@@ -1871,60 +2287,133 @@ const AppointmentManager = () => {
         </div>
       )}
 
-      {/* Rejection Confirmation Modal */}
+      {/* Enhanced Rejection Confirmation Modal */}
       {showRejectConfirmation && selectedRequest && (
-        <div className="appointment-approval-modal-overlay">
-          <div className="appointment-approval-modal">
-            <div className="appointment-rejection-modal-header">
-              <h3>Confirm Appointment Rejection</h3>
+        <div className="admin-rejection-modal-overlay">
+          <div className="admin-rejection-modal">
+            <div className="admin-rejection-modal-header">
+              <h3>
+                <i className="bi bi-exclamation-triangle me-2"></i>
+                Reject Appointment Request
+              </h3>
               <button 
-                className="appointment-approval-modal-close" 
+                className="admin-rejection-modal-close" 
                 onClick={() => setShowRejectConfirmation(false)}
               >
                 <i className="bi bi-x-lg"></i>
               </button>
             </div>
-            <div className="appointment-approval-modal-body">
-              <p>Please provide a reason for rejecting this appointment request:</p>
-              
-              <div className="request-details">
-                <div className="detail-row">
-                  <span className="detail-label">Patient:</span>
-                  <span className="detail-value">
-                    {selectedRequest.patientName || 
-                      `${patients.find(p => p.id === selectedRequest.patientId)?.firstName || ''} 
-                      ${patients.find(p => p.id === selectedRequest.patientId)?.lastName || ''}`}
-                  </span>
-                </div>
-                <div className="detail-row">
-                  <span className="detail-label">Date:</span>
-                  <span className="detail-value">
-                    {(() => {
-                      try {
-                        const date = new Date(selectedRequest.requestedDate || selectedRequest.appointmentDate);
-                        return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
-                      } catch (error) {
-                        return 'Invalid Date';
-                      }
-                    })()}
-                  </span>
+            
+            <div className="admin-rejection-modal-body">
+              <div className="rejection-patient-info">
+                <div className="patient-details-card">
+                  <div className="detail-row">
+                    <span className="detail-label">
+                      <i className="bi bi-person me-1"></i>
+                      Patient:
+                    </span>
+                    <span className="detail-value">
+                      {selectedRequest.patientName || 
+                        `${patients.find(p => p.id === selectedRequest.patientId)?.firstName || ''} 
+                        ${patients.find(p => p.id === selectedRequest.patientId)?.lastName || ''}`}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">
+                      <i className="bi bi-calendar me-1"></i>
+                      Date:
+                    </span>
+                    <span className="detail-value">
+                      {(() => {
+                        try {
+                          const date = new Date(selectedRequest.requestedDate || selectedRequest.appointmentDate);
+                          return isNaN(date.getTime()) ? 'Invalid Date' : date.toLocaleDateString();
+                        } catch (error) {
+                          return 'Invalid Date';
+                        }
+                      })()}
+                    </span>
+                  </div>
+                  <div className="detail-row">
+                    <span className="detail-label">
+                      <i className="bi bi-clock me-1"></i>
+                      Time:
+                    </span>
+                    <span className="detail-value">
+                      {selectedRequest.requestedTime || selectedRequest.appointmentTime || 'Not specified'}
+                    </span>
+                  </div>
                 </div>
               </div>
 
-              <div className="rejection-reason-container">
-                <label htmlFor="rejectionReason">Reason for Rejection:</label>
+              {/* Smart Suggestions Section */}
+              {smartSuggestions.length > 0 && (
+                <div className="smart-suggestions-section">
+                  <h4>
+                    <i className="bi bi-lightbulb me-2"></i>
+                    Smart Suggestions
+                  </h4>
+                  <div className="suggestions-list">
+                    {smartSuggestions.map((suggestion, index) => (
+                      <div 
+                        key={index}
+                        className={`suggestion-item ${suggestion.priority}`}
+                        onClick={() => selectSuggestion(suggestion)}
+                      >
+                        <div className="suggestion-priority">
+                          {suggestion.priority === 'high' && <i className="bi bi-exclamation-triangle-fill text-danger"></i>}
+                          {suggestion.priority === 'medium' && <i className="bi bi-exclamation-circle-fill text-warning"></i>}
+                          {suggestion.priority === 'low' && <i className="bi bi-info-circle-fill text-info"></i>}
+                        </div>
+                        <div className="suggestion-text">{suggestion.reason}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Quick Templates Section */}
+              <div className="rejection-templates-section">
+                <h4>
+                  <i className="bi bi-collection me-2"></i>
+                  Quick Templates
+                </h4>
+                <div className="templates-grid">
+                  {REJECTION_TEMPLATES.map((template) => (
+                    <button
+                      key={template.id}
+                      className={`template-button ${selectedTemplate === template.id ? 'selected' : ''}`}
+                      onClick={() => selectTemplate(template)}
+                    >
+                      <span className="template-title">{template.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom Reason Section */}
+              <div className="rejection-reason-section">
+                <label htmlFor="rejectionReason">
+                  <i className="bi bi-chat-text me-2"></i>
+                  Rejection Reason:
+                </label>
                 <textarea
                   id="rejectionReason"
                   className="rejection-reason-textarea"
                   value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Please provide a reason for rejecting this appointment request..."
+                  onChange={(e) => handleCustomReason(e.target.value)}
+                  placeholder="Select a template above or write a custom reason for rejecting this appointment request..."
+                  rows={4}
                   required
                 />
               </div>
 
               <div className="rejection-actions">
-                <button className="btn-cancel" onClick={() => setShowRejectConfirmation(false)}>
+                <button 
+                  className="btn-cancel" 
+                  onClick={() => setShowRejectConfirmation(false)}
+                >
+                  <i className="bi bi-x me-2"></i>
                   Cancel
                 </button>
                 <button 
@@ -1932,7 +2421,7 @@ const AppointmentManager = () => {
                   onClick={confirmRejection}
                   disabled={!rejectionReason.trim()}
                 >
-                  <i className="bi bi-x-circle me-2"></i>
+                  <i className="bi bi-check-circle me-2"></i>
                   Confirm Rejection
                 </button>
               </div>

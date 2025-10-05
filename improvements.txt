@@ -1,0 +1,49 @@
+UPDATES/IMPROVEMENTS:
+
+BE VERY CAREFUL, FOLLOW MY INSTRUCTION TO IMPLEMENT IT ONE BY ONE.
+
+homepage: DONE
+- remove the app icons on footer beside the credits
+- on contact us, remove the send us a message.
+- on contact us, remove the operating hours, it is just repeating it on other parts of homepage.
+- on contact us, retype the email to - maybungafloodwayhc@gmail.com
+- on contact us, retype the number to +63 026428645.
+- on contact us, remove the quick service links & rearrange the cards.
+- on sign in/sign up page, fix the registration bug where the user is required to use email (suppose to be number and its working) whenever it is empty or typed N/A(should work but the system says 'The user with email or phone number already exists').
+
+admin dashboard:
+- on todays checkup > doctor's queue view remove the remove patients button.
+- enhance the tracking of available doctors, it has some bugs still like it does not track the doctor is online(logged in without any patients on its checkup, or just finished a checkup), busy(logged in, with patients on checkup), and offline(not logged in). It is also inaccurate on tracking. 
+- on patient database > family records (there is a table with family head (optional)) > view members, add a button beside the close named 'edit family head', it is to allow the user to change the family head whenever needed, and should be updated/saved.
+- fix the logic of street/barangay on address area, it is suppose to show all barangays that are only in a specific street. Use the homepage registration for more info.
+- remove the simulation mode (be VERY careful with this one, there is a lot of connections here) and its button on sidebar
+- add audit trail, located on settings > (add new button on sidebar) 'Audit Trail'. Here is what to track(names are all full):
+
+Admin: 
+- admin(name) checked in today for patient(name).
+- admin(name) checked the vital signs of patient(name).
+- admin(name) transferred(used add to queue) patient(name) to doctor(name)(picked on available doctors).
+- (name) vaccinated patient(name) with(vaccine) at (time/date). Checkout some parts for vaccination for more info.
+- admin(name) added new user (via user management) name(of the new added user) as (role f the new added user).
+
+Doctor:
+- doctor(name) started the checkup(via clicking the start checkup button) at (time and date) for patient(name).
+- doctor(name) finishes the checkup for patient(name).
+
+Management:
+- management(name) added new medication(medication name, brand name, form, strength units in stock) from (manufacturer). Look at the 'add new' modal for references.
+- management(name) added new vaccine(vaccine name, doses in stock) from (manufacturer). Look at the 'add new' modal for references.
+- management(name) added stocks for (medication name & vaccine name) with (quantity added) more to be expired on (expiry date). Look at the add stocks modal for more details.
+- management(name) created a report for (title of the created report)
+
+-----back to dashboards----
+
+patient dashboard:
+- remove the sample/hardcoded data on today's schedule card.
+
+doctor dashboard: DONE
+- add a permanent refresh button on topbar beside the User Details since some pages only has refresh(look on the pages before adding one to prevent duplicates).
+- remove the appointment page and button in sidebar on doctor side only.
+- on settings, remove all cards except profile management, ensure the the edits on profile managements saves and updates. Remove the border left color on settings header.
+- fix the vital signs button on checkups cause it doesn't display anything.
+- (try to suggest how to revamp diagnosis notes).

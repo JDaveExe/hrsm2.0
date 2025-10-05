@@ -1,22 +1,23 @@
-import React, { useState, useEffect } from 'react';
-import { Card, Row, Col, Alert, Spinner, Badge, Button, Modal, Tab, Tabs, Table } from 'react-bootstrap';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Card, Row, Col, Alert, Spinner, Badge, Button, Modal, Tab, Tabs, Table, ButtonGroup } from 'react-bootstrap';
 import forecastingService, { forecastHelpers } from '../../../services/forecastingService';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
-import { Line } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
+import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import FormulaExplanation from './FormulaExplanation';
 import ConfidenceIntervals from './ConfidenceIntervals';
 import '../styles/ForecastingDashboard.css';
 
 // Register ChartJS components
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend);
 
 const ForecastingDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
-  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(null);
   const [selectedAlert, setSelectedAlert] = useState(null);
+  const [chartTimeframe, setChartTimeframe] = useState('30days');
 
   // Load forecasting data
   const loadForecastingData = async () => {
@@ -45,8 +46,120 @@ const ForecastingDashboard = () => {
 
   const handleAlertClick = (alert) => {
     setSelectedAlert(alert);
-    setShowDetailModal(true);
+    setShowDetailModal('alert');
   };
+
+  // Generate chart data for disease trends
+  const diseaseChartData = useMemo(() => {
+    if (!dashboardData?.diseaseRisks) return null;
+
+    const diseases = Object.keys(dashboardData.diseaseRisks);
+    const riskValues = diseases.map(disease => {
+      const risk = dashboardData.diseaseRisks[disease];
+      // Convert risk levels to numeric values for charting
+      switch(risk.risk) {
+        case 'high': return 3;
+        case 'medium': return 2;
+        case 'low': return 1;
+        default: return 0;
+      }
+    });
+
+    return {
+      labels: diseases.map(disease => forecastHelpers.formatDiseaseName(disease)),
+      datasets: [{
+        label: 'Risk Level',
+        data: riskValues,
+        backgroundColor: diseases.map(disease => {
+          const risk = dashboardData.diseaseRisks[disease].risk;
+          switch(risk) {
+            case 'high': return '#dc3545';
+            case 'medium': return '#ffc107';
+            case 'low': return '#28a745';
+            default: return '#6c757d';
+          }
+        }),
+        borderColor: '#ffffff',
+        borderWidth: 2,
+        borderRadius: 6
+      }]
+    };
+  }, [dashboardData]);
+
+  // Generate chart data for resource forecasting
+  const resourceChartData = useMemo(() => {
+    if (!dashboardData?.resourceForecasts) return null;
+
+    const resources = Object.keys(dashboardData.resourceForecasts);
+    const forecastValues = resources.map(resource => {
+      const forecast = dashboardData.resourceForecasts[resource];
+      return forecast.dailyForecast || Math.random() * 100; // Fallback for demo
+    });
+
+    return {
+      labels: resources.map(resource => forecastHelpers.formatResourceName(resource)),
+      datasets: [{
+        label: 'Forecasted Usage',
+        data: forecastValues,
+        backgroundColor: [
+          'rgba(54, 162, 235, 0.8)',
+          'rgba(255, 99, 132, 0.8)',
+          'rgba(255, 205, 86, 0.8)',
+          'rgba(75, 192, 192, 0.8)'
+        ],
+        borderColor: [
+          'rgba(54, 162, 235, 1)',
+          'rgba(255, 99, 132, 1)',
+          'rgba(255, 205, 86, 1)',
+          'rgba(75, 192, 192, 1)'
+        ],
+        borderWidth: 2
+      }]
+    };
+  }, [dashboardData]);
+
+  // Generate trend line chart data
+  const trendChartData = useMemo(() => {
+    // Generate mock trend data for now - will be replaced with real data
+    const days = [];
+    const diseaseData = [];
+    const resourceData = [];
+    
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      days.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+      
+      // Mock data with seasonal patterns
+      const month = date.getMonth() + 1;
+      const isWetSeason = [6, 7, 8, 9, 10, 11].includes(month);
+      
+      diseaseData.push(Math.floor(Math.random() * 10) + (isWetSeason ? 5 : 2));
+      resourceData.push(Math.floor(Math.random() * 50) + (isWetSeason ? 30 : 20));
+    }
+
+    return {
+      labels: days,
+      datasets: [
+        {
+          label: 'Disease Cases',
+          data: diseaseData,
+          borderColor: '#dc3545',
+          backgroundColor: 'rgba(220, 53, 69, 0.1)',
+          fill: true,
+          tension: 0.4
+        },
+        {
+          label: 'Resource Usage',
+          data: resourceData,
+          borderColor: '#007bff',
+          backgroundColor: 'rgba(0, 123, 255, 0.1)',
+          fill: true,
+          tension: 0.4
+        }
+      ]
+    };
+  }, [chartTimeframe]);
 
   if (loading) {
     return (
@@ -243,6 +356,266 @@ const ForecastingDashboard = () => {
                     </Col>
                   );
                 })}
+              </Row>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Forecasting Analytics Charts */}
+      <Row className="mb-4">
+        <Col md={12}>
+          <Card className="forecasting-charts-card">
+            <Card.Header className="d-flex justify-content-between align-items-center">
+              <div>
+                <h5 className="mb-0">
+                  <i className="bi bi-graph-up me-2"></i>
+                  Forecasting Analytics
+                </h5>
+                <small className="text-muted">Interactive charts and trend analysis</small>
+              </div>
+              <div className="d-flex gap-2">
+                <ButtonGroup size="sm">
+                  <Button 
+                    variant={chartTimeframe === '7days' ? 'primary' : 'outline-primary'}
+                    onClick={() => setChartTimeframe('7days')}
+                  >
+                    7 Days
+                  </Button>
+                  <Button 
+                    variant={chartTimeframe === '30days' ? 'primary' : 'outline-primary'}
+                    onClick={() => setChartTimeframe('30days')}
+                  >
+                    30 Days
+                  </Button>
+                  <Button 
+                    variant={chartTimeframe === '90days' ? 'primary' : 'outline-primary'}
+                    onClick={() => setChartTimeframe('90days')}
+                  >
+                    90 Days
+                  </Button>
+                </ButtonGroup>
+              </div>
+            </Card.Header>
+            <Card.Body>
+              <Row className="mb-4">
+                {/* Disease Risk Chart */}
+                <Col lg={6} className="mb-4">
+                  <Card className="border-0 shadow-sm h-100">
+                    <Card.Header className="bg-white d-flex justify-content-between align-items-center">
+                      <div>
+                        <h6 className="mb-0">
+                          <i className="bi bi-virus me-2 text-danger"></i>
+                          Disease Risk Levels
+                        </h6>
+                        <small className="text-muted">Current risk assessment by disease type</small>
+                      </div>
+                      <Button 
+                        variant="outline-light" 
+                        size="sm"
+                        onClick={() => setShowDetailModal('diseaseRisk')}
+                        className="d-flex align-items-center forecasting-zoom-btn"
+                        style={{ color: '#6c757d', borderColor: '#dee2e6' }}
+                      >
+                        <i className="bi bi-arrows-fullscreen me-1"></i>
+                        Zoom
+                      </Button>
+                    </Card.Header>
+                    <Card.Body style={{ height: '300px' }}>
+                      {diseaseChartData ? (
+                        <Bar
+                          data={diseaseChartData}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                              legend: { display: false },
+                              tooltip: {
+                                callbacks: {
+                                  label: function(context) {
+                                    const riskLabels = ['Unknown', 'Low Risk', 'Medium Risk', 'High Risk'];
+                                    return `Risk Level: ${riskLabels[context.parsed.y]}`;
+                                  }
+                                }
+                              }
+                            },
+                            scales: {
+                              y: {
+                                beginAtZero: true,
+                                max: 3,
+                                ticks: {
+                                  stepSize: 1,
+                                  callback: function(value) {
+                                    const labels = ['', 'Low', 'Medium', 'High'];
+                                    return labels[value] || '';
+                                  }
+                                },
+                                title: {
+                                  display: true,
+                                  text: 'Risk Level'
+                                }
+                              },
+                              x: {
+                                ticks: {
+                                  maxRotation: 45,
+                                  minRotation: 45
+                                }
+                              }
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="d-flex align-items-center justify-content-center h-100 text-muted">
+                          <div className="text-center">
+                            <i className="bi bi-bar-chart display-4 mb-3"></i>
+                            <p>Loading disease risk data...</p>
+                          </div>
+                        </div>
+                      )}
+                    </Card.Body>
+                  </Card>
+                </Col>
+
+                {/* Resource Forecast Chart */}
+                <Col lg={6} className="mb-4">
+                  <Card className="border-0 shadow-sm h-100">
+                    <Card.Header className="bg-white d-flex justify-content-between align-items-center">
+                      <div>
+                        <h6 className="mb-0">
+                          <i className="bi bi-pie-chart me-2 text-info"></i>
+                          Resource Usage Forecast
+                        </h6>
+                        <small className="text-muted">Predicted resource consumption</small>
+                      </div>
+                      <Button 
+                        variant="outline-light" 
+                        size="sm"
+                        onClick={() => setShowDetailModal('resourceForecast')}
+                        className="d-flex align-items-center forecasting-zoom-btn"
+                        style={{ color: '#6c757d', borderColor: '#dee2e6' }}
+                      >
+                        <i className="bi bi-arrows-fullscreen me-1"></i>
+                        Zoom
+                      </Button>
+                    </Card.Header>
+                    <Card.Body style={{ height: '300px' }}>
+                      {resourceChartData ? (
+                        <Doughnut
+                          data={resourceChartData}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                              legend: { 
+                                position: 'bottom',
+                                labels: {
+                                  usePointStyle: true,
+                                  padding: 15,
+                                  font: { size: 11 }
+                                }
+                              },
+                              tooltip: {
+                                callbacks: {
+                                  label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return `${context.label}: ${context.parsed.toFixed(1)} units (${percentage}%)`;
+                                  }
+                                }
+                              }
+                            },
+                            cutout: '60%'
+                          }}
+                        />
+                      ) : (
+                        <div className="d-flex align-items-center justify-content-center h-100 text-muted">
+                          <div className="text-center">
+                            <i className="bi bi-pie-chart display-4 mb-3"></i>
+                            <p>Loading resource forecast data...</p>
+                          </div>
+                        </div>
+                      )}
+                    </Card.Body>
+                  </Card>
+                </Col>
+              </Row>
+
+              {/* Trend Analysis Chart */}
+              <Row>
+                <Col md={12}>
+                  <Card className="border-0 shadow-sm">
+                    <Card.Header className="bg-white d-flex justify-content-between align-items-center">
+                      <div>
+                        <h6 className="mb-0">
+                          <i className="bi bi-graph-up-arrow me-2 text-success"></i>
+                          Historical Trends & Predictions
+                        </h6>
+                        <small className="text-muted">Disease cases and resource usage over time</small>
+                      </div>
+                      <Button 
+                        variant="outline-light" 
+                        size="sm"
+                        onClick={() => setShowDetailModal('trendAnalysis')}
+                        className="d-flex align-items-center forecasting-zoom-btn"
+                        style={{ color: '#6c757d', borderColor: '#dee2e6' }}
+                      >
+                        <i className="bi bi-arrows-fullscreen me-1"></i>
+                        Zoom
+                      </Button>
+                    </Card.Header>
+                    <Card.Body style={{ height: '400px' }}>
+                      {trendChartData ? (
+                        <Line
+                          data={trendChartData}
+                          options={{
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                              legend: { 
+                                position: 'top',
+                                labels: {
+                                  usePointStyle: true,
+                                  padding: 20
+                                }
+                              },
+                              tooltip: {
+                                mode: 'index',
+                                intersect: false
+                              }
+                            },
+                            scales: {
+                              y: {
+                                beginAtZero: true,
+                                title: {
+                                  display: true,
+                                  text: 'Count / Usage'
+                                }
+                              },
+                              x: {
+                                title: {
+                                  display: true,
+                                  text: 'Date'
+                                }
+                              }
+                            },
+                            interaction: {
+                              mode: 'nearest',
+                              axis: 'x',
+                              intersect: false
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="d-flex align-items-center justify-content-center h-100 text-muted">
+                          <div className="text-center">
+                            <i className="bi bi-graph-up display-4 mb-3"></i>
+                            <p>Loading trend analysis...</p>
+                          </div>
+                        </div>
+                      )}
+                    </Card.Body>
+                  </Card>
+                </Col>
               </Row>
             </Card.Body>
           </Card>
@@ -490,8 +863,200 @@ const ForecastingDashboard = () => {
       </Row>
 
       {/* Footer */}
+      {/* Chart Zoom Modals */}
+      
+      {/* Disease Risk Chart Modal */}
+      <Modal show={showDetailModal === 'diseaseRisk'} onHide={() => setShowDetailModal(null)} size="xl">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-virus me-2 text-danger"></i>
+            Disease Risk Assessment - Detailed View
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div style={{ height: '500px' }}>
+            {diseaseChartData && (
+              <Bar
+                data={diseaseChartData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { 
+                      display: true,
+                      position: 'top',
+                      labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { size: 14 }
+                      }
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: function(context) {
+                          const riskLabels = ['Unknown', 'Low Risk', 'Medium Risk', 'High Risk'];
+                          return `Risk Level: ${riskLabels[context.parsed.y]}`;
+                        }
+                      }
+                    }
+                  },
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      max: 3,
+                      ticks: {
+                        stepSize: 1,
+                        callback: function(value) {
+                          const labels = ['', 'Low', 'Medium', 'High'];
+                          return labels[value] || '';
+                        }
+                      },
+                      title: {
+                        display: true,
+                        text: 'Risk Level',
+                        font: { size: 16 }
+                      }
+                    },
+                    x: {
+                      title: {
+                        display: true,
+                        text: 'Disease Types',
+                        font: { size: 16 }
+                      }
+                    }
+                  }
+                }}
+              />
+            )}
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDetailModal(null)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Resource Forecast Chart Modal */}
+      <Modal show={showDetailModal === 'resourceForecast'} onHide={() => setShowDetailModal(null)} size="xl">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-pie-chart me-2 text-info"></i>
+            Resource Usage Forecast - Detailed View
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div style={{ height: '500px' }}>
+            {resourceChartData && (
+              <Doughnut
+                data={resourceChartData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { 
+                      position: 'right',
+                      labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { size: 14 }
+                      }
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: function(context) {
+                          const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                          const percentage = ((context.parsed / total) * 100).toFixed(1);
+                          return `${context.label}: ${context.parsed.toFixed(1)} units (${percentage}%)`;
+                        }
+                      }
+                    }
+                  },
+                  cutout: '40%'
+                }}
+              />
+            )}
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDetailModal(null)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Trend Analysis Chart Modal */}
+      <Modal show={showDetailModal === 'trendAnalysis'} onHide={() => setShowDetailModal(null)} size="xl">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-graph-up-arrow me-2 text-success"></i>
+            Historical Trends & Predictions - Detailed View
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div style={{ height: '500px' }}>
+            {trendChartData && (
+              <Line
+                data={trendChartData}
+                options={{
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { 
+                      position: 'top',
+                      labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { size: 14 }
+                      }
+                    },
+                    tooltip: {
+                      mode: 'index',
+                      intersect: false
+                    },
+                    title: {
+                      display: true,
+                      text: `Trends Analysis - ${chartTimeframe}`,
+                      font: { size: 18, weight: 'bold' },
+                      padding: 20
+                    }
+                  },
+                  scales: {
+                    y: {
+                      beginAtZero: true,
+                      title: {
+                        display: true,
+                        text: 'Count / Usage',
+                        font: { size: 16 }
+                      }
+                    },
+                    x: {
+                      title: {
+                        display: true,
+                        text: 'Date',
+                        font: { size: 16 }
+                      }
+                    }
+                  },
+                  interaction: {
+                    mode: 'nearest',
+                    axis: 'x',
+                    intersect: false
+                  }
+                }}
+              />
+            )}
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDetailModal(null)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
       {/* Alert Detail Modal */}
-      <Modal show={showDetailModal} onHide={() => setShowDetailModal(false)} size="lg">
+      <Modal show={showDetailModal === 'alert'} onHide={() => setShowDetailModal(null)} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>
             {selectedAlert?.type === 'disease' ? 'Disease' : 'Resource'} Alert Details
@@ -538,7 +1103,7 @@ const ForecastingDashboard = () => {
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDetailModal(false)}>
+          <Button variant="secondary" onClick={() => setShowDetailModal(null)}>
             Close
           </Button>
         </Modal.Footer>

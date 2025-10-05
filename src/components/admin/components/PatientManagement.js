@@ -9,6 +9,20 @@ import PatientActionsSection from '../../PatientActionsSection';
 import '../styles/PatientManagement.css';
 import '../styles/PatientDatabaseModals.css';
 
+// Street to Barangay mapping for Pasig City
+const streetToBarangay = {
+  'Amang Rodriguez Avenue': ['Manggahan', 'Rosario', 'Dela Paz'],
+  'C. Raymundo Avenue': ['Caniogan', 'Pineda', 'Rosario'],
+  'Ortigas Avenue': ['San Antonio', 'Ugong', 'Kapitolyo'],
+  'Shaw Boulevard': ['Kapitolyo', 'Oranbo', 'Bagong Ilog'],
+  'E. Rodriguez Jr. Avenue (C-5)': ['Ugong', 'Bagong Ilog', 'Pinagbuhatan'],
+  'Marcos Highway': ['Maybunga', 'Manggahan', 'Santolan'],
+  'Julia Vargas Avenue': ['San Antonio', 'Oranbo', 'Ugong'],
+  'F. Legaspi Bridge': ['San Joaquin', 'Kalawaan', 'Malinao'],
+  'San Guillermo Street': ['San Jose', 'Pineda', 'Palatiw'],
+  'Dr. Sixto Antonio Avenue': ['Kapasigan', 'Bagong Ilog', 'Caniogan']
+};
+
 const PatientManagement = memo(() => {
   const { 
     patientsData, 
@@ -28,6 +42,8 @@ const PatientManagement = memo(() => {
   const [showPatientDetailsModal, setShowPatientDetailsModal] = useState(false);
   const [showAssignFamilyModal, setShowAssignFamilyModal] = useState(false);
   const [showFamilyModal, setShowFamilyModal] = useState(false);
+  const [showEditFamilyHeadModal, setShowEditFamilyHeadModal] = useState(false);
+  const [editFamilyHeadData, setEditFamilyHeadData] = useState('');
   const [showAutosortConfirmModal, setShowAutosortConfirmModal] = useState(false);
   const [autosortResults, setAutosortResults] = useState(null);
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -48,6 +64,10 @@ const PatientManagement = memo(() => {
   const [patientsWithQR, setPatientsWithQR] = useState(new Set()); // Track patients who have generated QR codes
   const [selectedFamilyForAssignment, setSelectedFamilyForAssignment] = useState(''); // For manual family assignment
   const [generatedPassword, setGeneratedPassword] = useState(null); // Store generated password for notice
+
+  // Medical conditions modal state
+  const [showMedicalConditionsModal, setShowMedicalConditionsModal] = useState(false);
+  const [selectedPatientConditions, setSelectedPatientConditions] = useState([]);
 
   // Appointment scheduling state
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
@@ -121,6 +141,72 @@ const PatientManagement = memo(() => {
     notes: ''
   });
 
+  // Medical conditions list (same as patient profile)
+  const medicalConditionsList = [
+    'Hypertension (High Blood Pressure)',
+    'Diabetes Mellitus',
+    'Heart Disease',
+    'Asthma',
+    'Allergies',
+    'Arthritis',
+    'Kidney Disease',
+    'Liver Disease',
+    'Thyroid Disorders',
+    'High Cholesterol',
+    'Stroke',
+    'Cancer',
+    'Depression',
+    'Anxiety Disorders',
+    'Migraine',
+    'Epilepsy',
+    'Osteoporosis',
+    'COPD (Chronic Obstructive Pulmonary Disease)',
+    'Gastroesophageal Reflux Disease (GERD)',
+    'Irritable Bowel Syndrome (IBS)',
+    'Inflammatory Bowel Disease (IBD)',
+    'Celiac Disease',
+    'Sleep Apnea',
+    'Fibromyalgia',
+    'Lupus',
+    'Rheumatoid Arthritis',
+    'Multiple Sclerosis',
+    'Parkinson\'s Disease',
+    'Alzheimer\'s Disease',
+    'Schizophrenia',
+    'Bipolar Disorder',
+    'ADHD (Attention Deficit Hyperactivity Disorder)',
+    'Autism Spectrum Disorder',
+    'Eating Disorders',
+    'Substance Abuse',
+    'Chronic Fatigue Syndrome',
+    'Endometriosis',
+    'Polycystic Ovary Syndrome (PCOS)',
+    'Benign Prostatic Hyperplasia (BPH)',
+    'Glaucoma',
+    'Cataracts',
+    'Macular Degeneration',
+    'Hearing Loss',
+    'Tinnitus',
+    'Chronic Pain',
+    'Other'
+  ];
+
+  // Handler for opening medical conditions modal
+  const handleOpenMedicalConditionsModal = (patient) => {
+    // Parse existing conditions
+    let conditions = [];
+    if (patient?.medicalConditions && patient.medicalConditions !== 'N/A' && patient.medicalConditions.trim() !== '') {
+      try {
+        conditions = patient.medicalConditions.split(', ').filter(c => c.trim() !== '');
+      } catch (error) {
+        console.error('Error parsing conditions:', error);
+        conditions = [];
+      }
+    }
+    setSelectedPatientConditions(conditions);
+    setShowMedicalConditionsModal(true);
+  };
+
   // Optimized form change handler (prevents input delays)
   const handlePatientFormChange = useCallback((field, value) => {
     setPatientFormData(prev => {
@@ -141,6 +227,11 @@ const PatientManagement = memo(() => {
         } else {
           newData.age = '';
         }
+      }
+      
+      // Reset barangay when street changes
+      if (field === 'street') {
+        newData.barangay = '';
       }
       
       return newData;
@@ -190,6 +281,13 @@ const PatientManagement = memo(() => {
     if (!patientsData || !Array.isArray(patientsData)) return [];
     return patientsData.filter(patient => patient.familyId === familyId);
   }, [patientsData]);
+
+  const getAvailableBarangays = useCallback((street) => {
+    if (street && streetToBarangay[street]) {
+      return streetToBarangay[street];
+    }
+    return [];
+  }, []);
 
   const formatShortDate = useCallback((dateString) => {
     if (!dateString) return 'N/A';
@@ -361,6 +459,44 @@ const PatientManagement = memo(() => {
     setShowFamilyModal(true);
   }, []);
 
+  const handleEditFamilyHead = useCallback(() => {
+    if (selectedFamily) {
+      setEditFamilyHeadData(selectedFamily.headOfFamily || '');
+      setShowEditFamilyHeadModal(true);
+    }
+  }, [selectedFamily]);
+
+  const handleSaveFamilyHead = useCallback(async () => {
+    if (!selectedFamily) return;
+
+    try {
+      setLoading(true);
+      
+      // Update family head
+      const updatedFamily = await adminService.updateFamily(selectedFamily.id, {
+        headOfFamily: editFamilyHeadData.trim()
+      });
+      
+      // Refresh families data
+      await fetchAllFamilies();
+      
+      // Update selected family to reflect changes
+      setSelectedFamily(prev => ({
+        ...prev,
+        headOfFamily: editFamilyHeadData.trim()
+      }));
+      
+      // Close modal
+      setShowEditFamilyHeadModal(false);
+      setAlert({ type: 'success', message: 'Family head updated successfully!' });
+    } catch (error) {
+      console.error('Error updating family head:', error);
+      setAlert({ type: 'danger', message: 'Error updating family head. Please try again.' });
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedFamily, editFamilyHeadData, fetchAllFamilies]);
+
   const handleAutoLogin = useCallback(async (patient) => {
     if (!patient) {
       setAlert({ type: 'danger', message: 'No patient selected for check-in' });
@@ -427,6 +563,18 @@ const PatientManagement = memo(() => {
             window.refreshTodaysCheckups();
           }
         }, 500);
+      } else if (response.status === 409) {
+        // Handle duplicate check-in specifically
+        console.log('Duplicate check-in prevented:', result);
+        setAlert({ 
+          type: 'warning', 
+          message: result.error || `${patient.firstName} ${patient.lastName} is already checked in for today.`
+        });
+        
+        // If the backend returns existing session info, we could display it
+        if (result.existingSession) {
+          console.log('Existing session details:', result.existingSession);
+        }
       } else {
         console.error('API Error:', result);
         setAlert({ type: 'danger', message: result.error || 'Failed to check in patient' });
@@ -550,10 +698,42 @@ const PatientManagement = memo(() => {
         createdAt: new Date().toISOString()
       };
 
-      // Here you would normally call an appointment service to save
+      // Call backend API to create appointment (which will also create notification)
       console.log('Saving appointment:', appointmentData);
       
-      // Create notification for the appointment
+      try {
+        const response = await fetch('http://localhost:5000/api/appointments', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': 'temp-admin-token' // Use admin token
+          },
+          body: JSON.stringify({
+            patientId: appointmentData.patientId,
+            appointmentDate: appointmentData.appointmentDate,
+            appointmentTime: appointmentData.appointmentTime,
+            type: appointmentData.type,
+            duration: appointmentData.duration,
+            notes: appointmentData.notes,
+            priority: 'Normal'
+          })
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ Appointment created via API:', result);
+          console.log('✅ Notification should be created automatically by backend');
+        } else {
+          const error = await response.text();
+          console.error('❌ API call failed:', error);
+          throw new Error('Failed to create appointment via API');
+        }
+      } catch (apiError) {
+        console.error('❌ Backend API error:', apiError);
+        // Continue with localStorage fallback for now
+      }
+      
+      // LEGACY: Create notification for localStorage fallback (can be removed later)
       const notification = {
         id: `notif_${Date.now()}`,
         type: 'appointment_scheduled',
@@ -675,6 +855,11 @@ const PatientManagement = memo(() => {
         } else {
           newData.age = '';
         }
+      }
+      
+      // Reset barangay when street changes
+      if (field === 'street') {
+        newData.barangay = '';
       }
       
       return newData;
@@ -1241,14 +1426,7 @@ const PatientManagement = memo(() => {
                               <i className="bi bi-eye me-1"></i>
                               View Info
                             </Button>
-                            <Button 
-                              variant="outline-warning" 
-                              size="sm" 
-                              onClick={() => handleScheduleAppointment(patient)}
-                            >
-                              <i className="bi bi-calendar-plus me-1"></i>
-                              Schedule Appointment
-                            </Button>
+
                             <Button 
                               variant="outline-success" 
                               size="sm" 
@@ -1604,40 +1782,19 @@ const PatientManagement = memo(() => {
                       <Form.Select
                         value={patientFormData.barangay}
                         onChange={(e) => handlePatientFormChange('barangay', e.target.value)}
+                        disabled={!patientFormData.street}
                         required
                       >
                         <option value="">Select Barangay</option>
-                        <option value="Bagong Ilog">Bagong Ilog</option>
-                        <option value="Bagong Katipunan">Bagong Katipunan</option>
-                        <option value="Bambang">Bambang</option>
-                        <option value="Buting">Buting</option>
-                        <option value="Caniogan">Caniogan</option>
-                        <option value="Dela Paz">Dela Paz</option>
-                        <option value="Kalawaan">Kalawaan</option>
-                        <option value="Kapasigan">Kapasigan</option>
-                        <option value="Kapitolyo">Kapitolyo</option>
-                        <option value="Malinao">Malinao</option>
-                        <option value="Manggahan">Manggahan</option>
-                        <option value="Maybunga">Maybunga</option>
-                        <option value="Oranbo">Oranbo</option>
-                        <option value="Palatiw">Palatiw</option>
-                        <option value="Pinagbuhatan">Pinagbuhatan</option>
-                        <option value="Pineda">Pineda</option>
-                        <option value="Rosario">Rosario</option>
-                        <option value="Sagad">Sagad</option>
-                        <option value="San Antonio">San Antonio</option>
-                        <option value="San Joaquin">San Joaquin</option>
-                        <option value="San Jose">San Jose</option>
-                        <option value="San Miguel">San Miguel</option>
-                        <option value="San Nicolas">San Nicolas</option>
-                        <option value="Santa Cruz">Santa Cruz</option>
-                        <option value="Santa Lucia">Santa Lucia</option>
-                        <option value="Santa Rosa">Santa Rosa</option>
-                        <option value="Santo Tomas">Santo Tomas</option>
-                        <option value="Santolan">Santolan</option>
-                        <option value="Sumilang">Sumilang</option>
-                        <option value="Ugong">Ugong</option>
+                        {getAvailableBarangays(patientFormData.street).map(barangay => (
+                          <option key={barangay} value={barangay}>{barangay}</option>
+                        ))}
                       </Form.Select>
+                      {!patientFormData.street && (
+                        <Form.Text className="text-muted">
+                          Please select a street first
+                        </Form.Text>
+                      )}
                     </Form.Group>
                   </Col>
                   <Col md={2}>
@@ -2308,6 +2465,73 @@ const PatientManagement = memo(() => {
           <Button variant="secondary" onClick={() => setShowFamilyModal(false)}>
             Close
           </Button>
+          <Button 
+            variant="outline-primary" 
+            onClick={handleEditFamilyHead}
+          >
+            <i className="bi bi-pencil-square me-1"></i>
+            Edit Family Head
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Edit Family Head Modal */}
+      <Modal 
+        show={showEditFamilyHeadModal} 
+        onHide={() => setShowEditFamilyHeadModal(false)} 
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <i className="bi bi-pencil-square me-2"></i>
+            Edit Family Head
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedFamily && (
+            <>
+              <div className="mb-3">
+                <p><strong>Family:</strong> {selectedFamily.familyName}</p>
+                <p><strong>Current Head of Family:</strong> {selectedFamily.headOfFamily || 'Not specified'}</p>
+              </div>
+              
+              <Form.Group>
+                <Form.Label>New Head of Family</Form.Label>
+                <Form.Control 
+                  type="text" 
+                  value={editFamilyHeadData}
+                  onChange={(e) => setEditFamilyHeadData(e.target.value)}
+                  placeholder="Enter new head of family name"
+                  maxLength={255}
+                />
+                <Form.Text className="text-muted">
+                  Leave empty if you want to remove the current family head designation.
+                </Form.Text>
+              </Form.Group>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowEditFamilyHeadModal(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="primary" 
+            onClick={handleSaveFamilyHead}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <i className="bi bi-arrow-clockwise rotate me-1"></i>
+                Saving...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-check-lg me-1"></i>
+                Save Changes
+              </>
+            )}
+          </Button>
         </Modal.Footer>
       </Modal>
 
@@ -2818,12 +3042,30 @@ const PatientManagement = memo(() => {
                       {selectedPatient.civilStatus || 'N/A'}
                     </Col>
                   </Row>
+                  <Row>
+                    <Col md={12}>
+                      <strong>Medical Conditions:</strong><br/>
+                      <Button 
+                        variant="outline-primary" 
+                        size="sm" 
+                        className="mt-1"
+                        onClick={() => handleOpenMedicalConditionsModal(selectedPatient)}
+                        style={{ fontSize: '0.875rem' }}
+                      >
+                        <i className="bi bi-heart-pulse me-2"></i>
+                        {selectedPatient.medicalConditions && selectedPatient.medicalConditions !== 'N/A' && selectedPatient.medicalConditions.trim() !== '' 
+                          ? 'View Medical Conditions' 
+                          : 'No Medical Conditions Recorded'
+                        }
+                      </Button>
+                    </Col>
+                  </Row>
                 </Card.Body>
               </Card>
 
               <Card className="mb-3">
                 <Card.Header as="h5" className="my-2 bg-light">
-                  <i className="bi bi-telephone me-2"></i>Contact Information
+                  <i className="bi bi-telephone me-2"></i>Contact & Health Information
                 </Card.Header>
                 <Card.Body>
                   <Row className="mb-3">
@@ -2836,7 +3078,7 @@ const PatientManagement = memo(() => {
                       {selectedPatient.contactNumber || 'N/A'}
                     </Col>
                   </Row>
-                  <Row>
+                  <Row className="mb-3">
                     <Col md={12}>
                       <strong>Address:</strong><br/>
                       {[
@@ -2848,15 +3090,7 @@ const PatientManagement = memo(() => {
                       ].filter(Boolean).join(', ') || 'N/A'}
                     </Col>
                   </Row>
-                </Card.Body>
-              </Card>
-
-              <Card className="mb-3">
-                <Card.Header as="h5" className="my-2 bg-light">
-                  <i className="bi bi-heart-pulse me-2"></i>Medical Information
-                </Card.Header>
-                <Card.Body>
-                  <Row className="mb-3">
+                  <Row>
                     <Col md={4}>
                       <strong>PhilHealth Number:</strong><br/>
                       {selectedPatient.philHealthNumber || 'N/A'}
@@ -2870,16 +3104,10 @@ const PatientManagement = memo(() => {
                       {selectedPatient.familyId || 'Individual Patient'}
                     </Col>
                   </Row>
-                  <Row>
-                    <Col md={12}>
-                      <strong>Medical Conditions:</strong><br/>
-                      <div className="border rounded p-2 bg-light" style={{minHeight: '60px'}}>
-                        {selectedPatient.medicalConditions || 'No medical conditions reported'}
-                      </div>
-                    </Col>
-                  </Row>
                 </Card.Body>
               </Card>
+
+
 
               <Card>
                 <Card.Header as="h5" className="my-2 bg-light">
@@ -3150,6 +3378,104 @@ const PatientManagement = memo(() => {
           >
             <i className="bi bi-calendar-check me-2"></i>
             {loading ? 'Scheduling...' : 'Schedule Appointment'}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Medical Conditions Display Modal */}
+      <Modal 
+        show={showMedicalConditionsModal} 
+        onHide={() => setShowMedicalConditionsModal(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton style={{ background: '#dc3545', color: 'white', border: 'none' }}>
+          <Modal.Title>
+            <i className="bi bi-heart-pulse me-2"></i>
+            Medical Conditions
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body style={{ padding: '25px' }}>
+          {selectedPatient && (
+            <>
+              <div style={{ marginBottom: '20px', padding: '15px', background: '#f8f9fa', borderRadius: '8px' }}>
+                <h6 style={{ margin: '0 0 8px 0', color: '#495057' }}>
+                  <i className="bi bi-person-circle me-2"></i>
+                  Patient: <strong>{selectedPatient.firstName} {selectedPatient.lastName}</strong>
+                </h6>
+                <div style={{ fontSize: '0.9rem', color: '#6c757d' }}>
+                  Patient ID: PT-{String(selectedPatient.id).padStart(4, '0')}
+                </div>
+              </div>
+              
+              {selectedPatientConditions.length > 0 ? (
+                <>
+                  <div style={{ marginBottom: '15px' }}>
+                    <h6 style={{ color: '#495057', marginBottom: '12px' }}>
+                      <i className="bi bi-check-circle-fill me-2" style={{ color: '#28a745' }}></i>
+                      Recorded Medical Conditions ({selectedPatientConditions.length})
+                    </h6>
+                    <div style={{ 
+                      maxHeight: '300px', 
+                      overflowY: 'auto',
+                      border: '1px solid #dee2e6',
+                      borderRadius: '6px',
+                      padding: '15px',
+                      background: 'white'
+                    }}>
+                      <div style={{ display: 'grid', gap: '8px' }}>
+                        {selectedPatientConditions.map((condition, index) => (
+                          <div key={index} style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            padding: '10px 12px',
+                            background: '#e8f5e8',
+                            border: '1px solid #c3e6c3',
+                            borderRadius: '6px',
+                            fontSize: '0.9rem'
+                          }}>
+                            <i className="bi bi-check-circle-fill me-3" style={{ color: '#28a745', fontSize: '1rem' }}></i>
+                            <span>{condition}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ 
+                    padding: '12px 15px', 
+                    background: '#fff3cd', 
+                    border: '1px solid #ffeaa7', 
+                    borderRadius: '6px',
+                    fontSize: '0.85rem',
+                    color: '#856404'
+                  }}>
+                    <i className="bi bi-info-circle me-2"></i>
+                    <strong>Note:</strong> These conditions were selected by the patient in their profile settings. 
+                    For medical accuracy, please verify with the patient during consultation.
+                  </div>
+                </>
+              ) : (
+                <div style={{ 
+                  textAlign: 'center', 
+                  padding: '40px 20px',
+                  color: '#6c757d'
+                }}>
+                  <div style={{ fontSize: '3rem', marginBottom: '15px', opacity: 0.3 }}>
+                    <i className="bi bi-heart-pulse"></i>
+                  </div>
+                  <h6 style={{ color: '#495057', marginBottom: '8px' }}>No Medical Conditions Recorded</h6>
+                  <p style={{ margin: 0, fontSize: '0.9rem' }}>
+                    This patient has not recorded any medical conditions in their profile.
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer style={{ background: '#f8f9fa', border: 'none' }}>
+          <Button variant="secondary" onClick={() => setShowMedicalConditionsModal(false)}>
+            Close
           </Button>
         </Modal.Footer>
       </Modal>

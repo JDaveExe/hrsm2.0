@@ -45,7 +45,7 @@
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
-  width: 250px;
+  width: 150px; /* Reduced by 40% from 250px */
 }
 
 .btn {
@@ -2721,7 +2721,478 @@ select:disabled option {
   box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
 }
 
+/* Enhanced Admin Rejection Modal Styles - Blue Theme */
+.admin-rejection-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background-color: rgba(13, 110, 253, 0.1) !important;
+  backdrop-filter: blur(8px) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 999999 !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+}
+
+.admin-rejection-modal {
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  width: 100% !important;
+  max-width: 700px !important;
+  max-height: 90vh !important;
+  box-shadow: 0 20px 40px rgba(13, 110, 253, 0.2) !important;
+  position: relative !important;
+  margin: auto !important;
+  transform: translateY(0) !important;
+  animation: adminModalSlideIn 0.3s ease-out !important;
+  overflow: hidden !important;
+}
+
+.admin-rejection-modal-header {
+  background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%) !important;
+  color: white !important;
+  padding: 24px 30px !important;
+  border-radius: 16px 16px 0 0 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  box-shadow: 0 2px 10px rgba(13, 110, 253, 0.3) !important;
+}
+
+.admin-rejection-modal-header h3 {
+  margin: 0 !important;
+  font-size: 20px !important;
+  font-weight: 600 !important;
+  color: white !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.admin-rejection-modal-close {
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: none !important;
+  color: white !important;
+  cursor: pointer !important;
+  padding: 10px !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+  width: 36px !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.admin-rejection-modal-close:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+  transform: scale(1.05) !important;
+}
+
+.admin-rejection-modal-body {
+  padding: 30px !important;
+  color: #495057 !important;
+  line-height: 1.6 !important;
+  max-height: calc(90vh - 140px) !important;
+  overflow-y: auto !important;
+}
+
+/* Patient Info Card */
+.rejection-patient-info {
+  margin-bottom: 25px !important;
+}
+
+.patient-details-card {
+  background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%) !important;
+  border: 1px solid #0d6efd !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+}
+
+.patient-details-card .detail-row {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  margin-bottom: 12px !important;
+  padding: 8px 0 !important;
+}
+
+.patient-details-card .detail-row:last-child {
+  margin-bottom: 0 !important;
+}
+
+.patient-details-card .detail-label {
+  font-weight: 600 !important;
+  color: #0d6efd !important;
+  font-size: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.patient-details-card .detail-value {
+  color: #212529 !important;
+  font-weight: 500 !important;
+  font-size: 14px !important;
+}
+
+/* Smart Suggestions Section */
+.smart-suggestions-section {
+  margin-bottom: 25px !important;
+}
+
+.smart-suggestions-section h4 {
+  color: #0d6efd !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  margin-bottom: 15px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.suggestions-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+
+.suggestion-item {
+  background: #fff !important;
+  border: 1px solid #dee2e6 !important;
+  border-radius: 10px !important;
+  padding: 15px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 12px !important;
+}
+
+.suggestion-item:hover {
+  border-color: #0d6efd !important;
+  background: #f8f9ff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.1) !important;
+}
+
+.suggestion-item.high {
+  border-left: 4px solid #dc3545 !important;
+}
+
+.suggestion-item.medium {
+  border-left: 4px solid #ffc107 !important;
+}
+
+.suggestion-item.low {
+  border-left: 4px solid #17a2b8 !important;
+}
+
+.suggestion-priority {
+  font-size: 18px !important;
+  margin-top: 2px !important;
+}
+
+.suggestion-text {
+  flex: 1 !important;
+  font-size: 14px !important;
+  color: #495057 !important;
+  line-height: 1.5 !important;
+}
+
+/* Templates Section */
+.rejection-templates-section {
+  margin-bottom: 25px !important;
+}
+
+.rejection-templates-section h4 {
+  color: #0d6efd !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  margin-bottom: 15px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.templates-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  gap: 12px !important;
+}
+
+.template-button {
+  background: #fff !important;
+  border: 2px solid #e9ecef !important;
+  border-radius: 10px !important;
+  padding: 15px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  text-align: center !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #495057 !important;
+}
+
+.template-button:hover {
+  border-color: #0d6efd !important;
+  background: #f8f9ff !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.1) !important;
+}
+
+.template-button.selected {
+  border-color: #0d6efd !important;
+  background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%) !important;
+  color: white !important;
+  box-shadow: 0 6px 20px rgba(13, 110, 253, 0.3) !important;
+}
+
+.template-title {
+  display: block !important;
+  font-weight: 600 !important;
+}
+
+/* Reason Section */
+.rejection-reason-section {
+  margin-bottom: 25px !important;
+}
+
+.rejection-reason-section label {
+  display: block !important;
+  margin-bottom: 10px !important;
+  font-weight: 600 !important;
+  color: #0d6efd !important;
+  font-size: 15px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.rejection-reason-textarea {
+  width: 100% !important;
+  padding: 15px !important;
+  border: 2px solid #dee2e6 !important;
+  border-radius: 10px !important;
+  font-size: 14px !important;
+  font-family: inherit !important;
+  resize: vertical !important;
+  transition: all 0.2s ease !important;
+  box-sizing: border-box !important;
+  background: #fafbfc !important;
+  min-height: 100px !important;
+}
+
+.rejection-reason-textarea:focus {
+  outline: none !important;
+  border-color: #0d6efd !important;
+  background: #fff !important;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25) !important;
+}
+
+/* Action Buttons */
+.rejection-actions {
+  display: flex !important;
+  justify-content: flex-end !important;
+  gap: 15px !important;
+  margin-top: 30px !important;
+  padding-top: 20px !important;
+  border-top: 1px solid #dee2e6 !important;
+}
+
+.rejection-actions .btn-cancel {
+  background: #6c757d !important;
+  color: white !important;
+  border: none !important;
+  padding: 12px 24px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.rejection-actions .btn-cancel:hover {
+  background: #5a6268 !important;
+  transform: translateY(-1px) !important;
+}
+
+.rejection-actions .btn-confirm-reject {
+  background: linear-gradient(135deg, #0d6efd 0%, #0056b3 100%) !important;
+  color: white !important;
+  border: none !important;
+  padding: 12px 24px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3) !important;
+}
+
+.rejection-actions .btn-confirm-reject:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(13, 110, 253, 0.4) !important;
+}
+
+.rejection-actions .btn-confirm-reject:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Appointment Limits Section Styles */
+.appointment-limits-section {
+  background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%) !important;
+  border: 1px solid #0d6efd !important;
+  border-radius: 12px !important;
+  padding: 20px !important;
+  margin: 20px 0 !important;
+}
+
+.appointment-limits-section h4 {
+  color: #0d6efd !important;
+  font-size: 16px !important;
+  font-weight: 600 !important;
+  margin-bottom: 15px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.limits-loading {
+  color: #6c757d !important;
+  font-style: italic !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.limits-info {
+  margin-bottom: 20px !important;
+}
+
+.limits-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+  gap: 15px !important;
+}
+
+.limit-item {
+  background: #fff !important;
+  padding: 12px 15px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  box-shadow: 0 2px 8px rgba(13, 110, 253, 0.1) !important;
+}
+
+.limit-label {
+  font-weight: 500 !important;
+  color: #495057 !important;
+  font-size: 14px !important;
+}
+
+.limit-value {
+  font-weight: 600 !important;
+  font-size: 14px !important;
+}
+
+.limit-value.limit-ok {
+  color: #28a745 !important;
+}
+
+.limit-value.limit-exceeded {
+  color: #dc3545 !important;
+  background: #f8d7da !important;
+  padding: 4px 8px !important;
+  border-radius: 4px !important;
+}
+
+.available-slots-section {
+  border-top: 1px solid #dee2e6 !important;
+  padding-top: 15px !important;
+}
+
+.available-slots-section h5 {
+  color: #0d6efd !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  margin-bottom: 12px !important;
+}
+
+.slots-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)) !important;
+  gap: 8px !important;
+}
+
+.slot-button {
+  background: #fff !important;
+  border: 2px solid #e9ecef !important;
+  border-radius: 6px !important;
+  padding: 8px 6px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 36px !important;
+}
+
+.slot-button.slot-available {
+  border-color: #28a745 !important;
+  color: #28a745 !important;
+}
+
+.slot-button.slot-available:hover {
+  background: #28a745 !important;
+  color: white !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3) !important;
+}
+
+.slot-button.slot-selected {
+  background: #0d6efd !important;
+  color: white !important;
+  border-color: #0d6efd !important;
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3) !important;
+}
+
+.slot-button.slot-unavailable {
+  border-color: #dc3545 !important;
+  color: #dc3545 !important;
+  cursor: not-allowed !important;
+  opacity: 0.7 !important;
+}
+
+.slot-button.slot-unavailable:hover {
+  transform: none !important;
+  box-shadow: none !important;
+}
+
 /* Modal animation */
+@keyframes adminModalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 @keyframes modalSlideIn {
   from {
     opacity: 0;

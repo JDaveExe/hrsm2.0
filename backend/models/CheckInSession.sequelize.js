@@ -52,7 +52,7 @@ const CheckInSession = sequelize.define('CheckInSession', {
     defaultValue: 'checked-in',
   },
   checkInMethod: {
-    type: DataTypes.ENUM('qr-code', 'staff-assisted', 'online'),
+    type: DataTypes.ENUM('qr-code', 'qr-scan', 'staff-assisted', 'online'),
     defaultValue: 'staff-assisted',
   },
   vitalSigns: {

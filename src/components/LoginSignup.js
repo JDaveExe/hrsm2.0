@@ -9,6 +9,7 @@ import authService from '../services/authService';
 import { Link } from 'react-router-dom'; // Assuming you'll use React Router for navigation
 import { useAuth } from '../context/AuthContext'; // Import the auth context
 import { useData } from '../context/DataContext'; // Import the data context
+import PatientWelcomeModal from './PatientWelcomeModal'; // Import patient welcome modal
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../styles/LoginSignup.css'; // New CSS file
@@ -31,6 +32,10 @@ const LoginSignup = () => {
   const [isQrLogin, setIsQrLogin] = useState(false);
   const [qrData, setQrData] = useState("");
   const [showQrScanner, setShowQrScanner] = useState(false);
+  
+  // Patient Welcome Modal state
+  const [showWelcomeModal, setShowWelcomeModal] = useState(false);
+  const [welcomePatientData, setWelcomePatientData] = useState(null);
 
   // ===== REGISTRATION STATE (Copied from AuthPage.js) =====
   const [formData, setFormData] = useState({
@@ -225,16 +230,112 @@ const LoginSignup = () => {
   };
 
   const handleQrLogin = async (scannedQrData) => {
-    console.log("QR Login attempt with data:", scannedQrData);
-    alert(`QR Login attempt with data: ${scannedQrData}`);
-    // TODO: Implement actual QR login logic here
-    // This is a placeholder
-    if (scannedQrData) {
-      // Simulate successful QR login
-    } else {
-      setLoginError("Invalid QR code data.");
+    console.log("QR scan attempt with data:", scannedQrData);
+    
+    try {
+      // Hide the current welcome modal if another QR is scanned
+      if (showWelcomeModal) {
+        setShowWelcomeModal(false);
+      }
+
+      // Parse the QR data
+      let patientData;
+      try {
+        // Try to parse as JSON first (for URL-encoded tokens)
+        if (scannedQrData.includes('token=')) {
+          const url = new URL(scannedQrData);
+          const token = url.searchParams.get('token');
+          const decodedData = atob(token);
+          patientData = JSON.parse(decodedData);
+        } else {
+          // Direct JSON parsing
+          patientData = JSON.parse(scannedQrData);
+        }
+      } catch (parseError) {
+        console.error('Failed to parse QR data:', parseError);
+        setLoginError("Invalid QR code format.");
+        setIsQrLogin(false);
+        setShowQrScanner(false);
+        return;
+      }
+
+      // Validate required patient data
+      if (!patientData.patientId || !patientData.patientName) {
+        setLoginError("QR code missing required patient information.");
+        setIsQrLogin(false);
+        setShowQrScanner(false);
+        return;
+      }
+
+      // Security validations
+      
+      // 1. Check if token has timestamp and is not too old
+      if (patientData.timestamp) {
+        const tokenAge = Date.now() - patientData.timestamp;
+        const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+        
+        if (tokenAge > maxAge) {
+          setLoginError("QR code has expired. Please generate a new one.");
+          setIsQrLogin(false);
+          setShowQrScanner(false);
+          return;
+        }
+      }
+
+      // 2. Validate action field (should be 'checkin')
+      if (patientData.action && patientData.action !== 'checkin') {
+        setLoginError("Invalid QR code action. This QR code is not for check-in.");
+        setIsQrLogin(false);
+        setShowQrScanner(false);
+        return;
+      }
+
+      // 3. Validate patient ID format (should be numeric)
+      if (!/^\d+$/.test(patientData.patientId.toString())) {
+        setLoginError("Invalid patient ID format in QR code.");
+        setIsQrLogin(false);
+        setShowQrScanner(false);
+        return;
+      }
+
+      console.log("Parsed patient data:", patientData);
+
+      // Show welcome modal
+      setWelcomePatientData(patientData);
+      setShowWelcomeModal(true);
+
+      // Call backend to check in the patient
+      const checkinResponse = await fetch('/api/checkups/qr-checkin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          patientId: patientData.patientId,
+          patientName: patientData.patientName,
+          checkInMethod: 'qr-scan',
+          serviceType: 'General Checkup',
+          priority: 'Normal'
+        })
+      });
+
+      const checkinResult = await checkinResponse.json();
+
+      if (checkinResponse.ok) {
+        console.log("Patient successfully checked in:", checkinResult);
+        setLoginError(''); // Clear any previous errors
+      } else {
+        console.error("Check-in failed:", checkinResult);
+        setLoginError(checkinResult.error || "Failed to check in patient.");
+      }
+
+    } catch (error) {
+      console.error('QR login error:', error);
+      setLoginError("An error occurred during QR scan processing.");
     }
-    setIsQrLogin(false); // Reset to password login after attempt
+
+    // Reset QR scanner state
+    setIsQrLogin(false);
     setShowQrScanner(false);
   };
   
@@ -329,16 +430,27 @@ const LoginSignup = () => {
     setRegistrationMessage('');
     setIsLoading(true);
 
-    if (!formData.email && !formData.phoneNumber) {
-      setRegistrationError("Please provide either an email or a phone number.");
+    // Clean and validate email and phone number
+    const cleanEmail = formData.email && formData.email.trim() && 
+                      formData.email.trim().toLowerCase() !== 'n/a' && 
+                      formData.email.trim().toLowerCase() !== 'na' ? 
+                      formData.email.trim() : '';
+                      
+    const cleanPhoneNumber = formData.phoneNumber && formData.phoneNumber.trim() && 
+                            formData.phoneNumber.trim().toLowerCase() !== 'n/a' && 
+                            formData.phoneNumber.trim().toLowerCase() !== 'na' ? 
+                            formData.phoneNumber.trim() : '';
+
+    if (!cleanEmail && !cleanPhoneNumber) {
+      setRegistrationError("Please provide either an email or a phone number. You may also type 'N/A' if not available.");
       setIsLoading(false);
       return;
     }
     
     // Validate phone number format if provided
-    if (formData.phoneNumber) {
+    if (cleanPhoneNumber) {
       const phoneRegex = /^09\d{9}$/;
-      if (!phoneRegex.test(formData.phoneNumber)) {
+      if (!phoneRegex.test(cleanPhoneNumber)) {
         setRegistrationError("Phone number must be exactly 11 digits starting with 09 (e.g., 09171234567).");
         setIsLoading(false);
         return;
@@ -613,7 +725,7 @@ const LoginSignup = () => {
             <Card.Header as="h5" className="my-2">Account Credentials</Card.Header>
             <Card.Body>
               <Row className="mb-3">
-                <Col md={6}><Form.Group><Form.Label>Email</Form.Label><Form.Control type="email" name="email" value={formData.email} onChange={handleChange} /></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label>Email</Form.Label><Form.Control type="email" name="email" value={formData.email} onChange={handleChange} placeholder="example@email.com or N/A" /></Form.Group></Col>
                 <Col md={6}>
                   <Form.Group>
                     <Form.Label>Phone Number</Form.Label>
@@ -622,19 +734,19 @@ const LoginSignup = () => {
                       name="phoneNumber" 
                       value={formData.phoneNumber} 
                       onChange={handleChange} 
-                      placeholder="09XXXXXXXXX" 
+                      placeholder="09XXXXXXXXX or N/A" 
                       pattern="^09\d{9}$" 
                       maxLength="11"
                       title="Must be a valid PH mobile number starting with 09 (11 digits total)"
                     />
                     <Form.Text className="text-muted">
-                      Format: 09XXXXXXXXX (11 digits total)
+                      Format: 09XXXXXXXXX (11 digits total) or type "N/A"
                     </Form.Text>
                   </Form.Group>
                 </Col>
               </Row>
               <Form.Text className="text-muted d-block mb-2">
-                Please provide either an email or a phone number.
+                Please provide either an email or a phone number. You may type "N/A" if not available.
               </Form.Text>
               <Row className="mb-3">
                 <Col md={6}>
@@ -797,6 +909,14 @@ const LoginSignup = () => {
           )}
         </Card>
       </div>
+
+      {/* Patient Welcome Modal */}
+      <PatientWelcomeModal
+        show={showWelcomeModal}
+        onHide={() => setShowWelcomeModal(false)}
+        patientData={welcomePatientData}
+        autoDismissTime={5000}
+      />
     </>
   );
 };

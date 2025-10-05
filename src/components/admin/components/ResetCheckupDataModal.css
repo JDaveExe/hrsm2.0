@@ -1,0 +1,150 @@
+/* Reset Checkup Data Modal - Specific CSS to avoid conflicts */
+
+.reset-checkup-data-modal .modal-dialog {
+  max-width: 600px;
+}
+
+.reset-checkup-modal-header {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border-bottom: 1px solid #f39c12;
+  color: #856404;
+}
+
+.reset-checkup-modal-header .modal-title {
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.reset-checkup-modal-body {
+  padding: 1.5rem;
+}
+
+.reset-checkup-warning-section {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.reset-checkup-warning-icon {
+  font-size: 3rem;
+  color: #f39c12;
+  margin-bottom: 1rem;
+}
+
+.reset-checkup-info-sections {
+  margin-bottom: 1rem;
+}
+
+.reset-checkup-info-sections .alert {
+  margin-bottom: 1rem;
+  border-radius: 8px;
+}
+
+.reset-checkup-info-sections .alert:last-child {
+  margin-bottom: 0;
+}
+
+.reset-checkup-info-sections .alert h6 {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.reset-checkup-info-sections .alert ul {
+  padding-left: 1.2rem;
+}
+
+.reset-checkup-info-sections .alert li {
+  margin-bottom: 0.25rem;
+}
+
+.reset-checkup-result-alert {
+  margin-top: 1rem;
+  border-radius: 8px;
+}
+
+.reset-checkup-summary-alert {
+  margin-top: 1rem;
+  border-radius: 8px;
+}
+
+.reset-checkup-summary-alert ul {
+  padding-left: 1.2rem;
+}
+
+.reset-checkup-summary-alert li {
+  margin-bottom: 0.25rem;
+}
+
+.reset-checkup-note {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border-left: 3px solid #6c757d;
+}
+
+.reset-checkup-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #dee2e6;
+  background-color: #f8f9fa;
+}
+
+.reset-checkup-cancel-btn {
+  min-width: 100px;
+}
+
+.reset-checkup-confirm-btn {
+  min-width: 140px;
+  background-color: #f39c12;
+  border-color: #f39c12;
+}
+
+.reset-checkup-confirm-btn:hover {
+  background-color: #e67e22;
+  border-color: #e67e22;
+}
+
+.reset-checkup-confirm-btn:disabled {
+  background-color: #f39c12;
+  border-color: #f39c12;
+  opacity: 0.7;
+}
+
+/* Loading state styles */
+.reset-checkup-data-modal .modal-content {
+  transition: opacity 0.2s ease;
+}
+
+.reset-checkup-data-modal.loading .modal-content {
+  opacity: 0.9;
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .reset-checkup-data-modal .modal-dialog {
+    max-width: 95%;
+    margin: 1rem;
+  }
+  
+  .reset-checkup-modal-body {
+    padding: 1rem;
+  }
+  
+  .reset-checkup-warning-icon {
+    font-size: 2.5rem;
+  }
+  
+  .reset-checkup-info-sections .alert {
+    font-size: 0.9rem;
+  }
+}
+
+/* Animation for success state */
+@keyframes reset-checkup-success-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.reset-checkup-result-alert.alert-success {
+  animation: reset-checkup-success-pulse 0.6s ease-in-out;
+}

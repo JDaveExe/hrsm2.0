@@ -7,6 +7,7 @@ import { useDashboardStats } from '../../../hooks/useDashboard';
 import { useSimulation } from '../../../hooks/useSimulation';
 import { useCommonAlerts } from './AlertUtils';
 import ForecastingDashboard from './ForecastingDashboard';
+import EnhancedForecastingDashboard from './EnhancedForecastingDashboard';
 import StatCards from './StatCards';
 import inventoryService from '../../../services/inventoryService';
 import '../styles/DashboardStats.css';
@@ -1120,7 +1121,7 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
             Forecasting
           </span>
         }>
-          <ForecastingDashboard />
+          <EnhancedForecastingDashboard />
         </Tab>
       </Tabs>
 

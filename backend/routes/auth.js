@@ -24,8 +24,43 @@ router.post(
     }),
     body('dateOfBirth', 'Date of birth is required').not().isEmpty(),
     body('gender', 'Gender is required').isIn(['Male', 'Female']),
-    body('email').optional({ checkFalsy: true }).isEmail().withMessage('Invalid email format'),
-    body('phoneNumber').optional({ checkFalsy: true }).isMobilePhone('en-PH').withMessage('Invalid phone number format'),
+    // Custom validator for email that allows N/A
+    body('email').custom((value) => {
+      // Allow empty, undefined, null, or N/A values
+      if (!value) {
+        return true;
+      }
+      
+      const trimmedValue = value.toString().trim().toLowerCase();
+      
+      if (trimmedValue === '' || trimmedValue === 'n/a' || trimmedValue === 'na') {
+        return true;
+      }
+      
+      // Check if it's a valid email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(value.trim())) {
+        throw new Error('Invalid email format');
+      }
+      return true;
+    }),
+    // Custom validator for phone number that allows N/A
+    body('phoneNumber').custom((value) => {
+      // Allow empty, undefined, null, or N/A values
+      if (!value) return true;
+      
+      const trimmedValue = value.toString().trim().toLowerCase();
+      if (trimmedValue === '' || trimmedValue === 'n/a' || trimmedValue === 'na') {
+        return true;
+      }
+      
+      // Check if it's a valid Philippine phone number format
+      const phoneRegex = /^(\+63|0)?9\d{9}$/;
+      if (!phoneRegex.test(value.replace(/\s+/g, ''))) {
+        throw new Error('Invalid phone number format');
+      }
+      return true;
+    }),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -55,20 +90,48 @@ router.post(
     } = req.body;
 
     try {
-      const username = email || phoneNumber;
+      // Clean and validate email and phone number
+      let cleanEmail = null;
+      let cleanPhoneNumber = null;
+      
+      // Process email - treat empty strings, "N/A", "n/a", etc. as null
+      if (email && typeof email === 'string') {
+        const trimmedEmail = email.trim().toLowerCase();
+        if (trimmedEmail && trimmedEmail !== 'n/a' && trimmedEmail !== 'na' && trimmedEmail !== '') {
+          cleanEmail = email.trim();
+        }
+      }
+      
+      // Process phone number - treat empty strings, "N/A", etc. as null
+      if (phoneNumber && typeof phoneNumber === 'string') {
+        const trimmedPhone = phoneNumber.trim().toLowerCase();
+        if (trimmedPhone && trimmedPhone !== 'n/a' && trimmedPhone !== 'na' && trimmedPhone !== '') {
+          cleanPhoneNumber = phoneNumber.trim();
+        }
+      }
+      
+      const username = cleanEmail || cleanPhoneNumber;
       if (!username) {
         return res.status(400).json({ msg: 'Either email or phone number is required' });
       }
 
-      // Check if user already exists
-      let user = await User.findOne({
-        where: {
-          [Op.or]: [
-            { email: email || null },
-            { contactNumber: phoneNumber || null }
-          ]
-        }
-      });
+      // Check if user already exists - only check for non-null values
+      const existenceConditions = [];
+      if (cleanEmail) {
+        existenceConditions.push({ email: cleanEmail });
+      }
+      if (cleanPhoneNumber) {
+        existenceConditions.push({ contactNumber: cleanPhoneNumber });
+      }
+      
+      let user = null;
+      if (existenceConditions.length > 0) {
+        user = await User.findOne({
+          where: {
+            [Op.or]: existenceConditions
+          }
+        });
+      }
 
       if (user) {
         return res.status(400).json({ msg: 'User already exists with this email or phone number' });
@@ -81,8 +144,8 @@ router.post(
       // Create new User
       user = await User.create({
         username: username,
-        email: email || null,
-        contactNumber: phoneNumber || null,
+        email: cleanEmail,
+        contactNumber: cleanPhoneNumber,
         password: hashedPassword,
         role: 'patient',
         firstName: firstName,
@@ -439,6 +502,43 @@ router.post(
     }
   }
 );
+
+// @route   POST api/auth/logout
+// @desc    Logout user and cleanup doctor session
+// @access  Public
+router.post('/logout', async (req, res) => {
+  try {
+    const { userId, role } = req.body;
+
+    // If user is a doctor, update their session status to offline
+    if (role === 'doctor' && userId) {
+      try {
+        await DoctorSession.update(
+          { 
+            status: 'offline',
+            logoutTime: new Date(),
+            currentPatientId: null
+          },
+          {
+            where: {
+              doctorId: userId,
+              status: ['online', 'busy']
+            }
+          }
+        );
+        console.log(`Doctor session ended for user ID: ${userId}`);
+      } catch (sessionError) {
+        console.error('Error ending doctor session:', sessionError);
+        // Don't fail the logout if session cleanup fails
+      }
+    }
+
+    res.json({ message: 'Logged out successfully' });
+  } catch (err) {
+    console.error('Logout error:', err.message);
+    res.status(500).json({ message: 'Server error during logout' });
+  }
+});
 
 module.exports = router;
 

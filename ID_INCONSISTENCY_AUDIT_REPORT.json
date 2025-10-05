@@ -1,0 +1,586 @@
+{
+  "timestamp": "2025-09-21T10:26:37.834Z",
+  "summary": {
+    "total": 70,
+    "critical": 1,
+    "high": 36,
+    "medium": 1,
+    "low": 32
+  },
+  "issues": [
+    {
+      "type": "frontend",
+      "file": "src\\components\\admin\\components\\UserManagement.js",
+      "line": 478,
+      "description": "user.id usage",
+      "code": "<tr key={",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\doctor\\components\\Checkups.js",
+      "line": 497,
+      "description": "user.id usage",
+      "code": "await doctorSessionService.updateDoctorStatus(",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\doctor\\components\\DoctorSettings.js",
+      "line": 114,
+      "description": "user.id usage",
+      "code": "await userService.updateUser(",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\LoginSignup.js",
+      "line": 402,
+      "description": "user.id usage",
+      "code": "userId: response.",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 72,
+      "description": "user.id usage",
+      "code": "(notif.patientId ==",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 73,
+      "description": "user.id usage",
+      "code": "notif.patientId ===",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 74,
+      "description": "user.id usage",
+      "code": "notif.patientId === parseInt(",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 113,
+      "description": "user.id usage",
+      "code": "(notif.patientId ==",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 114,
+      "description": "user.id usage",
+      "code": "notif.patientId ===",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 115,
+      "description": "user.id usage",
+      "code": "notif.patientId === parseInt(",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 158,
+      "description": "user.id usage",
+      "code": "patientId: user.patientId ||",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 407,
+      "description": "user.id usage",
+      "code": "apt => apt.patientId === (user.patientId ||",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 428,
+      "description": "user.id usage",
+      "code": "apt => apt.patientId === (user.patientId ||",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 72,
+      "description": "patientId assigned from user.id",
+      "code": "(notif.",
+      "severity": "high"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 73,
+      "description": "patientId assigned from user.id",
+      "code": "notif.",
+      "severity": "high"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 74,
+      "description": "patientId assigned from user.id",
+      "code": "notif.",
+      "severity": "high"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 113,
+      "description": "patientId assigned from user.id",
+      "code": "(notif.",
+      "severity": "high"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 114,
+      "description": "patientId assigned from user.id",
+      "code": "notif.",
+      "severity": "high"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 115,
+      "description": "patientId assigned from user.id",
+      "code": "notif.",
+      "severity": "high"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 158,
+      "description": "patientId assigned from user.id",
+      "code": "",
+      "severity": "high"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 407,
+      "description": "patientId assigned from user.id",
+      "code": "apt => apt.",
+      "severity": "high"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 428,
+      "description": "patientId assigned from user.id",
+      "code": "apt => apt.",
+      "severity": "high"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 63,
+      "description": "notification API calls",
+      "code": "const response = await fetch(`http://localhost:5000/api/",
+      "severity": "critical"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\VaccinationModal.js",
+      "line": 270,
+      "description": "user.id usage",
+      "code": "const selectedUser = usersByRole.find(user =>",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\VaccinationModal.js",
+      "line": 538,
+      "description": "user.id usage",
+      "code": "<option key={",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\components\\VaccinationModal.js",
+      "line": 538,
+      "description": "user.id usage",
+      "code": "<option key={user.id} value={",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\utils\\patientIdMapping.js",
+      "line": 67,
+      "description": "user.id usage",
+      "code": "return getUserPatientId(",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\utils\\patientIdMapping.js",
+      "line": 79,
+      "description": "user.id usage",
+      "code": "const patientId = getUserPatientId(",
+      "severity": "low"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\utils\\patientIdMapping.js",
+      "line": 84,
+      "description": "localStorage patientId access",
+      "code": "const storedUserId =",
+      "severity": "medium"
+    },
+    {
+      "type": "frontend",
+      "file": "src\\utils\\patientIdMapping.js",
+      "line": 79,
+      "description": "patientId assigned from user.id",
+      "code": "const",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\check-db-counts.js",
+      "line": 28,
+      "description": "userId in patient operations",
+      "code": "'SELECT id, firstName, lastName,",
+      "severity": "low"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\cleanup-test-data.js",
+      "line": 97,
+      "description": "userId in patient operations",
+      "code": "id: { [Op.notIn]: sequelize.literal('(SELECT DISTINCT",
+      "severity": "low"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\comprehensive-wipe.js",
+      "line": 18,
+      "description": "userId in patient operations",
+      "code": "'SELECT id, firstName, lastName,",
+      "severity": "low"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\comprehensive-wipe.js",
+      "line": 27,
+      "description": "userId in patient operations",
+      "code": "console.log(`  - ${patient.firstName} ${patient.lastName} (ID: ${patient.id}${patient.",
+      "severity": "low"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\comprehensive-wipe.js",
+      "line": 40,
+      "description": "userId in patient operations",
+      "code": "const",
+      "severity": "low"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\admin.js",
+      "line": 303,
+      "description": "req.user.id in patient context",
+      "code": "const currentUserId =",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\admin.js",
+      "line": 345,
+      "description": "req.user.id in patient context",
+      "code": "uploadedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 273,
+      "description": "req.user.id in patient context",
+      "code": "submittedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 386,
+      "description": "req.user.id in patient context",
+      "code": "approvedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 403,
+      "description": "req.user.id in patient context",
+      "code": "approvedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 414,
+      "description": "req.user.id in patient context",
+      "code": "console.log(`✅ Appointment request ${requestId} approved by admin ${",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 466,
+      "description": "req.user.id in patient context",
+      "code": "rejectedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 484,
+      "description": "req.user.id in patient context",
+      "code": "rejectedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 495,
+      "description": "req.user.id in patient context",
+      "code": "console.log(`❌ Appointment request ${requestId} rejected by admin ${",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 630,
+      "description": "req.user.id in patient context",
+      "code": "createdBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 688,
+      "description": "req.user.id in patient context",
+      "code": "const updateData = { ...req.body, updatedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 762,
+      "description": "req.user.id in patient context",
+      "code": "updatedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 862,
+      "description": "req.user.id in patient context",
+      "code": "updatedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 897,
+      "description": "req.user.id in patient context",
+      "code": "updatedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 944,
+      "description": "req.user.id in patient context",
+      "code": "updatedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 1010,
+      "description": "req.user.id in patient context",
+      "code": "updatedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 1084,
+      "description": "req.user.id in patient context",
+      "code": "updatedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 1245,
+      "description": "req.user.id in patient context",
+      "code": "updatedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\appointments.js",
+      "line": 1304,
+      "description": "req.user.id in patient context",
+      "code": "updatedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\backup.js",
+      "line": 75,
+      "description": "req.user.id in patient context",
+      "code": "createdBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\doctorQueue.js",
+      "line": 44,
+      "description": "req.user.id in patient context",
+      "code": "whereClause.assignedDoctor =",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\doctorQueue.js",
+      "line": 132,
+      "description": "req.user.id in patient context",
+      "code": "if (session.assignedDoctor !==",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\doctorQueue.js",
+      "line": 185,
+      "description": "req.user.id in patient context",
+      "code": "if (session.assignedDoctor !==",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\patients.js",
+      "line": 151,
+      "description": "userId in patient operations",
+      "code": "// Add",
+      "severity": "low"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\patients.js",
+      "line": 393,
+      "description": "userId in patient operations",
+      "code": "",
+      "severity": "low"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\vaccinations.js",
+      "line": 258,
+      "description": "req.user.id in patient context",
+      "code": "createdBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\vaccinations.js",
+      "line": 289,
+      "description": "req.user.id in patient context",
+      "code": "updatedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\routes\\vaccinations.js",
+      "line": 315,
+      "description": "req.user.id in patient context",
+      "code": "deletedBy:",
+      "severity": "high"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\safe-cleanup.js",
+      "line": 35,
+      "description": "userId in patient operations",
+      "code": "[Op.notIn]: sequelize.literal('(SELECT DISTINCT",
+      "severity": "low"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\safe-purge-patients.js",
+      "line": 18,
+      "description": "userId in patient operations",
+      "code": "'SELECT id, firstName, lastName,",
+      "severity": "low"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\safe-purge-patients.js",
+      "line": 34,
+      "description": "userId in patient operations",
+      "code": "const",
+      "severity": "low"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\wipe-all-patients.js",
+      "line": 26,
+      "description": "userId in patient operations",
+      "code": "console.log(`  - ${patient.firstName} ${patient.lastName} (ID: ${patient.id}${patient.",
+      "severity": "low"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\wipe-all-patients.js",
+      "line": 36,
+      "description": "userId in patient operations",
+      "code": "const",
+      "severity": "low"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\wipe-all-patients.js",
+      "line": 40,
+      "description": "userId in patient operations",
+      "code": "console.log(`\\n📋 Found ${",
+      "severity": "low"
+    },
+    {
+      "type": "backend",
+      "file": "backend\\wipe-all-patients.js",
+      "line": 50,
+      "description": "userId in patient operations",
+      "code": "console.log(`   ❌ ${",
+      "severity": "low"
+    }
+  ],
+  "fixes": [
+    {
+      "file": "src\\components\\patient\\components\\PatientAppointments.js",
+      "line": 63,
+      "issue": "notification API calls",
+      "solution": "Replace user.id with getPatientIdForAPI(user) from patientIdMapping.js"
+    },
+    {
+      "file": "src\\utils\\patientIdMapping.js",
+      "line": 84,
+      "issue": "localStorage patientId access",
+      "solution": "Use getPatientIdForAPI() instead of direct localStorage access"
+    }
+  ]
+}

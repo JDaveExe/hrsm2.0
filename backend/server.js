@@ -63,6 +63,8 @@ app.use('/api/inventory-analytics', require('./routes/inventoryAnalytics'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/checkups', require('./routes/checkups'));
 app.use('/api/medications', require('./routes/medications'));
+app.use('/api/medication-batches', require('./routes/medication-batches')); // Medication batch management
+app.use('/api/vaccine-batches', require('./routes/vaccine-batches')); // Vaccine batch management
 app.use('/api/vaccinations', require('./routes/vaccinations'));
 app.use('/api/doctor/queue', require('./routes/doctorQueue'));
 app.use('/api/doctor/sessions', require('./routes/doctorSessions'));
@@ -81,6 +83,7 @@ app.use('/api/doctor/checkups', (req, res, next) => {
   require('./routes/checkups')(req, res, next);
 });
 app.use('/api/forecast', require('./routes/forecast'));
+app.use('/api/forecast-enhanced', require('./routes/enhancedForecast'));
 app.use('/api/backup', require('./routes/backup'));
 
 // Serve static data files

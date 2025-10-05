@@ -395,8 +395,41 @@ const Inventory = ({ currentPath, currentDateTime, simulationMode, isDarkMode = 
         return;
       }
 
+      if (!stockData.batchNumber) {
+        alert('Please enter a batch number.');
+        return;
+      }
+
       if (type === 'vaccine') {
-        await inventoryService.addVaccineStock(itemId, stockData);
+        // Create new vaccine batch using the vaccine batch API (like prescriptions)
+        const batchData = {
+          batchNumber: stockData.batchNumber,
+          lotNumber: stockData.lotNumber || stockData.batchNumber,
+          dosesReceived: parseInt(stockData.amount),
+          expiryDate: stockData.expiryDate,
+          unitCost: selectedVaccine?.unitCost || 0,
+          manufacturer: selectedVaccine?.manufacturer || 'Unknown',
+          supplier: selectedVaccine?.manufacturer || 'Unknown'
+        };
+
+        const response = await fetch(`http://localhost:5000/api/vaccine-batches/${itemId}/batches`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(batchData)
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log('✅ New vaccine batch created:', result.batch.batchNumber);
+          alert(`✅ Successfully added ${stockData.amount} doses as batch ${stockData.batchNumber}`);
+        } else {
+          const error = await response.json();
+          console.error('❌ Failed to create vaccine batch:', error);
+          alert(`Failed to add vaccine stock: ${error.error || 'Unknown error'}`);
+          return;
+        }
         setShowAddStockVaccineModal(false);
       } else {
         await inventoryService.addMedicationStock(itemId, stockData);

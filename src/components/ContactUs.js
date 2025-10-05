@@ -3,12 +3,12 @@ import '../styles/ContactUs.css';
 
 const ContactPage = () => {
   return (
-    <div className="contact-page">
+    <div className="contact-us-page">
       {/* Header Section */}
-      <div className="contact-header">
-        <div className="container">
-          <h1 className="contact-title">Contact Our Healthcare Center</h1>
-          <p className="contact-subtitle">
+      <div className="contact-us-header">
+        <div className="contact-us-container">
+          <h1 className="contact-us-title">Contact Our Healthcare Center</h1>
+          <p className="contact-us-subtitle">
             We're here to help with your healthcare needs. Get in touch with us for appointments, 
             medical records, or any questions about our services.
           </p>
@@ -16,110 +16,46 @@ const ContactPage = () => {
       </div>
 
       {/* Main Content */}
-      <div className="contact-content">
-        <div className="container">
-          <div className="contact-grid">
-            {/* Contact Information */}
-            <div className="contact-info-section">
-              <div className="info-card">
-                <div className="card-header">
-                  <i className="bi bi-geo-alt-fill"></i>
-                  <h3>Visit Our Health Center</h3>
-                </div>
-                <div className="card-content">
-                  <p><strong>Barangay Health Center</strong></p>
-                  <p>123 Healthcare Street</p>
-                  <p>Barangay Community, City 12345</p>
-                  <p>Philippines</p>
-                </div>
+      <div className="contact-us-content">
+        <div className="contact-us-container">
+          <div className="contact-us-cards-grid">
+            <div className="contact-us-info-card">
+              <div className="contact-us-card-header">
+                <i className="bi bi-geo-alt-fill contact-us-icon"></i>
+                <h3>Visit Our Health Center</h3>
               </div>
-
-              <div className="info-card">
-                <div className="card-header">
-                  <i className="bi bi-telephone-fill"></i>
-                  <h3>Call Us</h3>
-                </div>
-                <div className="card-content">
-                  <p><strong>Main Line:</strong> <a href="tel:+639123456789">(0912) 345-6789</a></p>
-                  <p><strong>Emergency:</strong> <a href="tel:911">911</a></p>
-                  <p><strong>Appointment Line:</strong> <a href="tel:+639123456790">(0912) 345-6790</a></p>
-                </div>
-              </div>
-
-              <div className="info-card">
-                <div className="card-header">
-                  <i className="bi bi-envelope-fill"></i>
-                  <h3>Email Us</h3>
-                </div>
-                <div className="card-content">
-                  <p><strong>General Inquiries:</strong> <a href="mailto:info@barangayhealth.com">info@barangayhealth.com</a></p>
-                  <p><strong>Appointments:</strong> <a href="mailto:appointments@barangayhealth.com">appointments@barangayhealth.com</a></p>
-                  <p><strong>Medical Records:</strong> <a href="mailto:records@barangayhealth.com">records@barangayhealth.com</a></p>
-                </div>
-              </div>
-
-              <div className="info-card">
-                <div className="card-header">
-                  <i className="bi bi-clock-fill"></i>
-                  <h3>Operating Hours</h3>
-                </div>
-                <div className="card-content">
-                  <div className="schedule-item">
-                    <span>Monday - Friday:</span>
-                    <span>8:00 AM - 5:00 PM</span>
-                  </div>
-                  <div className="schedule-item">
-                    <span>Saturday:</span>
-                    <span>8:00 AM - 2:00 PM</span>
-                  </div>
-                  <div className="schedule-item">
-                    <span>Sunday:</span>
-                    <span>Emergency Only</span>
-                  </div>
-                  <div className="emergency-note">
-                    <i className="bi bi-exclamation-triangle-fill"></i>
-                    <span>Emergency services available 24/7</span>
-                  </div>
-                </div>
+              <div className="contact-us-card-content">
+                <p><strong>Barangay Health Center</strong></p>
+                <p>123 Healthcare Street</p>
+                <p>Barangay Community, City 12345</p>
+                <p>Philippines</p>
               </div>
             </div>
 
-            {/* Contact Form */}
-            <div className="contact-form-section">
-              <div className="form-card">
-                <h3>Send Us a Message</h3>
-                <p>Have questions or need assistance? Fill out the form below and we'll get back to you as soon as possible.</p>
-                <ContactForm />
+            <div className="contact-us-info-card">
+              <div className="contact-us-card-header">
+                <i className="bi bi-telephone-fill contact-us-icon"></i>
+                <h3>Call Us</h3>
+              </div>
+              <div className="contact-us-card-content">
+                <p><strong>Main Line:</strong> <a href="tel:+63026428645">+63 026428645</a></p>
+              </div>
+            </div>
+
+            <div className="contact-us-info-card">
+              <div className="contact-us-card-header">
+                <i className="bi bi-envelope-fill contact-us-icon"></i>
+                <h3>Email Us</h3>
+              </div>
+              <div className="contact-us-card-content">
+                <p><strong>General Inquiries:</strong> <a href="mailto:maybungafloodwayhc@gmail.com">maybungafloodwayhc@gmail.com</a></p>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Services Quick Links */}
-      <div className="quick-links-section">
-        <div className="container">
-          <h3>Quick Service Links</h3>
-          <div className="quick-links-grid">
-            <a href="/auth" className="quick-link-card">
-              <i className="bi bi-calendar-plus"></i>
-              <span>Book Appointment</span>
-            </a>
-            <a href="/services" className="quick-link-card">
-              <i className="bi bi-heart-pulse"></i>
-              <span>View Services</span>
-            </a>
-            <a href="#medical-records" className="quick-link-card">
-              <i className="bi bi-file-medical"></i>
-              <span>Medical Records</span>
-            </a>
-            <a href="#emergency" className="quick-link-card">
-              <i className="bi bi-exclamation-triangle"></i>
-              <span>Emergency Info</span>
-            </a>
-          </div>
-        </div>
-      </div>
+
     </div>
   );
 };
@@ -151,9 +87,9 @@ const ContactForm = () => {
   };
 
   return (
-    <form className="contact-form" onSubmit={handleSubmit}>
-      <div className="form-row">
-        <div className="form-group">
+    <form className="contact-us-form" onSubmit={handleSubmit}>
+      <div className="contact-us-form-row">
+        <div className="contact-us-form-group">
           <label htmlFor="firstName">First Name *</label>
           <input 
             type="text" 
@@ -165,7 +101,7 @@ const ContactForm = () => {
           />
         </div>
         
-        <div className="form-group">
+        <div className="contact-us-form-group">
           <label htmlFor="lastName">Last Name *</label>
           <input 
             type="text" 
@@ -178,8 +114,8 @@ const ContactForm = () => {
         </div>
       </div>
       
-      <div className="form-row">
-        <div className="form-group">
+      <div className="contact-us-form-row">
+        <div className="contact-us-form-group">
           <label htmlFor="email">Email Address *</label>
           <input 
             type="email" 
@@ -191,7 +127,7 @@ const ContactForm = () => {
           />
         </div>
         
-        <div className="form-group">
+        <div className="contact-us-form-group">
           <label htmlFor="phone">Phone Number</label>
           <input 
             type="tel" 
@@ -203,7 +139,7 @@ const ContactForm = () => {
         </div>
       </div>
 
-      <div className="form-group">
+      <div className="contact-us-form-group">
         <label htmlFor="serviceType">Type of Inquiry</label>
         <select 
           id="serviceType" 
@@ -221,7 +157,7 @@ const ContactForm = () => {
         </select>
       </div>
       
-      <div className="form-group">
+      <div className="contact-us-form-group">
         <label htmlFor="subject">Subject</label>
         <input 
           type="text" 
@@ -232,7 +168,7 @@ const ContactForm = () => {
         />
       </div>
       
-      <div className="form-group">
+      <div className="contact-us-form-group">
         <label htmlFor="message">Message *</label>
         <textarea
           id="message"
@@ -245,8 +181,8 @@ const ContactForm = () => {
         />
       </div>
       
-      <button type="submit" className="submit-button">
-        <i className="bi bi-send"></i>
+      <button type="submit" className="contact-us-submit-button">
+        <i className="bi bi-send contact-us-send-icon"></i>
         Send Message
       </button>
     </form>

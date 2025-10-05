@@ -716,17 +716,32 @@ class InventoryService {
   
   async addVaccineStock(vaccineId, stockData) {
     try {
-      // For now, we'll update the vaccine's stock by adding to the existing stock
-      const vaccine = await this.getVaccineById(vaccineId);
-      const updatedVaccine = {
-        ...vaccine,
-        dosesInStock: vaccine.dosesInStock + parseInt(stockData.amount),
-        batchNumber: stockData.batchNumber || vaccine.batchNumber,
-        expiryDate: stockData.expiryDate || vaccine.expiryDate
-      };
+      const response = await this.api.post('/update-stock', {
+        type: 'vaccine',
+        id: vaccineId,
+        quantity: parseInt(stockData.amount),
+        operation: 'add'
+      });
       
-      const response = await this.updateVaccine(vaccineId, updatedVaccine);
-      return response;
+      // If we have additional data like batch number and expiry date, update those separately
+      if (stockData.batchNumber || stockData.expiryDate || stockData.lotNumber) {
+        const vaccine = await this.getVaccineById(vaccineId);
+        const updateData = {};
+        
+        if (stockData.batchNumber) {
+          updateData.batchNumber = stockData.batchNumber;
+        }
+        if (stockData.expiryDate) {
+          updateData.expiryDate = stockData.expiryDate;
+        }
+        if (stockData.lotNumber) {
+          updateData.lotNumber = stockData.lotNumber;
+        }
+        
+        await this.updateVaccine(vaccineId, { ...vaccine, ...updateData });
+      }
+      
+      return response.data;
     } catch (error) {
       console.error('Error adding vaccine stock:', error);
       throw error;
@@ -735,17 +750,29 @@ class InventoryService {
 
   async addMedicationStock(medicationId, stockData) {
     try {
-      // For now, we'll update the medication's stock by adding to the existing stock
-      const medication = await this.getMedicationById(medicationId);
-      const updatedMedication = {
-        ...medication,
-        unitsInStock: medication.unitsInStock + parseInt(stockData.amount),
-        batchNumber: stockData.batchNumber || medication.batchNumber,
-        expiryDate: stockData.expiryDate || medication.expiryDate
-      };
+      const response = await this.api.post('/update-stock', {
+        type: 'medication',
+        id: medicationId,
+        quantity: parseInt(stockData.amount),
+        operation: 'add'
+      });
       
-      const response = await this.updateMedication(medicationId, updatedMedication);
-      return response;
+      // If we have additional data like batch number and expiry date, update those separately
+      if (stockData.batchNumber || stockData.expiryDate) {
+        const medication = await this.getMedicationById(medicationId);
+        const updateData = {};
+        
+        if (stockData.batchNumber) {
+          updateData.batchNumber = stockData.batchNumber;
+        }
+        if (stockData.expiryDate) {
+          updateData.expiryDate = stockData.expiryDate;
+        }
+        
+        await this.updateMedication(medicationId, { ...medication, ...updateData });
+      }
+      
+      return response.data;
     } catch (error) {
       console.error('Error adding medication stock:', error);
       throw error;

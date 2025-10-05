@@ -12,7 +12,8 @@ const AdminSidebar = memo(({
   handleSimulationToggle,
   sealmainImage,
   showFPSMonitor,
-  handleFPSToggle
+  handleFPSToggle,
+  handleResetCheckupData
 }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
   const [activeSubDropdown, setActiveSubDropdown] = useState(null);
@@ -41,6 +42,12 @@ const AdminSidebar = memo(({
   const handleNavigationClick = useCallback((path) => {
     handleNavigation(path);
   }, [handleNavigation]);
+
+  const handleResetCheckupDataClick = useCallback(() => {
+    if (handleResetCheckupData) {
+      handleResetCheckupData();
+    }
+  }, [handleResetCheckupData]);
 
   return (
     <div className={`sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
@@ -119,13 +126,7 @@ const AdminSidebar = memo(({
                       <span>Simulation Mode</span>
                     </Link>
                   </li>
-                  <li onClick={() => handleNavigationClick('Data Retention')}>
-                    <Link to="#">
-                      <i className="bi bi-archive"></i>
-                      <span>Data Retention</span>
-                    </Link>
-                  </li>
-                  <li onClick={() => handleNavigationClick('Reset Checkup Data')}>
+                  <li onClick={() => handleResetCheckupDataClick()}>
                     <Link to="#">
                       <i className="bi bi-arrow-clockwise"></i>
                       <span>Reset Checkup Data</span>

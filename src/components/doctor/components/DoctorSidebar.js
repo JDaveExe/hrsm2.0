@@ -112,14 +112,6 @@ const DoctorSidebar = memo(({
             </ul>
           </li>
           
-          {/* Appointments */}
-          <li className={currentPath === 'Appointments' ? 'active' : ''} onClick={() => handleNavigationClick('Appointments')}>
-            <Link to="#">
-              <i className="bi bi-calendar-check"></i>
-              <span>Appointments</span>
-            </Link>
-          </li>
-          
           {/* Settings */}
           <li className={currentPath === 'Settings' ? 'active' : ''} onClick={() => handleNavigationClick('Settings')}>
             <Link to="#">

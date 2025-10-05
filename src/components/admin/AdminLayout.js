@@ -12,6 +12,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import SimulationMode from './components/SimulationMode';
 import CheckupManager from './components/CheckupManager';
 import BackupManager from './components/BackupManager';
+import ResetCheckupDataModal from './components/ResetCheckupDataModal';
 import { PerformanceIndicator } from '../../hooks/usePerformanceMonitor';
 import './styles/AdminLayout.css';
 import './styles/AdminModals.css';
@@ -34,6 +35,7 @@ const AdminLayout = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showSimulationModal, setShowSimulationModal] = useState(false);
   const [showFPSMonitor, setShowFPSMonitor] = useState(false);
+  const [showResetCheckupModal, setShowResetCheckupModal] = useState(false);
   
   // Notification state
   const [pendingNotifications, setPendingNotifications] = useState([]);
@@ -215,6 +217,11 @@ const AdminLayout = () => {
     }
   }, [updateSimulationMode, disableSimulationMode, user]);
 
+  // Reset checkup data handler
+  const handleResetCheckupData = useCallback(() => {
+    setShowResetCheckupModal(true);
+  }, []);
+
   // Handle FPS monitor toggle
   const handleFPSToggle = useCallback(() => {
     setShowFPSMonitor(prev => !prev);
@@ -279,6 +286,7 @@ const AdminLayout = () => {
         handleLogout={handleLogout}
         simulationMode={simulationModeStatus}
         handleSimulationToggle={handleSimulationToggle}
+        handleResetCheckupData={handleResetCheckupData}
         sealmainImage={sealmainImage}
         showFPSMonitor={showFPSMonitor}
         handleFPSToggle={handleFPSToggle}
@@ -413,6 +421,12 @@ const AdminLayout = () => {
         simulationMode={simulationModeStatus}
         onSimulationToggle={handleSimulationToggle}
         onSimulationUpdate={handleSimulationUpdate}
+      />
+
+      {/* Reset Checkup Data Modal */}
+      <ResetCheckupDataModal
+        show={showResetCheckupModal}
+        onClose={() => setShowResetCheckupModal(false)}
       />
 
       {/* Notification Modal */}

@@ -33,6 +33,7 @@ const LoginSignup = lazy(() => import('./components/LoginSignup'));
 const Services = lazy(() => import('./components/Services'));
 const ContactUs = lazy(() => import('./components/ContactUs'));
 const Appointments = lazy(() => import('./components/Appointments'));
+const HealthStock = lazy(() => import('./components/HealthStock'));
 const DoctorLayout = lazy(() => import('./components/doctor/DoctorLayout'));
 const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
 const PatientLayout = lazy(() => import('./components/patient/PatientLayout'));
@@ -142,7 +143,7 @@ function App() {
                     <Route path="/" element={<Homepage />} />
                     <Route path="/auth" element={<LoginSignup />} />
                     <Route path="/login" element={<Navigate to="/auth" replace />} />
-                    <Route path="/appointments" element={<Appointments />} />
+                    <Route path="/health-stock" element={<HealthStock />} />
                     <Route path="/services" element={<Services />} />
                     <Route path="/contact" element={<ContactUs />} />
                     <Route 

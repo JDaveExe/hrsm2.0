@@ -470,42 +470,49 @@
 
 /* Modal improvements - Final Centering Fix */
 .patient-management .modal-dialog {
-  margin: 1.75rem auto;
+  margin: 1rem auto;
 }
 
 .patient-management .modal-dialog.modal-xl {
   max-width: 1200px;
   width: 90vw;
+  max-height: 90vh;
 }
 
 .patient-management .modal-content {
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
   border: none;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .patient-management .modal-header {
   background-color: #f8f9fa;
   border-bottom: 1px solid #dee2e6;
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1.25rem;
+  flex-shrink: 0;
 }
 
 .patient-management .modal-title {
   color: #495057;
   font-weight: 600;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
 }
 
 .patient-management .modal-body {
-  padding: 1.5rem;
-  max-height: 75vh;
+  padding: 1.25rem;
+  flex: 1;
   overflow-y: auto;
+  max-height: calc(90vh - 120px); /* Account for header and footer */
 }
 
 .patient-management .modal-footer {
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1.25rem;
   border-top: 1px solid #dee2e6;
   background-color: #f8f9fa;
+  flex-shrink: 0;
 }
 
 /* Button improvements */
@@ -564,6 +571,28 @@
   color: #495057;
   display: inline-block;
   min-width: 120px;
+}
+
+/* Patient Info Cards equal height styling */
+.patient-management .modal-body .row.g-3.mb-3 {
+  margin-bottom: 1rem !important;
+}
+
+.patient-management .modal-body .col-md-6 > div {
+  height: 240px !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.patient-management .modal-body .col-md-6 > div > div:first-child {
+  flex-shrink: 0 !important;
+}
+
+.patient-management .modal-body .col-md-6 > div > div:last-child {
+  flex: 1 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
 }
 
 /* Form layout improvements */

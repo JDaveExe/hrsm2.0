@@ -45,6 +45,7 @@ const TodaysCheckups = ({
   const getCheckInMethodIcon = (method) => {
     const methodConfig = {
       'qr-code': { icon: 'bi-qr-code', title: 'QR Code Check-in' },
+      'qr-scan': { icon: 'bi-qr-code-scan', title: 'QR Code Scan Check-in' },
       'staff-assisted': { icon: 'bi-person-check', title: 'Staff Assisted' },
       'online': { icon: 'bi-globe', title: 'Online Check-in' }
     };

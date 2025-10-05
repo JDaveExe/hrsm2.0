@@ -165,6 +165,24 @@ class AppointmentService {
     }
   }
 
+  // Cancel appointment (dedicated method for clarity)
+  async cancelAppointment(id) {
+    try {
+      const response = await fetch(`${this.baseURL}/${id}`, {
+        method: 'PUT',
+        headers: this.getAuthHeaders(),
+        body: JSON.stringify({ status: 'Cancelled' })
+      });
+
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+      throw error;
+    }
+  }
+
+
+
   // Delete appointment
   async deleteAppointment(id) {
     try {
@@ -307,90 +325,7 @@ class AppointmentService {
 
   // ==================== APPOINTMENT REQUESTS METHODS ====================
 
-  // Submit appointment request (Patient booking)
-  async submitAppointmentRequest(requestData) {
-    try {
-      const response = await fetch(`${this.baseURL}/requests`, {
-        method: 'POST',
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify(requestData)
-      });
 
-      return this.handleResponse(response);
-    } catch (error) {
-      console.error('Error submitting appointment request:', error);
-      throw error;
-    }
-  }
-
-  // Get all appointment requests (Admin view)
-  async getAppointmentRequests(filters = {}) {
-    try {
-      const queryParams = new URLSearchParams();
-      
-      Object.keys(filters).forEach(key => {
-        if (filters[key] !== undefined && filters[key] !== '') {
-          queryParams.append(key, filters[key]);
-        }
-      });
-
-      const response = await fetch(`${this.baseURL}/requests?${queryParams}`, {
-        method: 'GET',
-        headers: this.getAuthHeaders()
-      });
-
-      return this.handleResponse(response);
-    } catch (error) {
-      console.error('Error fetching appointment requests:', error);
-      throw error;
-    }
-  }
-
-  // Approve appointment request (Admin action)
-  async approveAppointmentRequest(requestId) {
-    try {
-      const response = await fetch(`${this.baseURL}/requests/${requestId}/approve`, {
-        method: 'POST',
-        headers: this.getAuthHeaders()
-      });
-
-      return this.handleResponse(response);
-    } catch (error) {
-      console.error('Error approving appointment request:', error);
-      throw error;
-    }
-  }
-
-  // Reject appointment request (Admin action)
-  async rejectAppointmentRequest(requestId, rejectionReason) {
-    try {
-      const response = await fetch(`${this.baseURL}/requests/${requestId}/reject`, {
-        method: 'POST',
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify({ reason: rejectionReason })
-      });
-
-      return this.handleResponse(response);
-    } catch (error) {
-      console.error('Error rejecting appointment request:', error);
-      throw error;
-    }
-  }
-
-  // Get appointment requests count for notifications
-  async getAppointmentRequestsCount() {
-    try {
-      const response = await fetch(`${this.baseURL}/requests/count`, {
-        method: 'GET',
-        headers: this.getAuthHeaders()
-      });
-
-      return this.handleResponse(response);
-    } catch (error) {
-      console.error('Error fetching appointment requests count:', error);
-      throw error;
-    }
-  }
 
   // Update overdue appointments status
   async updateOverdueStatus() {
@@ -422,36 +357,7 @@ class AppointmentService {
     }
   }
 
-  // Accept admin-scheduled appointment
-  async acceptAppointment(appointmentId) {
-    try {
-      const response = await fetch(`${this.baseURL}/${appointmentId}/accept`, {
-        method: 'PUT',
-        headers: this.getAuthHeaders()
-      });
 
-      return this.handleResponse(response);
-    } catch (error) {
-      console.error('Error accepting appointment:', error);
-      throw error;
-    }
-  }
-
-  // Reject admin-scheduled appointment
-  async rejectAppointment(appointmentId, reason) {
-    try {
-      const response = await fetch(`${this.baseURL}/${appointmentId}/reject`, {
-        method: 'PUT',
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify({ reason })
-      });
-
-      return this.handleResponse(response);
-    } catch (error) {
-      console.error('Error rejecting appointment:', error);
-      throw error;
-    }
-  }
 }
 
 export default new AppointmentService();

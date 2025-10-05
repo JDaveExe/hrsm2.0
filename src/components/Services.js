@@ -25,7 +25,7 @@ const Services = () => {
       description: "Immunization programs for children and adults"
     },
     "Emergency": { 
-      days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], 
+      days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday",], 
       hours: "24/7 Available",
       description: "Emergency medical services available round the clock"
     }

@@ -118,7 +118,12 @@
 }
 
 /* QR Code Sections */
-.qr-scanner-section,
+.qr-scanner-section {
+  padding: 1rem 0;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
 .qr-code-display {
   padding: 1rem 0;
 }
@@ -127,6 +132,21 @@
   border: 1px solid #eee;
   border-radius: 8px;
   overflow: hidden;
+  max-width: 300px;
+  margin: 0 auto;
+  background: #f8f9fa;
+}
+
+.qr-scanner-section h5 {
+  color: #495057;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.qr-scanner-section p {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
 }
 
 /* Password Strength Indicator */

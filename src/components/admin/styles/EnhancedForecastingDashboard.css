@@ -1,0 +1,616 @@
+/* Enhanced Forecasting Dashboard Styles */
+.enhanced-forecasting-dashboard {
+  background: var(--bg-primary, #ffffff);
+  color: var(--text-primary, #1e293b);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  padding: 0;
+}
+
+/* Header Styling */
+.dashboard-header {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.2);
+}
+
+.dashboard-header h4 {
+  color: white !important;
+  margin: 0;
+  font-weight: 600;
+}
+
+.dashboard-header p {
+  color: rgba(255, 255, 255, 0.9) !important;
+  margin: 0;
+}
+
+/* Metric Cards */
+.metric-card {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+}
+
+.metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+/* Small Metric Cards */
+.metric-card-small {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+}
+
+.metric-card-small:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.metric-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0, 123, 255, 0.1) 0%, rgba(0, 123, 255, 0.2) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.metric-icon i {
+  font-size: 1.8rem;
+}
+
+/* Small Metric Icons */
+.metric-icon-small {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(0, 123, 255, 0.1) 0%, rgba(0, 123, 255, 0.2) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.metric-icon-small i {
+  font-size: 1.2rem;
+}
+
+.metric-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  margin: 0.5rem 0;
+}
+
+.metric-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #6c757d;
+  margin: 0.25rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Small Metric Values and Labels */
+.metric-value-small {
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1;
+  margin: 0.25rem 0;
+}
+
+.metric-label-small {
+  font-size: 0.75rem;
+  font-weight: 600;
+  margin: 0.25rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Forecast Chart Card */
+.forecast-chart-card {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+}
+
+.forecast-chart-card .card-header {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  padding: 1.25rem 1.5rem;
+}
+
+.forecast-chart-card .card-header h6 {
+  color: white !important;
+  margin: 0;
+  font-weight: 600;
+}
+
+.forecast-chart-card .card-header small {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* Model Info Cards */
+.model-info-card {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border: 1px solid rgba(0, 123, 255, 0.1) !important;
+  transition: all 0.3s ease;
+}
+
+.model-info-card:hover {
+  border-color: rgba(0, 123, 255, 0.3) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 123, 255, 0.1);
+}
+
+/* Data Quality Items */
+.data-quality-item {
+  padding: 1rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 123, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.data-quality-item:hover {
+  border-color: rgba(0, 123, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Recommendation Items */
+.recommendation-item {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.recommendation-item:hover {
+  background: rgba(255, 255, 255, 1);
+  transform: translateX(4px);
+}
+
+.recommendation-item h6 {
+  margin: 0 0 0.5rem 0;
+  font-weight: 600;
+}
+
+/* Progress Bar Styling */
+.progress {
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+.progress-bar {
+  background: linear-gradient(90deg, #007bff 0%, #0056b3 100%);
+}
+
+/* Tabs Styling */
+.nav-tabs {
+  border-bottom: 2px solid rgba(0, 123, 255, 0.1);
+  margin-bottom: 1.5rem;
+}
+
+.nav-tabs .nav-link {
+  border: none;
+  color: #6c757d;
+  font-weight: 500;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.3s ease;
+}
+
+.nav-tabs .nav-link:hover {
+  color: #007bff;
+  background-color: rgba(0, 123, 255, 0.05);
+  border-color: transparent;
+}
+
+.nav-tabs .nav-link.active {
+  color: #007bff;
+  background: linear-gradient(135deg, rgba(0, 123, 255, 0.1) 0%, rgba(0, 123, 255, 0.05) 100%);
+  border-color: rgba(0, 123, 255, 0.2) rgba(0, 123, 255, 0.2) transparent;
+  font-weight: 600;
+}
+
+/* Button Styling */
+.btn-primary {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  border: none;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.btn-outline-primary {
+  color: #007bff;
+  border-color: #007bff;
+  background-color: transparent;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  border-color: #007bff;
+  transform: translateY(-1px);
+}
+
+/* Badge Styling */
+.badge {
+  font-weight: 500;
+  padding: 0.5em 0.75em;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.badge.bg-success {
+  background: linear-gradient(135deg, #28a745 0%, #20c997 100%) !important;
+}
+
+.badge.bg-info {
+  background: linear-gradient(135deg, #17a2b8 0%, #20c997 100%) !important;
+}
+
+.badge.bg-warning {
+  background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%) !important;
+  color: #000 !important;
+}
+
+.badge.bg-danger {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+}
+
+.badge.bg-primary {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+}
+
+/* Card Styling */
+.card {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+  background: var(--bg-secondary, #ffffff);
+}
+
+.card:hover {
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.card-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 1px solid rgba(0, 123, 255, 0.1);
+  border-radius: 16px 16px 0 0 !important;
+  padding: 1.25rem 1.5rem;
+}
+
+.card-header h6 {
+  color: #495057;
+  margin: 0;
+  font-weight: 600;
+}
+
+.card-header small {
+  color: #6c757d;
+}
+
+/* Alert Styling */
+.alert {
+  border: none;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  border-left: 4px solid;
+}
+
+.alert-danger {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
+  border-left-color: #dc3545;
+}
+
+.alert-warning {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.05) 100%);
+  border-left-color: #ffc107;
+}
+
+.alert-info {
+  background: linear-gradient(135deg, rgba(23, 162, 184, 0.1) 0%, rgba(23, 162, 184, 0.05) 100%);
+  border-left-color: #17a2b8;
+}
+
+/* Compact Alert for Forecast */
+.forecast-alert-compact {
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid #17a2b8;
+  background: linear-gradient(135deg, rgba(23, 162, 184, 0.08) 0%, rgba(23, 162, 184, 0.03) 100%);
+  margin-bottom: 0;
+  font-size: 0.9rem;
+}
+
+.forecast-alert-compact .d-flex {
+  align-items: flex-start;
+}
+
+.forecast-alert-compact i {
+  margin-top: 0.1rem;
+  flex-shrink: 0;
+}
+
+/* Weather Prescriptions Tab Styles */
+.weather-prescriptions-header-card {
+  background: linear-gradient(135deg, #e3f2fd 0%, #f0f8ff 100%);
+  border: 1px solid #b3d9ff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+}
+
+.weather-icon-large {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.weather-info-card {
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  min-height: 100%;
+}
+
+.weather-info-card .card-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.weather-info-item {
+  border-bottom: 1px solid #f8f9fa;
+  padding-bottom: 0.75rem;
+}
+
+.weather-info-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.weather-info-item strong {
+  font-size: 0.9rem;
+  color: #495057;
+}
+
+.weather-info-item .text-muted {
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.weather-info-item ul {
+  margin-left: 0.5rem;
+}
+
+.weather-info-item ul li {
+  margin-bottom: 0.25rem;
+  color: #6c757d;
+}
+
+/* Modal Styling */
+.modal-content {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 1px solid rgba(0, 123, 255, 0.1);
+  border-radius: 16px 16px 0 0;
+  padding: 1.25rem 1.5rem;
+}
+
+.modal-title {
+  color: #495057;
+  font-weight: 600;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-top: 1px solid rgba(0, 123, 255, 0.1);
+  border-radius: 0 0 16px 16px;
+  padding: 1rem 1.5rem;
+}
+
+/* Calculation Steps Styling */
+.calculation-steps {
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border: 1px solid rgba(0, 123, 255, 0.1);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.calculation-step {
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgba(0, 123, 255, 0.05);
+}
+
+.calculation-step:last-child {
+  border-bottom: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboard-header {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .dashboard-header h4 {
+    font-size: 1.25rem;
+  }
+  
+  .metric-value {
+    font-size: 2rem;
+  }
+  
+  .metric-icon {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .metric-icon i {
+    font-size: 1.5rem;
+  }
+  
+  .nav-tabs .nav-link {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+  }
+  
+  .card-header {
+    padding: 1rem;
+  }
+  
+  .recommendation-item,
+  .data-quality-item {
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .enhanced-forecasting-dashboard {
+    padding: 0 0.5rem;
+  }
+  
+  .dashboard-header {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    border-radius: 0;
+  }
+  
+  .metric-card {
+    margin-bottom: 1rem;
+  }
+  
+  .forecast-chart-card {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    border-radius: 0;
+  }
+}
+
+/* Animation Classes */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* Loading State */
+.loading-spinner {
+  color: #007bff;
+}
+
+/* Chart Container */
+.chart-container {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+/* Metric Grid */
+.metric-grid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.metric-item {
+  display: flex;
+  justify-content: between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(0, 123, 255, 0.05);
+}
+
+.metric-item:last-child {
+  border-bottom: none;
+}
+
+/* Text Utilities */
+.text-primary {
+  color: #007bff !important;
+}
+
+.text-success {
+  color: #28a745 !important;
+}
+
+.text-info {
+  color: #17a2b8 !important;
+}
+
+.text-warning {
+  color: #c82333 !important;
+}
+
+.text-danger {
+  color: #dc3545 !important;
+}
+
+/* Focus States */
+.btn:focus,
+.btn-check:focus + .btn {
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Button Group Styling */
+.btn-group .btn {
+  border-radius: 6px;
+  margin-right: 2px;
+}
+
+.btn-group .btn:first-child {
+  border-radius: 6px 0 0 6px;
+  margin-right: 0;
+}
+
+.btn-group .btn:last-child {
+  border-radius: 0 6px 6px 0;
+  margin-right: 0;
+}
+
+.btn-group .btn:not(:first-child):not(:last-child) {
+  border-radius: 0;
+  margin-right: 0;
+}

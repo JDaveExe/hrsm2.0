@@ -1,0 +1,126 @@
+/* SystemSettings.css */
+
+.system-settings {
+  padding: 20px;
+  min-height: 100vh;
+  background: #f8f9fa;
+}
+
+.settings-section {
+  margin-bottom: 2rem;
+}
+
+.settings-section-title {
+  color: #495057;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 0.5rem;
+}
+
+.settings-section-content {
+  padding-left: 0.5rem;
+}
+
+.system-settings .card {
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  border: 1px solid #dee2e6;
+}
+
+.system-settings .card-header {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border-bottom: none;
+}
+
+.system-settings .card-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.system-settings .border-warning {
+  border-color: #ffc107 !important;
+}
+
+.system-settings .border-warning .card-body {
+  background: rgba(255, 193, 7, 0.05);
+}
+
+.system-settings .btn-warning {
+  background: #ffc107;
+  border-color: #ffc107;
+  color: #212529;
+  font-weight: 500;
+}
+
+.system-settings .btn-warning:hover {
+  background: #ffb300;
+  border-color: #ffb300;
+  color: #212529;
+}
+
+.system-settings .btn-warning:disabled {
+  opacity: 0.6;
+}
+
+.system-settings .alert {
+  border-radius: 8px;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.system-settings .alert-danger {
+  background: rgba(220, 53, 69, 0.1);
+  color: #721c24;
+}
+
+.system-settings .alert-success {
+  background: rgba(25, 135, 84, 0.1);
+  color: #0f5132;
+}
+
+.system-settings .alert-info {
+  background: rgba(13, 202, 240, 0.1);
+  color: #055160;
+}
+
+.system-settings .alert-warning {
+  background: rgba(255, 193, 7, 0.1);
+  color: #664d03;
+}
+
+.system-settings .modal-header.bg-warning {
+  background: #ffc107 !important;
+  border-bottom: 1px solid #ffb300;
+}
+
+.system-settings .text-success i {
+  color: #28a745 !important;
+}
+
+.system-settings .text-muted {
+  font-size: 0.875rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .system-settings {
+    padding: 15px;
+  }
+  
+  .system-settings .d-flex {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+  
+  .system-settings .ms-3 {
+    margin-left: 0 !important;
+    margin-top: 15px !important;
+  }
+  
+  .settings-section-title {
+    font-size: 1rem;
+  }
+}

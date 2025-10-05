@@ -3,10 +3,254 @@ import { Accordion } from 'react-bootstrap';
 import { useData } from '../../../context/DataContext';
 import { doctorSessionService } from '../../../services/doctorSessionService';
 import LoadingSpinnerDoc from './LoadingSpinnerDoc';
+import VitalSignsModal from '../../VitalSignsModal';
 import '../styles/Checkups.css';
+import '../styles/DiagnosisSelector.css';
 
 // Medication Item Component
 import MedicationItem from './MedicationItem';
+
+// Philippines Healthcare Common Diseases Data
+const COMMON_DISEASES = [
+  // Infectious Diseases
+  { category: 'Infectious Diseases', name: 'Upper Respiratory Tract Infection (URTI)', icd10: 'J06.9' },
+  { category: 'Infectious Diseases', name: 'Pneumonia', icd10: 'J18.9' },
+  { category: 'Infectious Diseases', name: 'Acute Diarrhea/Gastroenteritis', icd10: 'K59.1' },
+  { category: 'Infectious Diseases', name: 'Skin Infection (Impetigo)', icd10: 'L01.0' },
+  { category: 'Infectious Diseases', name: 'Urinary Tract Infection (UTI)', icd10: 'N39.0' },
+  { category: 'Infectious Diseases', name: 'Dengue Fever', icd10: 'A90' },
+  { category: 'Infectious Diseases', name: 'Typhoid Fever', icd10: 'A01.0' },
+  
+  // Non-Communicable Diseases
+  { category: 'Cardiovascular', name: 'Hypertension', icd10: 'I10' },
+  { category: 'Endocrine', name: 'Diabetes Mellitus Type 2', icd10: 'E11.9' },
+  { category: 'Respiratory', name: 'Bronchial Asthma', icd10: 'J45.9' },
+  { category: 'Gastrointestinal', name: 'Gastritis', icd10: 'K29.7' },
+  { category: 'Gastrointestinal', name: 'GERD', icd10: 'K21.9' },
+  { category: 'Neurological', name: 'Headache/Migraine', icd10: 'G43.9' },
+  { category: 'Musculoskeletal', name: 'Arthritis/Joint Pain', icd10: 'M79.3' },
+  
+  // Common Symptoms
+  { category: 'Symptoms', name: 'Fever (unspecified)', icd10: 'R50.9' },
+  { category: 'Symptoms', name: 'Cough and Colds', icd10: 'R05' },
+  { category: 'Symptoms', name: 'Abdominal Pain', icd10: 'R10.4' },
+  { category: 'Symptoms', name: 'Back Pain', icd10: 'M54.9' },
+  { category: 'Symptoms', name: 'Allergic Reaction', icd10: 'T78.4' },
+  
+  // Maternal & Child Health
+  { category: 'Maternal Health', name: 'Prenatal Checkup (Normal Pregnancy)', icd10: 'Z34.9' },
+  { category: 'Child Health', name: 'Routine Immunization', icd10: 'Z23' },
+  { category: 'Child Health', name: 'Malnutrition', icd10: 'E46' },
+  { category: 'Child Health', name: 'Common Cold in Children', icd10: 'J00' }
+];
+
+// Diagnosis Selector Component
+const DiagnosisSelector = ({ checkupId, selectedDiagnosis, customDiagnosis, severity, onChange }) => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
+  const [localCustomDiagnosis, setLocalCustomDiagnosis] = useState(customDiagnosis || '');
+  const [localSeverity, setLocalSeverity] = useState(severity || 'mild');
+  
+  const dropdownRef = useRef(null);
+  
+  // Filter diseases based on search term
+  const filteredDiseases = COMMON_DISEASES.filter(disease =>
+    disease.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    disease.category.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  
+  // Group diseases by category for better organization
+  const groupedDiseases = filteredDiseases.reduce((acc, disease) => {
+    if (!acc[disease.category]) {
+      acc[disease.category] = [];
+    }
+    acc[disease.category].push(disease);
+    return acc;
+  }, {});
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  const handleDiseaseSelect = (disease) => {
+    setShowCustomInput(false);
+    setIsDropdownOpen(false);
+    setSearchTerm('');
+    
+    onChange({
+      primaryDiagnosis: disease.name,
+      customDiagnosis: '',
+      severity: localSeverity,
+      icd10: disease.icd10
+    });
+  };
+  
+  const handleCustomSubmit = () => {
+    if (localCustomDiagnosis.trim()) {
+      setShowCustomInput(false);
+      setIsDropdownOpen(false);
+      
+      onChange({
+        primaryDiagnosis: '',
+        customDiagnosis: localCustomDiagnosis.trim(),
+        severity: localSeverity,
+        icd10: ''
+      });
+    }
+  };
+  
+  const handleSeverityChange = (newSeverity) => {
+    setLocalSeverity(newSeverity);
+    
+    onChange({
+      primaryDiagnosis: selectedDiagnosis,
+      customDiagnosis: localCustomDiagnosis,
+      severity: newSeverity,
+      icd10: ''
+    });
+  };
+  
+  const currentDiagnosis = selectedDiagnosis || customDiagnosis || '';
+  
+  return (
+    <div className="diagnosis-selector-container" ref={dropdownRef}>
+      {/* Main Diagnosis Input */}
+      <div 
+        className={`diagnosis-input-wrapper ${isDropdownOpen ? 'diagnosis-input-focused' : ''}`}
+        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+      >
+        <input
+          type="text"
+          className="diagnosis-input"
+          placeholder="Select or search for diagnosis..."
+          value={currentDiagnosis}
+          readOnly
+        />
+        <i className={`bi ${isDropdownOpen ? 'bi-chevron-up' : 'bi-chevron-down'} diagnosis-chevron`}></i>
+      </div>
+      
+      {/* Dropdown */}
+      {isDropdownOpen && (
+        <div className="diagnosis-dropdown">
+          {/* Search Bar */}
+          <div className="diagnosis-search-wrapper">
+            <input
+              type="text"
+              className="diagnosis-search"
+              placeholder="Search diseases..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              autoFocus
+            />
+            <i className="bi bi-search diagnosis-search-icon"></i>
+          </div>
+          
+          {/* Custom Diagnosis Option */}
+          <div className="diagnosis-dropdown-section">
+            <button
+              className="diagnosis-custom-btn"
+              onClick={() => {
+                setShowCustomInput(true);
+                setSearchTerm('');
+              }}
+            >
+              <i className="bi bi-plus-circle"></i>
+              Add Custom Diagnosis
+            </button>
+          </div>
+          
+          {/* Custom Input Form */}
+          {showCustomInput && (
+            <div className="diagnosis-custom-form">
+              <input
+                type="text"
+                className="diagnosis-custom-input"
+                placeholder="Enter custom diagnosis..."
+                value={localCustomDiagnosis}
+                onChange={(e) => setLocalCustomDiagnosis(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleCustomSubmit()}
+                autoFocus
+              />
+              <div className="diagnosis-custom-actions">
+                <button className="diagnosis-custom-save" onClick={handleCustomSubmit}>
+                  <i className="bi bi-check"></i>
+                </button>
+                <button 
+                  className="diagnosis-custom-cancel" 
+                  onClick={() => {
+                    setShowCustomInput(false);
+                    setLocalCustomDiagnosis('');
+                  }}
+                >
+                  <i className="bi bi-x"></i>
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {/* Disease Categories */}
+          {!showCustomInput && (
+            <div className="diagnosis-dropdown-content">
+              {Object.keys(groupedDiseases).length === 0 ? (
+                <div className="diagnosis-no-results">
+                  <i className="bi bi-search"></i>
+                  No diseases found matching "{searchTerm}"
+                </div>
+              ) : (
+                Object.entries(groupedDiseases).map(([category, diseases]) => (
+                  <div key={category} className="diagnosis-category">
+                    <div className="diagnosis-category-header">{category}</div>
+                    {diseases.map((disease) => (
+                      <button
+                        key={disease.name}
+                        className="diagnosis-option"
+                        onClick={() => handleDiseaseSelect(disease)}
+                      >
+                        <div className="diagnosis-option-content">
+                          <span className="diagnosis-name">{disease.name}</span>
+                          <span className="diagnosis-icd">{disease.icd10}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
+      
+      {/* Severity Selector */}
+      {currentDiagnosis && (
+        <div className="diagnosis-severity-wrapper">
+          <label className="diagnosis-severity-label">Severity:</label>
+          <div className="diagnosis-severity-options">
+            {['mild', 'moderate', 'severe'].map((level) => (
+              <button
+                key={level}
+                className={`diagnosis-severity-btn ${localSeverity === level ? 'active' : ''}`}
+                onClick={() => handleSeverityChange(level)}
+              >
+                {level.charAt(0).toUpperCase() + level.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // Secure Caching Utility
 const SecureCache = {
@@ -154,6 +398,10 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
   // Doctor notes modal state
   const [showDoctorNotesModal, setShowDoctorNotesModal] = useState(false);
   const [selectedCheckupNotes, setSelectedCheckupNotes] = useState(null);
+  
+  // Vital signs modal state
+  const [showVitalSignsModal, setShowVitalSignsModal] = useState(false);
+  const [selectedVitalSignsCheckup, setSelectedVitalSignsCheckup] = useState(null);
 
   // Reset accordion state when changing tabs
   useEffect(() => {
@@ -419,6 +667,7 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
       if (document.visibilityState === 'visible' && 
           !showMedicationModal && 
           !showDoctorNotesModal &&
+          !showVitalSignsModal &&
           !updateTimeoutRef.current) { // Only skip if user is actively typing (has pending update)
         console.log('Auto-refreshing checkups data (no active editing detected)');
         refreshDoctorCheckups();
@@ -431,7 +680,7 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
     }, 30000);
 
     return () => clearInterval(refreshInterval);
-  }, [refreshDoctorCheckups, showMedicationModal, showDoctorNotesModal]);
+  }, [refreshDoctorCheckups, showMedicationModal, showDoctorNotesModal, showVitalSignsModal]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -698,12 +947,36 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
   const handleViewVitalSigns = (checkup) => {
     // This will open the vital signs modal
     console.log('Viewing vital signs for:', checkup.patientName);
-    // TODO: Implement vital signs modal
+    setSelectedVitalSignsCheckup(checkup);
+    setShowVitalSignsModal(true);
   };
 
   const handleViewDoctorNotes = (checkup) => {
     setSelectedCheckupNotes(checkup);
     setShowDoctorNotesModal(true);
+  };
+
+  const handleDiagnosisChange = (checkupId, diagnosisData) => {
+    console.log('Updating diagnosis for checkup:', checkupId, diagnosisData);
+    
+    // Determine the main diagnosis from either primary or custom diagnosis
+    const mainDiagnosis = diagnosisData.primaryDiagnosis || diagnosisData.customDiagnosis || '';
+    
+    // Update the checkup data immediately for UI responsiveness
+    const checkupData = {
+      primaryDiagnosis: diagnosisData.primaryDiagnosis,
+      customDiagnosis: diagnosisData.customDiagnosis,
+      severity: diagnosisData.severity,
+      // Set the main diagnosis field that will be saved to database and used by analytics
+      diagnosis: mainDiagnosis
+    };
+    
+    console.log('🏥 Setting main diagnosis field to:', mainDiagnosis);
+    
+    // Update via the existing notes change handler
+    Object.keys(checkupData).forEach(key => {
+      handleNotesChange(checkupId, key, checkupData[key]);
+    });
   };
 
   const handleRevealFinished = (checkupId) => {
@@ -947,13 +1220,24 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
                         </h6>
                         
                         <div className="notes-section highlighted">
-                          <label className="form-label">Diagnosis Notes</label>
+                          <label className="form-label">Primary Diagnosis</label>
+                          <DiagnosisSelector
+                            checkupId={checkup.id}
+                            selectedDiagnosis={checkup.primaryDiagnosis || ''}
+                            customDiagnosis={checkup.customDiagnosis || ''}
+                            severity={checkup.severity || 'mild'}
+                            onChange={(diagnosisData) => handleDiagnosisChange(checkup.id, diagnosisData)}
+                          />
+                        </div>
+                        
+                        <div className="notes-section highlighted">
+                          <label className="form-label">Clinical Notes</label>
                           <textarea
                             className="notes-textarea small"
-                            placeholder="Primary and secondary diagnoses..."
+                            placeholder="Additional diagnosis details, observations, differential diagnosis..."
                             value={checkup.diagnosis || ''}
                             onChange={(e) => handleNotesChange(checkup.id, 'diagnosis', e.target.value)}
-                            rows="3"
+                            rows="2"
                           />
                         </div>
                         
@@ -1689,6 +1973,31 @@ const Checkups = ({ currentDateTime, user, secureApiCall }) => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Vital Signs Modal */}
+      {showVitalSignsModal && selectedVitalSignsCheckup && (
+        <VitalSignsModal
+          show={showVitalSignsModal}
+          onHide={() => {
+            setShowVitalSignsModal(false);
+            setSelectedVitalSignsCheckup(null);
+          }}
+          patient={{
+            id: selectedVitalSignsCheckup.patientId,
+            patientName: selectedVitalSignsCheckup.patientName,
+            firstName: selectedVitalSignsCheckup.patientName?.split(' ')[0] || '',
+            lastName: selectedVitalSignsCheckup.patientName?.split(' ').slice(1).join(' ') || ''
+          }}
+          isReadOnly={true}
+          initialData={selectedVitalSignsCheckup.vitalSigns || {}}
+          onViewHistory={() => {
+            console.log('View vital signs history for patient:', selectedVitalSignsCheckup.patientId);
+          }}
+          onEdit={() => {
+            console.log('Edit vital signs for patient:', selectedVitalSignsCheckup.patientId);
+          }}
+        />
       )}
     </div>
   );

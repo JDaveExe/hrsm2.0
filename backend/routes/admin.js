@@ -6,7 +6,13 @@ const Family = require('../models/Family');
 const User = require('../models/User');
 const { authenticateToken: auth } = require('../middleware/auth');
 
+// Import vaccine batch migration routes
+const vaccineBatchMigrationRoutes = require('./admin/vaccine-batch-migration');
+
 const router = express.Router();
+
+// Add vaccine batch migration routes
+router.use('/', vaccineBatchMigrationRoutes);
 
 // Middleware to check for admin privileges
 const adminOnly = (req, res, next) => {
@@ -347,6 +353,68 @@ router.post('/lab-referrals/:id/upload-results', [auth, adminOnly], async (req, 
     });
   } catch (err) {
     console.error('Error uploading lab results:', err.message);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
+// @route   POST api/admin/reset-checkup-data
+// @desc    Reset all checkup data to empty state (similar to today's checkup removal but for all data)
+// @access  Private/Admin
+router.post('/reset-checkup-data', [auth, adminOnly], async (req, res) => {
+  try {
+    const { sequelize } = require('../config/database');
+    
+    console.log('🧹 Starting comprehensive checkup data reset...');
+    
+    // Delete all checkup sessions with 'transferred', 'started', 'in-progress', 'completed' status
+    const [deleteResult] = await sequelize.query(`
+      DELETE FROM check_in_sessions 
+      WHERE status IN ('transferred', 'started', 'in-progress', 'completed')
+    `);
+    
+    const deletedSessions = deleteResult.affectedRows || 0;
+    console.log(`✅ Deleted ${deletedSessions} checkup sessions`);
+    
+    // Reset any 'doctor-notified' sessions back to 'checked-in' status
+    const [resetResult] = await sequelize.query(`
+      UPDATE check_in_sessions 
+      SET status = 'checked-in', 
+          doctorNotified = FALSE, 
+          notifiedAt = NULL,
+          assignedDoctor = NULL,
+          startedAt = NULL,
+          notes = NULL,
+          doctorNotes = NULL,
+          diagnosis = NULL,
+          prescription = NULL
+      WHERE status = 'doctor-notified'
+    `);
+    
+    const resetSessions = resetResult.affectedRows || 0;
+    console.log(`✅ Reset ${resetSessions} doctor-notified sessions back to checked-in`);
+    
+    // Get remaining sessions count
+    const [remainingSessionsResult] = await sequelize.query(`
+      SELECT COUNT(*) as count FROM check_in_sessions WHERE status IN ('checked-in', 'waiting')
+    `);
+    
+    const remainingSessions = remainingSessionsResult[0]?.count || 0;
+    console.log(`📊 Remaining sessions: ${remainingSessions}`);
+    
+    // Store reset timestamp
+    const resetTimestamp = new Date().toISOString();
+    
+    res.json({
+      message: 'Checkup data reset successfully',
+      resetTimestamp,
+      deletedSessions,
+      resetSessions,
+      remainingSessions,
+      resetBy: req.user.id
+    });
+    
+  } catch (err) {
+    console.error('Error resetting checkup data:', err.message);
     res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });

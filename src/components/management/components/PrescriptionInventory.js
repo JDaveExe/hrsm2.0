@@ -20,6 +20,17 @@ const PrescriptionInventory = ({ currentDateTime, isDarkMode }) => {
   const [selectedMedication, setSelectedMedication] = useState(null);
   const [stockToAdd, setStockToAdd] = useState({ amount: '', expiryDate: '', batchNumber: '' });
   
+  // Batch management states
+  const [medicationBatches, setMedicationBatches] = useState([]);
+  const [loadingBatches, setLoadingBatches] = useState(false);
+  const [showBatchDetails, setShowBatchDetails] = useState(false);
+  
+  // Batch disposal states
+  const [showDisposalModal, setShowDisposalModal] = useState(false);
+  const [batchToDispose, setBatchToDispose] = useState(null);
+  const [disposalCountdown, setDisposalCountdown] = useState(5);
+  const [isDisposalActive, setIsDisposalActive] = useState(false);
+  
   // Remove mode states
   const [removeMode, setRemoveMode] = useState(false);
   const [selectedMedicationsForRemoval, setSelectedMedicationsForRemoval] = useState(new Set());
@@ -99,8 +110,14 @@ const PrescriptionInventory = ({ currentDateTime, isDarkMode }) => {
           aValue = aValue?.toLowerCase() || '';
           bValue = bValue?.toLowerCase() || '';
         } else if (sortConfig.key === 'quantityInStock' || sortConfig.key === 'unitCost') {
-          aValue = parseFloat(aValue) || 0;
-          bValue = parseFloat(bValue) || 0;
+          // Handle stock field - use unitsInStock or quantityInStock as fallback
+          if (sortConfig.key === 'quantityInStock') {
+            aValue = parseFloat(a.unitsInStock || a.quantityInStock) || 0;
+            bValue = parseFloat(b.unitsInStock || b.quantityInStock) || 0;
+          } else {
+            aValue = parseFloat(aValue) || 0;
+            bValue = parseFloat(bValue) || 0;
+          }
         } else if (sortConfig.key === 'expiryDate') {
           aValue = new Date(aValue);
           bValue = new Date(bValue);
@@ -159,18 +176,128 @@ const PrescriptionInventory = ({ currentDateTime, isDarkMode }) => {
 
   const handleAddStock = async () => {
     try {
-      await inventoryService.addMedicationStock(selectedMedication.id, stockToAdd);
-      setShowAddStockModal(false);
-      setStockToAdd({ amount: '', expiryDate: '', batchNumber: '' });
-      loadMedicationData();
+      // Validate required fields
+      if (!stockToAdd.amount || !stockToAdd.expiryDate || !stockToAdd.batchNumber) {
+        alert('Please fill in all required fields: Amount, Expiry Date, and Batch Number');
+        return;
+      }
+
+      // Create new batch using the new batch API
+      const batchData = {
+        batchNumber: stockToAdd.batchNumber,
+        quantityReceived: parseInt(stockToAdd.amount),
+        expiryDate: stockToAdd.expiryDate,
+        unitCost: selectedMedication.unitCost || 0,
+        supplier: selectedMedication.manufacturer || 'Unknown'
+      };
+
+      const response = await fetch(`http://localhost:5000/api/medication-batches/${selectedMedication.id}/batches`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(batchData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ New batch created:', result.batch.batchNumber);
+        
+        setShowAddStockModal(false);
+        setStockToAdd({ amount: '', expiryDate: '', batchNumber: '' });
+        loadMedicationData(); // Refresh the medication list
+        
+        // Show success message
+        alert(`✅ Successfully added ${stockToAdd.amount} units as batch ${stockToAdd.batchNumber}`);
+      } else {
+        const error = await response.json();
+        console.error('❌ Failed to create batch:', error);
+        alert(`Failed to add stock: ${error.error || 'Unknown error'}`);
+      }
     } catch (error) {
       console.error('Error adding stock:', error);
+      alert(`Error adding stock: ${error.message}`);
     }
   };
 
-  const handleViewMedication = (medication) => {
+  // Batch disposal functions
+  const handleExpiredBatchClick = (batch) => {
+    setBatchToDispose(batch);
+    setShowDisposalModal(true);
+    setDisposalCountdown(5);
+    setIsDisposalActive(false);
+  };
+
+  const startDisposalCountdown = () => {
+    setIsDisposalActive(true);
+    const interval = setInterval(() => {
+      setDisposalCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          confirmBatchDisposal();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const confirmBatchDisposal = async () => {
+    try {
+      // Call API to dispose of the batch
+      const response = await fetch(`/api/medication-batches/${batchToDispose.id}/dispose`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setShowDisposalModal(false);
+        setIsDisposalActive(false);
+        setBatchToDispose(null);
+        // Refresh the medication details
+        if (selectedMedication) {
+          handleViewMedication(selectedMedication);
+        }
+        loadMedicationData();
+      } else {
+        throw new Error('Failed to dispose batch');
+      }
+    } catch (error) {
+      console.error('Error disposing batch:', error);
+      alert('Failed to dispose batch. Please try again.');
+    }
+  };
+
+  const cancelDisposal = () => {
+    setShowDisposalModal(false);
+    setIsDisposalActive(false);
+    setBatchToDispose(null);
+    setDisposalCountdown(5);
+  };
+
+  const handleViewMedication = async (medication) => {
     setSelectedMedication(medication);
     setShowViewModal(true);
+    
+    // Fetch batch information for this medication
+    setLoadingBatches(true);
+    try {
+      const response = await fetch(`http://localhost:5000/api/medication-batches/${medication.id}/batches`);
+      if (response.ok) {
+        const batches = await response.json();
+        setMedicationBatches(batches);
+      } else {
+        console.warn('Failed to fetch batches:', response.statusText);
+        setMedicationBatches([]);
+      }
+    } catch (error) {
+      console.error('Error fetching batches:', error);
+      setMedicationBatches([]);
+    } finally {
+      setLoadingBatches(false);
+    }
   };
 
   // Remove mode functions
@@ -244,10 +371,10 @@ const PrescriptionInventory = ({ currentDateTime, isDarkMode }) => {
                   Total: {sortedAndFilteredMedications.length}
                 </Badge>
                 <Badge bg="warning" className="me-1">
-                  Low Stock: {sortedAndFilteredMedications.filter(m => getStockStatus(m.quantityInStock, m.minimumStock) === 'low').length}
+                  Low Stock: {sortedAndFilteredMedications.filter(m => getStockStatus(m.unitsInStock || m.quantityInStock || 0, m.minimumStock) === 'low').length}
                 </Badge>
                 <Badge bg="danger">
-                  Critical: {sortedAndFilteredMedications.filter(m => getStockStatus(m.quantityInStock, m.minimumStock) === 'critical').length}
+                  Critical: {sortedAndFilteredMedications.filter(m => getStockStatus(m.unitsInStock || m.quantityInStock || 0, m.minimumStock) === 'critical').length}
                 </Badge>
               </div>
             </Col>
@@ -356,7 +483,8 @@ const PrescriptionInventory = ({ currentDateTime, isDarkMode }) => {
             </thead>
             <tbody>
               {currentMedications.map((medication) => {
-                const stockStatus = getStockStatus(medication.quantityInStock, medication.minimumStock);
+                const currentStock = medication.unitsInStock || medication.quantityInStock || 0;
+                const stockStatus = getStockStatus(currentStock, medication.minimumStock);
                 return (
                   <tr key={medication.id} className={removeMode && selectedMedicationsForRemoval.has(medication.id) ? 'table-danger' : ''}>
                     {removeMode && (
@@ -382,7 +510,7 @@ const PrescriptionInventory = ({ currentDateTime, isDarkMode }) => {
                     </td>
                     <td>
                       <div className="stock-info">
-                        <strong>{medication.quantityInStock}</strong>
+                        <strong>{medication.unitsInStock || medication.quantityInStock || 0}</strong>
                         <small className="text-muted d-block">Min: {medication.minimumStock}</small>
                       </div>
                     </td>
@@ -680,22 +808,89 @@ const PrescriptionInventory = ({ currentDateTime, isDarkMode }) => {
                 </Col>
                 <Col md={6}>
                   <div className="detail-section">
-                    <h6 className="section-title">Stock Information</h6>
+                    <h6 className="section-title">
+                      Stock Information 
+                      {medicationBatches.length > 0 && (
+                        <Badge bg="info" className="ms-2">
+                          {medicationBatches.length} batch{medicationBatches.length !== 1 ? 'es' : ''}
+                        </Badge>
+                      )}
+                    </h6>
                     <div className="detail-item">
-                      <strong>Current Stock:</strong> {selectedMedication.quantityInStock}
+                      <strong>Total Stock:</strong> {
+                        medicationBatches.length > 0 
+                          ? medicationBatches.reduce((sum, batch) => sum + batch.quantityRemaining, 0)
+                          : (selectedMedication.quantityInStock || selectedMedication.unitsInStock || 0)
+                      }
                     </div>
                     <div className="detail-item">
-                      <strong>Minimum Stock:</strong> {selectedMedication.minimumStock}
+                      <strong>Minimum Stock:</strong> {selectedMedication.minimumStock || 0}
                     </div>
-                    <div className="detail-item">
-                      <strong>Unit Cost:</strong> ₱{selectedMedication.unitCost}
-                    </div>
-                    <div className="detail-item">
-                      <strong>Batch Number:</strong> {selectedMedication.batchNumber}
-                    </div>
-                    <div className="detail-item">
-                      <strong>Expiry Date:</strong> {new Date(selectedMedication.expiryDate).toLocaleDateString()}
-                    </div>
+                    
+                    {/* Show batch information if available */}
+                    {loadingBatches ? (
+                      <div className="detail-item">
+                        <em>Loading batch information...</em>
+                      </div>
+                    ) : medicationBatches.length > 0 ? (
+                      <div className="mt-3">
+                        <h6 className="section-title">Batch Details</h6>
+                        <div className="batch-list">
+                          {medicationBatches.map((batch, index) => {
+                            const isExpired = new Date(batch.expiryDate) < new Date();
+                            return (
+                              <div key={batch.id} className={`batch-item ${isExpired ? 'expired-batch' : ''}`}>
+                                <div className="batch-header">
+                                  <strong className="batch-number">{batch.batchNumber}</strong>
+                                  <div className="batch-badges">
+                                    <Badge bg="success" className="doses-badge">
+                                      {batch.quantityRemaining} units
+                                    </Badge>
+                                    {isExpired && (
+                                      <Badge 
+                                        bg="danger" 
+                                        className="expired-badge clickable-badge"
+                                        onClick={() => handleExpiredBatchClick(batch)}
+                                      >
+                                        EXPIRED
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="batch-details">
+                                  <span>Expires: {new Date(batch.expiryDate).toLocaleDateString()}</span>
+                                  {batch.unitCost && <span> • Cost: ₱{batch.unitCost}</span>}
+                                  {batch.supplier && <span> • {batch.supplier}</span>}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      // Fallback to legacy single batch display
+                      <>
+                        <div className="detail-item">
+                          <strong>Batch Number:</strong> {selectedMedication.batchNumber || 'N/A'}
+                        </div>
+                        <div className="detail-item">
+                          <strong>Expiry Date:</strong> {
+                            selectedMedication.expiryDate 
+                              ? new Date(selectedMedication.expiryDate).toLocaleDateString()
+                              : 'N/A'
+                          }
+                        </div>
+                        <div className="detail-item">
+                          <strong>Unit Cost:</strong> ₱{selectedMedication.unitCost || 0}
+                        </div>
+                        <div className="mt-2">
+                          <small className="text-warning">
+                            <i className="bi bi-exclamation-triangle me-1"></i>
+                            Legacy data - consider migrating to batch system
+                          </small>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </Col>
               </Row>
@@ -720,12 +915,20 @@ const PrescriptionInventory = ({ currentDateTime, isDarkMode }) => {
         </Modal.Footer>
       </Modal>
 
-      {/* Add Stock Modal */}
+      {/* Add Stock Modal - Enhanced for Batch System */}
       <Modal show={showAddStockModal} onHide={() => setShowAddStockModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Add Stock - {selectedMedication?.name}</Modal.Title>
+          <Modal.Title>
+            <i className="bi bi-plus-circle me-2 text-success"></i>
+            Add New Batch - {selectedMedication?.name}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          <div className="alert alert-info mb-3">
+            <i className="bi bi-info-circle me-2"></i>
+            <strong>Batch System:</strong> Each stock addition creates a new batch with separate expiry tracking.
+            This prevents overwriting existing stock data.
+          </div>
           <Form>
             <Form.Group className="mb-3">
               <Form.Label>Quantity to Add</Form.Label>
@@ -758,7 +961,64 @@ const PrescriptionInventory = ({ currentDateTime, isDarkMode }) => {
             Cancel
           </Button>
           <Button variant="success" onClick={handleAddStock}>
-            Add Stock
+            <i className="bi bi-plus-circle me-2"></i>
+            Create New Batch
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Batch Disposal Modal */}
+      <Modal 
+        show={showDisposalModal} 
+        onHide={cancelDisposal}
+        backdrop="static"
+        keyboard={false}
+        centered
+      >
+        <Modal.Header closeButton={!isDisposalActive}>
+          <Modal.Title className="text-danger">
+            <i className="bi bi-exclamation-triangle me-2"></i>
+            Dispose Expired Batch
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {batchToDispose && (
+            <div className="disposal-confirmation">
+              <div className="alert alert-danger">
+                <strong>⚠️ Warning:</strong> This action cannot be undone!
+              </div>
+              
+              <div className="batch-disposal-details">
+                <h6>Batch to be disposed:</h6>
+                <div className="disposal-batch-info">
+                  <strong>Batch Number:</strong> {batchToDispose.batchNumber}<br/>
+                  <strong>Medication:</strong> {selectedMedication?.name}<br/>
+                  <strong>Units:</strong> {batchToDispose.quantityRemaining}<br/>
+                  <strong>Expired:</strong> {new Date(batchToDispose.expiryDate).toLocaleDateString()}
+                </div>
+              </div>
+
+              <div className="disposal-reason mt-3">
+                <p>This batch has expired and will be permanently removed from the inventory system.</p>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button 
+            variant="secondary" 
+            onClick={cancelDisposal}
+            disabled={isDisposalActive}
+          >
+            Cancel
+          </Button>
+          <Button 
+            variant="danger" 
+            onClick={startDisposalCountdown}
+            disabled={isDisposalActive}
+            className="disposal-confirm-btn"
+          >
+            {isDisposalActive ? `Disposing... ${disposalCountdown}s` : 'Confirm Disposal'}
           </Button>
         </Modal.Footer>
       </Modal>

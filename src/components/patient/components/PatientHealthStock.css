@@ -1,0 +1,444 @@
+/* PatientHealthStock.css - Patient Dashboard Red Theme */
+
+.patient-health-stock {
+  font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  background: linear-gradient(135deg, #FFF5F5 0%, #FFF0F0 100%);
+  color: #2D3748;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading State */
+.patient-health-stock-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #718096;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #FED7D7;
+  border-top: 3px solid #E53E3E;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Main Grid Layout */
+.patient-health-stock-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  align-items: stretch;
+  min-height: 500px;
+}
+
+/* Section Styling */
+.patient-health-section {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 15px rgba(229, 62, 62, 0.1);
+  border: 1px solid #FED7D7;
+  display: flex;
+  flex-direction: column;
+}
+
+.patient-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #FED7D7;
+}
+
+.patient-section-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #C53030;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+}
+
+.patient-section-title i {
+  color: #E53E3E;
+  font-size: 1.2rem;
+}
+
+.patient-section-count {
+  background: linear-gradient(135deg, #E53E3E 0%, #C53030 100%);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(229, 62, 62, 0.3);
+}
+
+/* Search Styling */
+.patient-search-container {
+  margin-bottom: 20px;
+}
+
+.patient-search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.patient-search-input {
+  width: 100%;
+  padding: 12px 45px 12px 45px;
+  border: 2px solid #FED7D7;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #2D3748;
+  background: #FFFAFA;
+  transition: all 0.3s ease;
+}
+
+.patient-search-input:focus {
+  outline: none;
+  border-color: #E53E3E;
+  box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
+  background: white;
+}
+
+.patient-search-input::placeholder {
+  color: #A0AEC0;
+}
+
+.search-icon {
+  position: absolute;
+  left: 15px;
+  color: #E53E3E;
+  font-size: 1rem;
+  z-index: 2;
+}
+
+.patient-clear-search {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  color: #E53E3E;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.patient-clear-search:hover {
+  background: #FED7D7;
+  color: #C53030;
+}
+
+/* List Styling */
+.patient-items-list {
+  flex: 1;
+  min-height: 0;
+}
+
+.patient-list-header {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr 2.5fr;
+  gap: 15px;
+  padding: 15px 20px;
+  background: linear-gradient(135deg, #E53E3E 0%, #C53030 100%);
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  border-radius: 8px;
+  margin-bottom: 2px;
+}
+
+.patient-list-header > div {
+  color: white !important;
+}
+
+.patient-list-item {
+  display: grid;
+  grid-template-columns: 2fr 1.5fr 1fr 2.5fr;
+  gap: 15px;
+  padding: 15px 20px;
+  border-bottom: 1px solid #FED7D7;
+  transition: background-color 0.2s ease;
+  background: white;
+  color: inherit;
+}
+
+.patient-list-item:hover {
+  background: #FFFAFA;
+  border-left: 4px solid #E53E3E;
+  padding-left: 16px;
+}
+
+.patient-list-item:last-child {
+  border-bottom: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.patient-list-item .col-name strong {
+  color: #C53030 !important;
+  font-weight: 600;
+  font-size: 1rem;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.patient-list-item .col-name small {
+  color: #718096 !important;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+
+.patient-list-item .col-category {
+  color: #E53E3E !important;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.patient-list-item .col-strength {
+  color: #2D3748 !important;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.patient-list-item .col-info {
+  color: #4A5568 !important;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+/* No Results */
+.patient-no-results {
+  text-align: center;
+  padding: 40px 20px;
+  color: #718096;
+}
+
+.patient-no-results i {
+  font-size: 3rem;
+  color: #FED7D7;
+  margin-bottom: 15px;
+}
+
+.patient-no-results p {
+  font-size: 1.1rem;
+  margin-bottom: 8px;
+  color: #4A5568;
+}
+
+.patient-no-results small {
+  color: #A0AEC0;
+  font-size: 0.9rem;
+}
+
+/* Pagination */
+.patient-pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #FED7D7;
+}
+
+.patient-pagination-btn {
+  background: linear-gradient(135deg, #E53E3E 0%, #C53030 100%);
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(229, 62, 62, 0.2);
+}
+
+.patient-pagination-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #C53030 0%, #9C2A2A 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(229, 62, 62, 0.3);
+}
+
+.patient-pagination-btn:disabled {
+  background: #CBD5E0;
+  color: #A0AEC0;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.patient-pagination-info {
+  color: #4A5568;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0 10px;
+}
+
+/* Service Hours Section at Bottom */
+.patient-service-hours-section {
+  margin-top: 30px;
+  padding-top: 25px;
+  border-top: 2px solid #FED7D7;
+}
+
+.patient-service-hours-container {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 15px rgba(229, 62, 62, 0.1);
+  border: 1px solid #FED7D7;
+}
+
+.patient-service-hours-title {
+  color: #C53030;
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.patient-service-hours-title i {
+  color: #E53E3E;
+}
+
+.patient-service-hours-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 30px;
+  align-items: start;
+}
+
+.patient-service-hours-card {
+  background: #FFFAFA;
+  padding: 20px;
+  border-radius: 8px;
+  border-left: 4px solid #E53E3E;
+}
+
+.patient-service-hours-card .service-line {
+  margin-bottom: 10px;
+  font-size: 1rem;
+  color: #2D3748;
+}
+
+.patient-service-hours-card .service-line strong {
+  color: #C53030;
+  min-width: 120px;
+  display: inline-block;
+}
+
+.patient-service-info-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.service-note {
+  padding: 15px 20px;
+  background: linear-gradient(135deg, #E53E3E 0%, #C53030 100%);
+  color: white;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(229, 62, 62, 0.3);
+}
+
+.service-note i {
+  margin-right: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .patient-health-stock-grid {
+    grid-template-columns: 1fr;
+    gap: 25px;
+    min-height: auto;
+  }
+  
+  .patient-service-hours-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .patient-health-stock {
+    padding: 15px;
+  }
+  
+  .patient-health-section {
+    padding: 20px;
+  }
+  
+  .patient-section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .patient-section-title {
+    font-size: 1.2rem;
+  }
+  
+  .patient-list-header,
+  .patient-list-item {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px 15px;
+  }
+  
+  .patient-list-header {
+    text-align: center;
+  }
+  
+  .patient-list-item {
+    text-align: left;
+  }
+  
+  .col-name, .col-category, .col-strength, .col-info {
+    border-bottom: 1px solid #FED7D7;
+    padding-bottom: 5px;
+    margin-bottom: 5px;
+  }
+  
+  .col-info {
+    border-bottom: none;
+    margin-bottom: 0;
+  }
+  
+  .patient-service-hours-card .service-line strong {
+    min-width: auto;
+    display: block;
+    margin-bottom: 2px;
+  }
+  
+  .patient-pagination-controls {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .patient-pagination-info {
+    order: -1;
+  }
+}

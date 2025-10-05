@@ -3,6 +3,7 @@ const router = express.Router();
 const { CheckInSession, Patient, Appointment, User } = require('../models');
 const { Op, sequelize } = require('sequelize');
 const { sequelize: db } = require('../config/database');
+const { authenticateToken: auth } = require('../middleware/auth');
 
 // Helper function to calculate age from date of birth
 const calculateAge = (dateOfBirth) => {
@@ -289,6 +290,36 @@ router.post('/check-in', async (req, res) => {
       return res.status(404).json({ error: 'Patient not found' });
     }
 
+    // Check if patient is already checked in today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const existingSession = await CheckInSession.findOne({
+      where: {
+        patientId: patientId,
+        checkInTime: {
+          [Op.between]: [today, tomorrow]
+        },
+        status: {
+          [Op.not]: 'completed'
+        }
+      }
+    });
+
+    if (existingSession) {
+      return res.status(409).json({ 
+        error: `Patient ${patient.firstName} ${patient.lastName} is already checked in for today`,
+        existingSession: {
+          id: existingSession.id,
+          checkInTime: existingSession.checkInTime,
+          status: existingSession.status,
+          serviceType: existingSession.serviceType
+        }
+      });
+    }
+
     // Create check-in session
     const session = await CheckInSession.create({
       patientId,
@@ -320,8 +351,148 @@ router.post('/check-in', async (req, res) => {
   }
 });
 
+// QR Code check-in endpoint (for patient self-checkin via QR scan)
+router.post('/qr-checkin', async (req, res) => {
+  try {
+    const {
+      patientId,
+      patientName,
+      serviceType = 'General Checkup',
+      priority = 'Normal',
+      checkInMethod = 'qr-scan'
+    } = req.body;
+
+    console.log('QR check-in attempt:', { patientId, patientName, serviceType, priority });
+
+    // Validate required fields
+    if (!patientId || !patientName) {
+      return res.status(400).json({ 
+        error: 'Patient ID and name are required for QR check-in' 
+      });
+    }
+
+    // Security validations
+    
+    // 1. Validate patient ID format (must be numeric)
+    if (!/^\d+$/.test(patientId.toString())) {
+      return res.status(400).json({ 
+        error: 'Invalid patient ID format' 
+      });
+    }
+
+    // 2. Validate patient name format (basic sanitization)
+    if (!/^[a-zA-Z\s.'-]+$/.test(patientName.trim())) {
+      return res.status(400).json({ 
+        error: 'Invalid patient name format' 
+      });
+    }
+
+    // 3. Rate limiting check (prevent spam checkins from same IP)
+    const clientIP = req.ip || req.connection.remoteAddress;
+    console.log(`QR check-in request from IP: ${clientIP}`);
+
+    // 4. Validate service type and priority values
+    const validServiceTypes = ['General Checkup', 'Follow-up', 'Emergency', 'Vaccination', 'Prenatal', 'Senior Citizen'];
+    const validPriorities = ['Normal', 'High', 'Emergency'];
+    
+    if (!validServiceTypes.includes(serviceType)) {
+      console.log(`Invalid service type: ${serviceType}, defaulting to General Checkup`);
+      serviceType = 'General Checkup';
+    }
+    
+    if (!validPriorities.includes(priority)) {
+      console.log(`Invalid priority: ${priority}, defaulting to Normal`);
+      priority = 'Normal';
+    }
+
+    // Check if patient exists in database
+    const patient = await Patient.findByPk(patientId);
+    if (!patient) {
+      return res.status(404).json({ 
+        error: `Patient with ID ${patientId} not found in database` 
+      });
+    }
+
+    // Verify patient name matches (case-insensitive)
+    const dbPatientName = `${patient.firstName} ${patient.lastName}`.toLowerCase();
+    const qrPatientName = patientName.toLowerCase();
+    
+    if (dbPatientName !== qrPatientName) {
+      console.log(`Name mismatch: DB="${dbPatientName}", QR="${qrPatientName}"`);
+      return res.status(400).json({ 
+        error: 'Patient name does not match database record' 
+      });
+    }
+
+    // Check if patient is already checked in today
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const existingSession = await CheckInSession.findOne({
+      where: {
+        patientId: patientId,
+        checkInTime: {
+          [Op.between]: [today, tomorrow]
+        },
+        status: {
+          [Op.not]: 'completed'
+        }
+      }
+    });
+
+    if (existingSession) {
+      return res.status(409).json({ 
+        error: `Patient ${patientName} is already checked in for today`,
+        existingSession: {
+          id: existingSession.id,
+          checkInTime: existingSession.checkInTime,
+          status: existingSession.status,
+          serviceType: existingSession.serviceType
+        }
+      });
+    }
+
+    // Create new QR check-in session
+    const session = await CheckInSession.create({
+      patientId,
+      serviceType,
+      priority,
+      notes: `Checked in via QR code scan at ${new Date().toLocaleString()}`,
+      checkInMethod,
+      checkInTime: new Date(),
+      status: 'checked-in'
+    });
+
+    console.log(`QR check-in successful for patient ${patientName} (ID: ${patientId})`);
+
+    res.status(201).json({
+      success: true,
+      message: `${patientName} has been successfully checked in via QR scan`,
+      session: {
+        id: session.id,
+        patientId: session.patientId,
+        patientName: patientName,
+        checkInTime: session.checkInTime,
+        serviceType: session.serviceType,
+        priority: session.priority,
+        status: session.status,
+        checkInMethod: session.checkInMethod
+      }
+    });
+
+  } catch (error) {
+    console.error('Error processing QR check-in:', error);
+    res.status(500).json({ 
+      error: 'Failed to process QR check-in',
+      message: error.message 
+    });
+  }
+});
+
 // Update checkup information (service type, priority, etc.)
-router.patch('/:sessionId', async (req, res) => {
+router.patch('/:sessionId', auth, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { serviceType, priority, notes } = req.body;
@@ -363,16 +534,28 @@ router.patch('/:sessionId', async (req, res) => {
 });
 
 // Update checkup status
-router.put('/:sessionId/status', async (req, res) => {
+router.put('/:sessionId/status', auth, async (req, res) => {
   const transaction = await db.transaction();
   
   try {
+    console.log('Updating checkup status for doctor ID:', req.user?.id);
+    
+    // Ensure we have a valid doctor ID from the authenticated user
+    if (!req.user || !req.user.id) {
+      await transaction.rollback();
+      return res.status(401).json({ 
+        error: 'Unauthorized - Doctor ID not found in request' 
+      });
+    }
+    
+    const currentDoctorId = req.user.id;
     const { sessionId } = req.params;
     const { status, notes, prescriptions, chiefComplaint, presentSymptoms, diagnosis, treatmentPlan, doctorNotes, doctorId, doctorName } = req.body;
 
     console.log('🔄 Updating checkup status:', {
       sessionId,
       status,
+      currentDoctorId,
       notes: notes?.substring(0, 50) + '...',
       chiefComplaint: chiefComplaint?.substring(0, 50) + '...',
       presentSymptoms: presentSymptoms?.substring(0, 50) + '...',
@@ -388,6 +571,16 @@ router.put('/:sessionId/status', async (req, res) => {
     if (!session) {
       await transaction.rollback();
       return res.status(404).json({ error: 'Check-in session not found' });
+    }
+
+    // Verify that this checkup belongs to the current doctor (for security)
+    if (session.assignedDoctor && session.assignedDoctor !== currentDoctorId) {
+      await transaction.rollback();
+      return res.status(403).json({ 
+        error: 'Access denied - This checkup is not assigned to you',
+        assigned: session.assignedDoctor,
+        current: currentDoctorId
+      });
     }
 
     const updateData = { status };
@@ -412,7 +605,7 @@ router.put('/:sessionId/status', async (req, res) => {
     
     // Track the doctor who completed the checkup
     if (status === 'completed') {
-      updateData.assignedDoctor = doctorId || 10021; // Use doctorId (integer), fallback to valid doctor ID
+      updateData.assignedDoctor = currentDoctorId; // Use the authenticated doctor's ID
       updateData.completedAt = new Date();
     } else if (status === 'vaccination-completed') {
       // For vaccination completions, explicitly set assignedDoctor to null to avoid FK constraint issues
@@ -642,19 +835,31 @@ router.delete('/today/:patientId', async (req, res) => {
 // Doctor-specific endpoints for checkups management
 
 // Get all checkups assigned to doctor
-router.get('/doctor', async (req, res) => {
+router.get('/doctor', auth, async (req, res) => {
   try {
+    console.log('Getting doctor checkups for doctor ID:', req.user?.id);
+    
+    // Ensure we have a valid doctor ID from the authenticated user
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ 
+        error: 'Unauthorized - Doctor ID not found in request' 
+      });
+    }
+    
+    const doctorId = req.user.id;
+    
     const checkInSessions = await CheckInSession.findAll({
       where: {
         status: {
-          [Op.in]: ['started', 'in-progress', 'completed', 'transferred']
-        }
+          [Op.in]: ['started', 'in-progress', 'completed']
+        },
+        assignedDoctor: doctorId // Filter by the logged-in doctor's ID
       },
       include: [
         {
           model: Patient,
           as: 'Patient',
-          attributes: ['id', 'firstName', 'lastName', 'dateOfBirth', 'gender', 'contactNumber']
+          attributes: ['id', 'firstName', 'lastName', 'dateOfBirth', 'gender', 'contactNumber', 'familyId']
         },
         {
           model: Appointment,
@@ -663,27 +868,36 @@ router.get('/doctor', async (req, res) => {
           attributes: ['serviceType', 'appointmentTime', 'priority']
         }
       ],
-      order: [['createdAt', 'DESC']]
+      order: [['checkInTime', 'DESC']]
     });
+
+    console.log(`Found ${checkInSessions.length} checkups for doctor ${doctorId}`);
 
     const checkups = checkInSessions.map(session => {
       const patient = session.Patient;
       const appointment = session.Appointment;
       
+      const patientId = patient?.id || session.patientId;
+      const patientName = patient ? `${patient.firstName} ${patient.lastName}` : session.patientName || 'Unknown Patient';
+      const age = patient?.dateOfBirth ? calculateAge(patient.dateOfBirth) : 'N/A';
+      const gender = patient?.gender || 'N/A';
+      const contactNumber = patient?.contactNumber || 'N/A';
+      const familyId = patient?.familyId || 'N/A';
+
       return {
         id: session.id,
-        patientId: patient?.patientId || patient?.id,
-        patientName: patient ? `${patient.firstName} ${patient.lastName}` : 'Unknown Patient',
-        age: patient?.dateOfBirth ? calculateAge(patient.dateOfBirth) : 'N/A',
-        gender: patient?.gender || 'N/A',
-        contactNumber: patient?.contactNumber || 'N/A',
+        patientId: patientId,
+        patientName: patientName,
+        age: age,
+        gender: gender,
+        contactNumber: contactNumber,
+        familyId: familyId,
         serviceType: appointment?.serviceType || session.serviceType || 'General Checkup',
         priority: appointment?.priority || session.priority || 'Normal',
         status: session.status,
         startedAt: session.checkInTime,
-        completedAt: session.checkOutTime,
+        completedAt: session.completedAt,
         notes: session.notes || '',
-        // Clinical note fields
         chiefComplaint: session.chiefComplaint || '',
         presentSymptoms: session.presentSymptoms || '',
         diagnosis: session.diagnosis || '',
@@ -714,8 +928,36 @@ router.get('/doctor', async (req, res) => {
 });
 
 // Create new checkup session for doctor
-router.post('/', async (req, res) => {
+router.post('/', auth, async (req, res) => {
   try {
+    console.log('Creating checkup for doctor ID:', req.user?.id);
+    
+    // Ensure we have a valid doctor ID from the authenticated user
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ 
+        error: 'Unauthorized - Doctor ID not found in request' 
+      });
+    }
+    
+    const doctorId = req.user.id;
+    
+    // Check if doctor already has an in-progress checkup
+    const existingInProgressCheckup = await CheckInSession.findOne({
+      where: {
+        assignedDoctor: doctorId,
+        status: {
+          [Op.in]: ['started', 'in-progress']
+        }
+      }
+    });
+    
+    if (existingInProgressCheckup) {
+      return res.status(400).json({
+        error: 'You already have a checkup in progress. Please complete your current checkup before starting a new one.',
+        existingCheckupId: existingInProgressCheckup.id
+      });
+    }
+    
     const {
       patientId,
       patientName,
@@ -758,19 +1000,20 @@ router.post('/', async (req, res) => {
 
     if (existingSession) {
       // Update existing session instead of creating a new one
-      console.log(`Updating existing session ${existingSession.id} for patient ${patientId}`);
+      console.log(`Updating existing session ${existingSession.id} for patient ${patientId}, assigning to doctor ${doctorId}`);
       await existingSession.update({
         status: 'started',
         startedAt: new Date(),
         serviceType: serviceType || existingSession.serviceType || 'General Checkup',
         priority: priority || existingSession.priority || 'Normal',
         notes: notes || existingSession.notes || '',
-        doctorNotified: true
+        doctorNotified: true,
+        assignedDoctor: doctorId // Assign to the current doctor
       });
       checkupSession = existingSession;
     } else {
       // Create new session if none exists
-      console.log(`Creating new checkup session for patient ${patientId}`);
+      console.log(`Creating new checkup session for patient ${patientId}, assigning to doctor ${doctorId}`);
       checkupSession = await CheckInSession.create({
         patientId: patient ? patient.id : null,
         checkInTime: new Date(),
@@ -779,6 +1022,7 @@ router.post('/', async (req, res) => {
         priority: priority || 'Normal',
         notes: notes || '',
         doctorNotified: true,
+        assignedDoctor: doctorId, // Assign to the current doctor
         // Store additional patient info if patient record doesn't exist
         additionalData: patient ? null : {
           patientId,
@@ -820,98 +1064,36 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get doctor's checkups (all statuses for the checkups tab)
-router.get('/doctor', async (req, res) => {
-  try {
-    console.log('Getting doctor checkups...');
-    
-    const checkInSessions = await CheckInSession.findAll({
-      where: {
-        status: {
-          [Op.in]: ['started', 'in-progress', 'completed']
-        }
-      },
-      include: [
-        {
-          model: Patient,
-          as: 'Patient',
-          attributes: ['id', 'firstName', 'lastName', 'dateOfBirth', 'gender', 'contactNumber', 'familyId']
-        },
-        {
-          model: Appointment,
-          as: 'Appointment',
-          required: false,
-          attributes: ['serviceType', 'appointmentTime', 'priority']
-        }
-      ],
-      order: [['checkInTime', 'DESC']]
-    });
-
-    const checkups = checkInSessions.map(session => {
-      const patient = session.Patient;
-      const appointment = session.Appointment;
-      
-      const patientId = patient?.id || session.patientId;
-      const patientName = patient ? `${patient.firstName} ${patient.lastName}` : session.patientName || 'Unknown Patient';
-      const age = patient?.dateOfBirth ? calculateAge(patient.dateOfBirth) : 'N/A';
-      const gender = patient?.gender || 'N/A';
-      const contactNumber = patient?.contactNumber || 'N/A';
-      const familyId = patient?.familyId || 'N/A';
-
-      return {
-        id: session.id,
-        patientId: patientId,
-        patientName: patientName,
-        age: age,
-        gender: gender,
-        contactNumber: contactNumber,
-        familyId: familyId,
-        serviceType: appointment?.serviceType || session.serviceType || 'General Checkup',
-        priority: appointment?.priority || session.priority || 'Normal',
-        status: session.status,
-        startedAt: session.checkInTime,
-        completedAt: session.completedAt,
-        notes: session.notes || '',
-        chiefComplaint: session.chiefComplaint || '',
-        presentSymptoms: session.presentSymptoms || '',
-        diagnosis: session.diagnosis || '',
-        treatmentPlan: session.treatmentPlan || '',
-        doctorNotes: session.doctorNotes || '',
-        prescriptions: (() => {
-          try {
-            return session.prescription ? JSON.parse(session.prescription) : [];
-          } catch (e) {
-            console.error('Error parsing prescription JSON:', e, 'Raw value:', session.prescription);
-            return [];
-          }
-        })(),
-        createdAt: session.createdAt,
-        updatedAt: session.updatedAt
-      };
-    });
-
-    console.log(`Found ${checkups.length} doctor checkups`);
-    res.json(checkups);
-  } catch (error) {
-    console.error('Error fetching doctor checkups:', error);
-    res.status(500).json({ 
-      error: 'Failed to fetch doctor checkups',
-      message: error.message 
-    });
-  }
-});
-
 // Update checkup notes and prescriptions
-router.patch('/:sessionId/notes', async (req, res) => {
+router.patch('/:sessionId/notes', auth, async (req, res) => {
   try {
+    console.log('Updating checkup notes for doctor ID:', req.user?.id);
+    
+    // Ensure we have a valid doctor ID from the authenticated user
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ 
+        error: 'Unauthorized - Doctor ID not found in request' 
+      });
+    }
+    
+    const currentDoctorId = req.user.id;
     const { sessionId } = req.params;
     const { notes, prescriptions, chiefComplaint, presentSymptoms, diagnosis, treatmentPlan, doctorNotes } = req.body;
 
-    console.log('Updating checkup notes:', { sessionId, notes, prescriptions, chiefComplaint, presentSymptoms, diagnosis, treatmentPlan, doctorNotes });
+    console.log('Updating checkup notes:', { sessionId, currentDoctorId, notes, prescriptions, chiefComplaint, presentSymptoms, diagnosis, treatmentPlan, doctorNotes });
 
     const session = await CheckInSession.findByPk(sessionId);
     if (!session) {
       return res.status(404).json({ error: 'Checkup session not found' });
+    }
+
+    // Verify that this checkup belongs to the current doctor (for security)
+    if (session.assignedDoctor && session.assignedDoctor !== currentDoctorId) {
+      return res.status(403).json({ 
+        error: 'Access denied - This checkup is not assigned to you',
+        assigned: session.assignedDoctor,
+        current: currentDoctorId
+      });
     }
 
     // Prepare update data
@@ -1070,6 +1252,284 @@ router.get('/history/:patientId', async (req, res) => {
     console.error('Error fetching checkup history:', error);
     res.status(500).json({ 
       error: 'Failed to fetch checkup history',
+      message: error.message 
+    });
+  }
+});
+
+// Healthcare Analytics Endpoints
+// Get diagnosis analytics data
+router.get('/analytics/diagnosis', async (req, res) => {
+  try {
+    console.log('Fetching diagnosis analytics data...');
+    
+    const checkInSessions = await CheckInSession.findAll({
+      where: {
+        status: 'completed',
+        diagnosis: {
+          [Op.and]: [
+            { [Op.ne]: null },
+            { [Op.ne]: '' },
+            { [Op.ne]: 'sample' },
+            { [Op.ne]: 'sample data' }
+          ]
+        }
+      },
+      include: [
+        {
+          model: Patient,
+          as: 'Patient',
+          attributes: ['dateOfBirth', 'gender'],
+          required: false
+        }
+      ],
+      attributes: ['diagnosis', 'createdAt']
+    });
+
+    console.log(`Found ${checkInSessions.length} completed checkups with diagnosis`);
+
+    // Process diagnosis data and group by age and gender
+    const diagnosisMap = {};
+    
+    checkInSessions.forEach(session => {
+      const diagnosis = session.diagnosis.trim();
+      const patientAge = session.Patient?.dateOfBirth ? calculateAge(session.Patient.dateOfBirth) : null;
+      const patientGender = session.Patient?.gender || 'Unknown';
+      
+      if (!diagnosisMap[diagnosis]) {
+        diagnosisMap[diagnosis] = {
+          disease: diagnosis,
+          total: 0,
+          ageGroups: { '0-17': 0, '18-30': 0, '31-50': 0, '51+': 0 },
+          genderGroups: { 'Male': 0, 'Female': 0, 'Other': 0, 'Unknown': 0 }
+        };
+      }
+      
+      diagnosisMap[diagnosis].total++;
+      
+      // Age group aggregation
+      if (patientAge !== null && patientAge !== 'N/A') {
+        if (patientAge >= 0 && patientAge <= 17) {
+          diagnosisMap[diagnosis].ageGroups['0-17']++;
+        } else if (patientAge >= 18 && patientAge <= 30) {
+          diagnosisMap[diagnosis].ageGroups['18-30']++;
+        } else if (patientAge >= 31 && patientAge <= 50) {
+          diagnosisMap[diagnosis].ageGroups['31-50']++;
+        } else if (patientAge >= 51) {
+          diagnosisMap[diagnosis].ageGroups['51+']++;
+        }
+      }
+      
+      // Gender group aggregation
+      const normalizedGender = patientGender.toLowerCase();
+      if (normalizedGender === 'male' || normalizedGender === 'm') {
+        diagnosisMap[diagnosis].genderGroups['Male']++;
+      } else if (normalizedGender === 'female' || normalizedGender === 'f') {
+        diagnosisMap[diagnosis].genderGroups['Female']++;
+      } else if (normalizedGender === 'other') {
+        diagnosisMap[diagnosis].genderGroups['Other']++;
+      } else {
+        diagnosisMap[diagnosis].genderGroups['Unknown']++;
+      }
+    });
+
+    // Convert to array and sort by total count
+    const diagnosisData = Object.values(diagnosisMap)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 15); // Limit to top 15 diagnoses
+
+    console.log(`Processed ${diagnosisData.length} unique diagnoses`);
+    res.json(diagnosisData);
+    
+  } catch (error) {
+    console.error('Error fetching diagnosis analytics:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch diagnosis analytics',
+      message: error.message 
+    });
+  }
+});
+
+// Get prescription analytics data
+router.get('/analytics/prescriptions', async (req, res) => {
+  try {
+    console.log('Fetching prescription analytics data...');
+    
+    const checkInSessions = await CheckInSession.findAll({
+      where: {
+        status: 'completed',
+        prescription: {
+          [Op.and]: [
+            { [Op.ne]: null },
+            { [Op.ne]: '' },
+            { [Op.ne]: '[]' }
+          ]
+        }
+      },
+      include: [
+        {
+          model: Patient,
+          as: 'Patient',
+          attributes: ['dateOfBirth', 'gender'],
+          required: false
+        }
+      ],
+      attributes: ['prescription', 'createdAt']
+    });
+
+    console.log(`Found ${checkInSessions.length} completed checkups with prescriptions`);
+
+    // Process prescription data
+    const prescriptionMap = {};
+    
+    checkInSessions.forEach(session => {
+      const patientAge = session.Patient?.dateOfBirth ? calculateAge(session.Patient.dateOfBirth) : null;
+      const patientGender = session.Patient?.gender || 'Unknown';
+      
+      try {
+        const prescriptions = JSON.parse(session.prescription || '[]');
+        
+        prescriptions.forEach(prescription => {
+          const name = prescription.medication || prescription.name || 'Unknown';
+          const type = prescription.type || (name.toLowerCase().includes('vaccine') ? 'Vaccine' : 'Medicine');
+          
+          if (!prescriptionMap[name]) {
+            prescriptionMap[name] = {
+              name: name,
+              type: type,
+              total: 0,
+              ageGroups: { '0-17': 0, '18-30': 0, '31-50': 0, '51+': 0 },
+              genderGroups: { 'Male': 0, 'Female': 0, 'Other': 0, 'Unknown': 0 }
+            };
+          }
+          
+          const quantity = parseInt(prescription.quantity) || 1;
+          prescriptionMap[name].total += quantity;
+          
+          // Age group aggregation
+          if (patientAge !== null && patientAge !== 'N/A') {
+            if (patientAge >= 0 && patientAge <= 17) {
+              prescriptionMap[name].ageGroups['0-17'] += quantity;
+            } else if (patientAge >= 18 && patientAge <= 30) {
+              prescriptionMap[name].ageGroups['18-30'] += quantity;
+            } else if (patientAge >= 31 && patientAge <= 50) {
+              prescriptionMap[name].ageGroups['31-50'] += quantity;
+            } else if (patientAge >= 51) {
+              prescriptionMap[name].ageGroups['51+'] += quantity;
+            }
+          }
+          
+          // Gender group aggregation
+          const normalizedGender = patientGender.toLowerCase();
+          if (normalizedGender === 'male' || normalizedGender === 'm') {
+            prescriptionMap[name].genderGroups['Male'] += quantity;
+          } else if (normalizedGender === 'female' || normalizedGender === 'f') {
+            prescriptionMap[name].genderGroups['Female'] += quantity;
+          } else if (normalizedGender === 'other') {
+            prescriptionMap[name].genderGroups['Other'] += quantity;
+          } else {
+            prescriptionMap[name].genderGroups['Unknown'] += quantity;
+          }
+        });
+      } catch (e) {
+        console.error('Error parsing prescription JSON:', e);
+      }
+    });
+
+    // Convert to array and sort by total usage
+    const prescriptionData = Object.values(prescriptionMap)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 15); // Limit to top 15 prescriptions
+
+    console.log(`Processed ${prescriptionData.length} unique prescriptions`);
+    res.json(prescriptionData);
+    
+  } catch (error) {
+    console.error('Error fetching prescription analytics:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch prescription analytics',
+      message: error.message 
+    });
+  }
+});
+
+// Get barangay visits analytics data
+router.get('/analytics/barangay-visits', async (req, res) => {
+  try {
+    console.log('Fetching barangay visits analytics data...');
+    
+    const checkInSessions = await CheckInSession.findAll({
+      where: {
+        status: 'completed'
+      },
+      include: [
+        {
+          model: Patient,
+          as: 'Patient',
+          attributes: ['barangay', 'address'],
+          required: false
+        }
+      ],
+      attributes: ['id', 'createdAt']
+    });
+
+    console.log(`Found ${checkInSessions.length} completed checkups`);
+
+    // Process barangay visits data
+    const barangayMap = {};
+    
+    checkInSessions.forEach(session => {
+      // Try to get barangay from patient data
+      let barangay = session.Patient?.barangay;
+      
+      // If no barangay in patient data, try to extract from address
+      if (!barangay && session.Patient?.address) {
+        const address = session.Patient.address.toLowerCase();
+        // Common barangays in Pasig
+        const commonBarangays = [
+          'maybunga', 'rosario', 'santa ana', 'san miguel', 'caniogan', 
+          'kapitolyo', 'pinagbuhatan', 'bagong ilog', 'bgy. rosario',
+          'bgy. maybunga', 'bgy. santa ana', 'bgy. san miguel'
+        ];
+        
+        for (const bgry of commonBarangays) {
+          if (address.includes(bgry)) {
+            barangay = bgry.replace('bgy. ', '').replace(/\b\w/g, l => l.toUpperCase());
+            break;
+          }
+        }
+      }
+      
+      // Default to 'Unknown' if no barangay found
+      if (!barangay) {
+        barangay = 'Unknown';
+      }
+      
+      // Clean up barangay name
+      barangay = barangay.charAt(0).toUpperCase() + barangay.slice(1).toLowerCase();
+      
+      if (!barangayMap[barangay]) {
+        barangayMap[barangay] = {
+          barangay: barangay,
+          visits: 0
+        };
+      }
+      
+      barangayMap[barangay].visits++;
+    });
+
+    // Convert to array and sort by visit count
+    const barangayData = Object.values(barangayMap)
+      .sort((a, b) => b.visits - a.visits)
+      .filter(item => item.barangay !== 'Unknown' || item.visits > 5); // Filter out unknown unless significant
+
+    console.log(`Processed ${barangayData.length} barangays`);
+    res.json(barangayData);
+    
+  } catch (error) {
+    console.error('Error fetching barangay visits analytics:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch barangay visits analytics',
       message: error.message 
     });
   }

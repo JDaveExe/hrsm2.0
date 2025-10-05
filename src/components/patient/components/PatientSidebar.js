@@ -11,8 +11,6 @@ const PatientSidebar = memo(({
   currentPath, 
   handleLogout, 
   sealmainImage,
-  showFPSMonitor,
-  handleFPSToggle,
   user
 }) => {
   const [activeDropdown, setActiveDropdown] = useState(null);
@@ -96,6 +94,14 @@ const PatientSidebar = memo(({
             </Link>
           </li>
 
+          {/* Health Stock - Available Medications & Vaccines */}
+          <li className={currentPath === 'Health Stock' ? 'active' : ''} onClick={() => handleNavigationClick('Health Stock')}>
+            <Link to="#" aria-label="Health Stock">
+              <i className="bi bi-heart-pulse"></i>
+              <span>Health Stock</span>
+            </Link>
+          </li>
+
           {/* Settings Dropdown - New Structure */}
           <li className={activeDropdown === 'settings' ? 'dropdown active' : 'dropdown'}>
             <Link to="#" onClick={() => handleDropdownToggle('settings')}>
@@ -126,32 +132,20 @@ const PatientSidebar = memo(({
         {/* Sidebar Toggle Button */}
         <div className="sidebar-toggle-section">
           <button 
-            className="sidebar-toggle-btn" 
+            className="sidebar-toggle-btn bordered-btn" 
             onClick={toggleSidebar} 
             title={sidebarOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
             aria-label={sidebarOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
           >
             <i className={`bi ${sidebarOpen ? 'bi-chevron-left' : 'bi-list'}`}></i>
-          </button>
-        </div>
-
-        {/* FPS Monitor Toggle */}
-        <div className="fps-toggle-section">
-          <button 
-            className={`fps-toggle-btn ${showFPSMonitor ? 'active' : ''}`}
-            onClick={handleFPSToggle}
-            title={showFPSMonitor ? 'Hide Performance Monitor' : 'Show Performance Monitor'}
-            aria-label={showFPSMonitor ? 'Hide Performance Monitor' : 'Show Performance Monitor'}
-          >
-            <i className={`bi ${showFPSMonitor ? 'bi-speedometer2' : 'bi-speedometer'}`}></i>
-            <span>Performance</span>
+            <span>{sidebarOpen ? 'Collapse' : 'Expand'}</span>
           </button>
         </div>
 
         {/* Logout Button */}
         <div className="logout-section">
           <button 
-            className="logout-btn" 
+            className="logout-btn bordered-btn" 
             onClick={handleLogout}
             aria-label="Logout"
           >
@@ -180,8 +174,6 @@ PatientSidebar.propTypes = {
   currentPath: PropTypes.string.isRequired,
   handleLogout: PropTypes.func.isRequired,
   sealmainImage: PropTypes.string,
-  showFPSMonitor: PropTypes.bool,
-  handleFPSToggle: PropTypes.func,
   user: PropTypes.object
 };
 

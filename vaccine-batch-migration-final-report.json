@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-10-03T03:50:51.100Z",
+  "migration": "vaccine-batch-creation-fixed",
+  "status": "completed",
+  "summary": {
+    "totalVaccines": 24,
+    "totalProcessed": 24,
+    "created": 1,
+    "skipped": 23,
+    "totalDoses": 404,
+    "finalBatchCount": 25
+  },
+  "success": true
+}

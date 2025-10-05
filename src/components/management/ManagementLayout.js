@@ -4,7 +4,7 @@ import { useData } from '../../context/DataContext';
 import ManagementSidebar from './components/ManagementSidebar';
 import InventoryManagement from './components/InventoryManagement';
 import ReportsManager from './components/ReportsManager';
-import ManagementSettings from './components/ManagementSettings';
+import HealthcareInsights from './components/HealthcareInsights';
 import LoadingManagementBar from './LoadingManagementBar';
 import './styles/ManagementLayout.css';
 import sealmainImage from '../../images/sealmain.png';
@@ -75,7 +75,7 @@ const ManagementLayout = () => {
   }, []);
 
   // Component renderer
-  const CurrentComponent = useMemo(() => {
+  const renderContent = useMemo(() => {
     const componentProps = {
       currentPath,
       currentDateTime,
@@ -85,13 +85,13 @@ const ManagementLayout = () => {
 
     switch (currentPath) {
       case 'Inventory Management':
-        return InventoryManagement;
+        return <InventoryManagement {...componentProps} onNavigateToReports={handleNavigateToReports} />;
       case 'Reports':
-        return ReportsManager;
-      case 'Settings':
-        return ManagementSettings;
+        return <ReportsManager {...componentProps} />;
+      case 'Healthcare Insights':
+        return <HealthcareInsights {...componentProps} onNavigateToReports={handleNavigateToReports} />;
       default:
-        return InventoryManagement;
+        return <InventoryManagement {...componentProps} onNavigateToReports={handleNavigateToReports} />;
     }
   }, [currentPath]);
 
@@ -162,13 +162,7 @@ const ManagementLayout = () => {
           {isLoading || dataLoading ? (
             <LoadingManagementBar message="Loading management data..." />
           ) : (
-            <CurrentComponent
-              currentPath={currentPath}
-              currentDateTime={currentDateTime}
-              isDarkMode={false}
-              inventoryFilter={null}
-              onNavigateToReports={handleNavigateToReports}
-            />
+            renderContent
           )}
         </div>
       </div>

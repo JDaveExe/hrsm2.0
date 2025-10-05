@@ -144,10 +144,45 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // The logout function clears the user data from state and redirects to homepage.
-  const logout = useCallback(() => {
+  const logout = useCallback(async () => {
     // PREVENT LOOP: Only logout if there is a user session
     if (!authData) {
       return;
+    }
+
+    // Call backend logout API to update doctor session status
+    try {
+      if (authData.user) {
+        console.log(`🚪 Logging out ${authData.user.role} user: ${authData.user.firstName} ${authData.user.lastName}`);
+        
+        // Stop doctor heartbeat if it's a doctor
+        if (authData.user.role === 'doctor') {
+          try {
+            // Import doctorSessionService dynamically to avoid circular deps
+            const { doctorSessionService } = await import('../services/doctorSessionService');
+            doctorSessionService.stopHeartbeat();
+            console.log('🔄 Doctor heartbeat stopped');
+          } catch (importError) {
+            console.warn('Could not import doctorSessionService:', importError);
+          }
+        }
+        
+        await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: authData.user.id,
+            role: authData.user.role
+          })
+        });
+        
+        console.log('✅ Backend logout completed - doctor session updated to offline');
+      }
+    } catch (error) {
+      console.warn('⚠️ Backend logout failed (continuing with frontend logout):', error);
+      // Continue with frontend logout even if backend call fails
     }
 
     setAuthData(null);

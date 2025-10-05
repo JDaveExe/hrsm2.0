@@ -327,9 +327,7 @@
   background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%) !important;
 }
 
-.badge.bg-info {
-  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
-}
+/* Removed .badge.bg-info override to prevent conflicts with Bootstrap and category-badge styling */
 
 /* Search Input Styling */
 .input-group-text {
@@ -876,4 +874,146 @@
 
 .inventory-analysis .card-header i.bi-pie-chart-fill {
   color: #20c997;
+}
+
+/* Batch Display Styles */
+.batch-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+}
+
+.batch-item {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.batch-item:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 4px rgba(0, 123, 255, 0.1);
+}
+
+.batch-item.expired-batch {
+  border-color: #dc3545;
+  background-color: #fff5f5;
+}
+
+.batch-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.batch-number {
+  font-size: 1rem;
+  color: #495057;
+}
+
+.batch-badges {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.doses-badge {
+  font-size: 0.75rem;
+}
+
+.expired-badge {
+  font-size: 0.75rem;
+  cursor: pointer;
+  animation: pulseRed 2s infinite;
+  transition: all 0.2s ease;
+}
+
+.expired-badge:hover {
+  transform: scale(1.1);
+  animation: none;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
+}
+
+.clickable-badge {
+  cursor: pointer;
+  user-select: none;
+}
+
+@keyframes pulseRed {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 8px rgba(220, 53, 69, 0);
+  }
+}
+
+.batch-details {
+  font-size: 0.85rem;
+  color: #6c757d;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.no-batches {
+  text-align: center;
+  padding: 2rem;
+}
+
+/* Disposal Modal Styles */
+.disposal-confirmation {
+  text-align: left;
+}
+
+.disposal-batch-info {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  border-left: 4px solid #dc3545;
+  margin: 1rem 0;
+}
+
+.disposal-confirm-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.disposal-confirm-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Detail Section Styling */
+.detail-section {
+  margin-bottom: 1.5rem;
+}
+
+.section-title {
+  color: #495057;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.detail-item {
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.detail-item strong {
+  color: #495057;
+  display: inline-block;
+  min-width: 120px;
 }

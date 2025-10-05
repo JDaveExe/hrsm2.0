@@ -6,6 +6,17 @@ const { Op } = require('sequelize');
 // Get all doctors with their availability status
 router.get('/all', async (req, res) => {
   try {
+    // Clean up stale sessions (inactive for more than 5 minutes)
+    const staleThreshold = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes ago
+    await DoctorSession.destroy({
+      where: {
+        status: ['online', 'busy'],
+        lastActivity: {
+          [Op.lt]: staleThreshold
+        }
+      }
+    });
+
     // Get all active doctors
     const allDoctors = await User.findAll({
       where: {
@@ -16,7 +27,7 @@ router.get('/all', async (req, res) => {
       order: [['firstName', 'ASC']]
     });
 
-    // Get their session statuses
+    // Get their current session statuses (after cleanup)
     const activeSessions = await DoctorSession.findAll({
       where: {
         status: ['online', 'busy']
@@ -33,6 +44,10 @@ router.get('/all', async (req, res) => {
     // Map all doctors with their status
     const doctorsWithStatus = allDoctors.map(doctor => {
       const session = sessionMap[doctor.id];
+      const isOnline = session && session.status === 'online';
+      const isBusy = session && session.status === 'busy';
+      const isOffline = !session || session.status === 'offline';
+      
       return {
         id: doctor.id,
         name: `${doctor.firstName} ${doctor.lastName}`,
@@ -43,9 +58,10 @@ router.get('/all', async (req, res) => {
         loginTime: session?.loginTime || null,
         lastActivity: session?.lastActivity || null,
         currentPatientId: session?.currentPatientId || null,
-        isAvailable: session?.status === 'online',
-        isBusy: session?.status === 'busy',
-        isOffline: !session || session.status === 'offline'
+        isAvailable: isOnline,
+        isBusy: isBusy,
+        isOffline: isOffline,
+        isOnline: isOnline || isBusy // Consider both online and busy as "logged in"
       };
     });
 
@@ -315,6 +331,40 @@ router.post('/heartbeat', async (req, res) => {
     console.error('Error updating heartbeat:', error);
     res.status(500).json({ 
       error: 'Failed to update heartbeat',
+      message: error.message 
+    });
+  }
+});
+
+// Clean up stale sessions (called periodically)
+router.post('/cleanup', async (req, res) => {
+  try {
+    const staleThreshold = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes ago
+    
+    const [updatedCount] = await DoctorSession.update(
+      { 
+        status: 'offline',
+        logoutTime: new Date(),
+        currentPatientId: null
+      },
+      {
+        where: {
+          status: ['online', 'busy'],
+          lastActivity: {
+            [Op.lt]: staleThreshold
+          }
+        }
+      }
+    );
+
+    res.json({ 
+      message: 'Stale sessions cleaned up',
+      cleanedSessions: updatedCount
+    });
+  } catch (error) {
+    console.error('Error cleaning up stale sessions:', error);
+    res.status(500).json({ 
+      error: 'Failed to clean up stale sessions',
       message: error.message 
     });
   }
