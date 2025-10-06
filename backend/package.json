@@ -7,7 +7,8 @@
     "start": "node server.js",
     "clear-appointments": "node scripts/clear-all-appointments.js",
     "quick-clear": "node scripts/quick-clear-appointments.js",
-    "add-sample-appointments": "node scripts/add-sample-appointments.js"
+    "add-sample-appointments": "node scripts/add-sample-appointments.js",
+    "seed:accounts": "node scripts/seed-default-accounts.js"
   },
   "keywords": [],
   "author": "",

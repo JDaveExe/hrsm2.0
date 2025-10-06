@@ -412,51 +412,55 @@ router.post(
             }
           }
         } else {
-          // Fallback to hardcoded bypass logic for development
-          if (login === 'admin' && password === 'admin123') {
-              user = {
-                  id: 100001, // Use very high ID to avoid conflicts
-                  username: 'admin',
-                  email: 'admin@maybunga.healthcare',
-                  role: 'admin',
-                  firstName: 'System',
-                  lastName: 'Admin',
-                  accessLevel: 'Administrator'
-              };
-          } else if (login === 'doctor' && password === 'doctor123') {
-              user = {
-                  id: 100002, // Use very high ID to avoid conflicts
-                  username: 'doctor',
-                  email: 'doctor@maybunga.healthcare',
-                  role: 'doctor',
-                  firstName: 'Dr. John',
-                  lastName: 'Smith',
-                  accessLevel: 'Doctor'
-              };
-          } else if (login === 'patient' && password === 'patient123') {
-              user = {
-                  id: 47, // Use Josuke's User ID
-                  username: 'patient',
-                  email: 'jojojosuke@gmail.com', // Use Josuke's email
-                  role: 'patient',
-                  firstName: 'Josuke',
-                  lastName: 'Joestar',
-                  accessLevel: 'Patient',
-                  patientId: 40 // Use Josuke's Patient ID
-              };
-          } else if (login === 'management' && password === 'management123') {
-              user = {
-                  id: 100003, // Use very high ID to avoid conflicts
-                  username: 'management',
-                  email: 'management@brgymaybunga.health',
-                  role: 'management',
-                  firstName: 'Management',
-                  lastName: 'Dashboard',
-                  accessLevel: 'Management'
-              };
+          // Fallback accounts for development/testing only (disabled in production)
+          // Set ENABLE_FALLBACK_ACCOUNTS=true in .env to enable (NOT recommended for production)
+          const fallbackEnabled = process.env.ENABLE_FALLBACK_ACCOUNTS === 'true';
+          const isDevEnvironment = process.env.NODE_ENV !== 'production';
+          
+          if (fallbackEnabled && isDevEnvironment) {
+            console.warn('⚠️  WARNING: Using fallback accounts (development mode only)');
+            
+            // Fallback accounts for development ONLY
+            if (login === 'admin' && password === (process.env.DEFAULT_ADMIN_PASSWORD || 'admin123')) {
+                user = {
+                    id: 100001,
+                    username: 'admin',
+                    email: 'admin@maybunga.healthcare',
+                    role: 'admin',
+                    firstName: 'System',
+                    lastName: 'Admin',
+                    accessLevel: 'Administrator'
+                };
+            } else if (login === 'doctor' && password === (process.env.DEFAULT_DOCTOR_PASSWORD || 'doctor123')) {
+                user = {
+                    id: 100002,
+                    username: 'doctor',
+                    email: 'doctor@maybunga.healthcare',
+                    role: 'doctor',
+                    firstName: 'Dr. System',
+                    lastName: 'Doctor',
+                    accessLevel: 'Doctor'
+                };
+            } else if (login === 'management' && password === (process.env.DEFAULT_MANAGEMENT_PASSWORD || 'management123')) {
+                user = {
+                    id: 100003,
+                    username: 'management',
+                    email: 'management@brgymaybunga.health',
+                    role: 'management',
+                    firstName: 'Management',
+                    lastName: 'Dashboard',
+                    accessLevel: 'Management'
+                };
+            } else {
+                // No fallback account matched
+                return res.status(400).json({ msg: 'Invalid credentials' });
+            }
           } else {
-              // For any other login, act as if credentials are invalid
-              return res.status(400).json({ msg: 'Invalid credentials' });
+            // Fallback accounts disabled - user must exist in database
+            return res.status(400).json({ 
+              msg: 'Invalid credentials',
+              info: isDevEnvironment ? 'Fallback accounts are disabled. Please use database accounts or enable ENABLE_FALLBACK_ACCOUNTS in .env' : undefined
+            });
           }
         }
 

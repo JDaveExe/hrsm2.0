@@ -42,7 +42,20 @@ const initializeServer = async () => {
     await User.createDefaultUsers();
     
     // Note: Using hardcoded fallback accounts in auth.js instead of database records
-    console.log('Hardcoded test accounts available: admin/admin123, doctor/doctor123, patient/patient123, management/management123');
+    console.log(`Database connection established successfully!`);
+    
+    // Show security info
+    const fallbackEnabled = process.env.ENABLE_FALLBACK_ACCOUNTS === 'true';
+    const isDevEnvironment = process.env.NODE_ENV !== 'production';
+    
+    if (fallbackEnabled && isDevEnvironment) {
+      console.warn('⚠️  WARNING: Fallback accounts enabled (development mode)');
+      console.warn('   Run "npm run seed:accounts" to create proper database accounts');
+    } else if (process.env.NODE_ENV === 'production') {
+      console.log('✅ Production mode: Using secure database accounts only');
+    } else {
+      console.log('ℹ️  Fallback accounts disabled. Use database accounts to login.');
+    }
   } catch (error) {
     console.error('Server initialization failed:', error);
     process.exit(1);
