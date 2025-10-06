@@ -2,12 +2,12 @@ require('dotenv').config();
 const { Sequelize } = require('sequelize');
 
 const sequelize = new Sequelize(
-  process.env.DB_NAME || process.env.MYSQLDATABASE,
-  process.env.DB_USER || process.env.MYSQLUSER,
-  process.env.DB_PASSWORD || process.env.MYSQLPASSWORD,
+  process.env.MYSQLDATABASE || process.env.DB_NAME,
+  process.env.MYSQLUSER || process.env.DB_USER,
+  process.env.MYSQLPASSWORD || process.env.DB_PASSWORD,
   {
-    host: process.env.DB_HOST || process.env.MYSQLHOST,
-    port: process.env.DB_PORT || process.env.MYSQLPORT || 3306,
+    host: process.env.MYSQLHOST || process.env.DB_HOST,
+    port: process.env.MYSQLPORT || process.env.DB_PORT || 3306,
     dialect: 'mysql',
     logging: console.log, // Enable logging to debug connection
   }
@@ -16,11 +16,11 @@ const sequelize = new Sequelize(
 const connectDB = async () => {
   try {
     console.log('🔍 Database Configuration:');
-    console.log('Host:', process.env.DB_HOST || process.env.MYSQLHOST);
-    console.log('Port:', process.env.DB_PORT || process.env.MYSQLPORT);
-    console.log('Database:', process.env.DB_NAME || process.env.MYSQLDATABASE);
-    console.log('User:', process.env.DB_USER || process.env.MYSQLUSER);
-    console.log('Password:', process.env.DB_PASSWORD || process.env.MYSQLPASSWORD ? '***SET***' : 'NOT SET');
+    console.log('Host:', process.env.MYSQLHOST || process.env.DB_HOST);
+    console.log('Port:', process.env.MYSQLPORT || process.env.DB_PORT);
+    console.log('Database:', process.env.MYSQLDATABASE || process.env.DB_NAME);
+    console.log('User:', process.env.MYSQLUSER || process.env.DB_USER);
+    console.log('Password:', (process.env.MYSQLPASSWORD || process.env.DB_PASSWORD) ? '***SET***' : 'NOT SET');
     
     await sequelize.authenticate();
     console.log('✅ MySQL Connected successfully!');
