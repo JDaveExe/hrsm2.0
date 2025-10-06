@@ -1077,6 +1077,25 @@ const ReportsManager = ({ isDarkMode }) => {
       document.body.removeChild(link);
       
       console.log('Chart exported successfully');
+      
+      // Log export to audit trail
+      const token = localStorage.getItem('token') || window.__authToken;
+      fetch('/api/audit/log-report', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          reportType: 'Chart Export',
+          reportDetails: {
+            reportName: `${zoomedReport.type.name} - Export`,
+            format: 'PNG',
+            reportId: `export_${Date.now()}`,
+            action: 'exported'
+          }
+        })
+      }).catch(err => console.warn('Failed to log chart export:', err));
     } catch (error) {
       console.error('Export failed:', error);
       alert('Failed to export chart. Please try again.');
@@ -1257,6 +1276,25 @@ const ReportsManager = ({ isDarkMode }) => {
       }, 500);
       
       console.log('Print dialog opened successfully');
+      
+      // Log print to audit trail
+      const token = localStorage.getItem('token') || window.__authToken;
+      fetch('/api/audit/log-report', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          reportType: 'Report Print',
+          reportDetails: {
+            reportName: `${zoomedReport.type.name} - Print`,
+            format: 'PDF/Print',
+            reportId: `print_${Date.now()}`,
+            action: 'printed'
+          }
+        })
+      }).catch(err => console.warn('Failed to log report print:', err));
     } catch (error) {
       console.error('Print failed:', error);
       alert('Failed to print report. Please try again.');
@@ -1282,6 +1320,26 @@ const ReportsManager = ({ isDarkMode }) => {
           delete updated[slotIndex];
           return updated;
         });
+        
+        // Log removal to audit trail
+        const token = localStorage.getItem('token') || window.__authToken;
+        fetch('/api/audit/log-report', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            reportType: 'Report Removal',
+            reportDetails: {
+              reportName: `${reportToRemove.type.name} - Removed`,
+              format: 'N/A',
+              reportId: reportToRemove.id,
+              action: 'removed',
+              slot: slotIndex
+            }
+          })
+        }).catch(err => console.warn('Failed to log report removal:', err));
         
         // Close both modals
         setShowZoomModal(false);
@@ -1327,6 +1385,26 @@ const ReportsManager = ({ isDarkMode }) => {
       ...prev,
       [selectedSlot]: newReport
     }));
+
+    // Log report creation to audit trail
+    const token = localStorage.getItem('token') || window.__authToken;
+    fetch('/api/audit/log-report', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        reportType: selectedReportType?.name || 'Unknown Report',
+        reportDetails: {
+          reportName: selectedReportType?.name || 'Unknown Report',
+          format: selectedChartType,
+          reportId: newReport.id,
+          category: selectedReportType?.category,
+          slot: selectedSlot
+        }
+      })
+    }).catch(err => console.warn('Failed to log report creation:', err));
 
     // Close modal and reset
     setShowCreateModal(false);
@@ -1391,6 +1469,25 @@ const ReportsManager = ({ isDarkMode }) => {
         default:
           content = `${reportType} Report - ${timestamp}\\n\\nReport data will be generated here.`;
       }
+      
+      // Log report generation to audit trail
+      const token = localStorage.getItem('token') || window.__authToken;
+      fetch('/api/audit/log-report', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          reportType: reportType,
+          reportDetails: {
+            reportName: reportType,
+            format: format,
+            reportId: `report_${Date.now()}`,
+            stats: reportStats
+          }
+        })
+      }).catch(err => console.warn('Failed to log report generation:', err));
       
       if (format === 'pdf') {
         // Create PDF blob

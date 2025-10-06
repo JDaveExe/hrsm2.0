@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const { authenticateToken: auth } = require('../middleware/auth');
 
 // Import database models based on your database setup
 // Using file-based storage for now, can be upgraded to Sequelize models later
 const fs = require('fs').promises;
 const path = require('path');
+const AuditLogger = require('../utils/auditLogger');
 
 // Data file paths
 const vaccinesDataPath = path.join(__dirname, '../data/vaccines.json');
@@ -59,7 +61,7 @@ router.get('/vaccines/:id', async (req, res) => {
 });
 
 // Create new vaccine
-router.post('/vaccines', async (req, res) => {
+router.post('/vaccines', auth, async (req, res) => {
   try {
     const vaccines = await readJsonFile(vaccinesDataPath);
     const newVaccine = {
@@ -71,6 +73,15 @@ router.post('/vaccines', async (req, res) => {
     
     vaccines.push(newVaccine);
     await writeJsonFile(vaccinesDataPath, vaccines);
+    
+    // Log vaccine addition audit trail
+    const vaccineForAudit = {
+      id: newVaccine.id,
+      vaccineName: newVaccine.name,
+      dosesInStock: newVaccine.quantityInStock || newVaccine.dosesInStock || newVaccine.unitsInStock || 0,
+      manufacturer: newVaccine.manufacturer || 'Unknown Manufacturer'
+    };
+    await AuditLogger.logVaccineAddition(req, vaccineForAudit);
     
     res.status(201).json(newVaccine);
   } catch (error) {
@@ -89,6 +100,7 @@ router.put('/vaccines/:id', async (req, res) => {
       return res.status(404).json({ error: 'Vaccine not found' });
     }
     
+    const oldVaccine = { ...vaccines[index] };
     vaccines[index] = {
       ...vaccines[index],
       ...req.body,
@@ -96,6 +108,18 @@ router.put('/vaccines/:id', async (req, res) => {
     };
     
     await writeJsonFile(vaccinesDataPath, vaccines);
+    
+    // Log vaccine update audit
+    await AuditLogger.logInventoryAction(req, 'vaccine_updated', `updated vaccine: ${vaccines[index].name}`, {
+      itemType: 'vaccine',
+      itemId: vaccines[index].id,
+      itemName: vaccines[index].name,
+      action: 'update',
+      changes: req.body,
+      oldData: oldVaccine,
+      newData: vaccines[index]
+    });
+    
     res.json(vaccines[index]);
   } catch (error) {
     console.error('Error updating vaccine:', error);
@@ -104,7 +128,7 @@ router.put('/vaccines/:id', async (req, res) => {
 });
 
 // Delete vaccine
-router.delete('/vaccines/:id', async (req, res) => {
+router.delete('/vaccines/:id', auth, async (req, res) => {
   try {
     const vaccines = await readJsonFile(vaccinesDataPath);
     const index = vaccines.findIndex(v => v.id === parseInt(req.params.id));
@@ -113,8 +137,22 @@ router.delete('/vaccines/:id', async (req, res) => {
       return res.status(404).json({ error: 'Vaccine not found' });
     }
     
+    const deletedVaccine = vaccines[index];
     vaccines.splice(index, 1);
     await writeJsonFile(vaccinesDataPath, vaccines);
+    
+    console.log(`✅ Deleted vaccine: ${deletedVaccine.name}`);
+    
+    // Audit logging for vaccine removal
+    if (req.user) {
+      Promise.resolve().then(async () => {
+        try {
+          await AuditLogger.logVaccineRemoval(req, deletedVaccine);
+        } catch (error) {
+          console.warn('Non-critical: Audit logging failed:', error.message);
+        }
+      });
+    }
     
     res.json({ message: 'Vaccine deleted successfully' });
   } catch (error) {
@@ -154,7 +192,7 @@ router.get('/medications/:id', async (req, res) => {
 });
 
 // Create new medication
-router.post('/medications', async (req, res) => {
+router.post('/medications', auth, async (req, res) => {
   try {
     const medications = await readJsonFile(medicationsDataPath);
     const newMedication = {
@@ -166,6 +204,18 @@ router.post('/medications', async (req, res) => {
     
     medications.push(newMedication);
     await writeJsonFile(medicationsDataPath, medications);
+    
+    // Log medication addition audit trail
+    const medicationForAudit = {
+      id: newMedication.id,
+      medicationName: newMedication.name,
+      brandName: newMedication.brandName || newMedication.brand || '',
+      form: newMedication.dosageForm || newMedication.form || '',
+      strength: newMedication.strength || '',
+      unitsInStock: newMedication.quantityInStock || newMedication.unitsInStock || 0,
+      manufacturer: newMedication.manufacturer || 'Unknown Manufacturer'
+    };
+    await AuditLogger.logMedicationAddition(req, medicationForAudit);
     
     res.status(201).json(newMedication);
   } catch (error) {
@@ -184,6 +234,7 @@ router.put('/medications/:id', async (req, res) => {
       return res.status(404).json({ error: 'Medication not found' });
     }
     
+    const oldMedication = { ...medications[index] };
     medications[index] = {
       ...medications[index],
       ...req.body,
@@ -191,6 +242,18 @@ router.put('/medications/:id', async (req, res) => {
     };
     
     await writeJsonFile(medicationsDataPath, medications);
+    
+    // Log medication update audit
+    await AuditLogger.logInventoryAction(req, 'medication_updated', `updated medication: ${medications[index].name}`, {
+      itemType: 'medication',
+      itemId: medications[index].id,
+      itemName: medications[index].name,
+      action: 'update',
+      changes: req.body,
+      oldData: oldMedication,
+      newData: medications[index]
+    });
+    
     res.json(medications[index]);
   } catch (error) {
     console.error('Error updating medication:', error);
@@ -199,7 +262,7 @@ router.put('/medications/:id', async (req, res) => {
 });
 
 // Delete medication
-router.delete('/medications/:id', async (req, res) => {
+router.delete('/medications/:id', auth, async (req, res) => {
   try {
     const medications = await readJsonFile(medicationsDataPath);
     const index = medications.findIndex(m => m.id === parseInt(req.params.id));
@@ -208,8 +271,22 @@ router.delete('/medications/:id', async (req, res) => {
       return res.status(404).json({ error: 'Medication not found' });
     }
     
+    const deletedMedication = medications[index];
     medications.splice(index, 1);
     await writeJsonFile(medicationsDataPath, medications);
+    
+    console.log(`✅ Deleted medication: ${deletedMedication.name}`);
+    
+    // Audit logging for medication removal
+    if (req.user) {
+      Promise.resolve().then(async () => {
+        try {
+          await AuditLogger.logMedicationRemoval(req, deletedMedication);
+        } catch (error) {
+          console.warn('Non-critical: Audit logging failed:', error.message);
+        }
+      });
+    }
     
     res.json({ message: 'Medication deleted successfully' });
   } catch (error) {

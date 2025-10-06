@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken, requireRole } = require('../middleware/auth');
+const AuditLogger = require('../utils/auditLogger');
 const fs = require('fs').promises;
 const path = require('path');
 const { execSync } = require('child_process');
@@ -96,6 +97,20 @@ router.post('/create', authenticateToken, requireRole(['admin']), async (req, re
     };
 
     backupJobs[jobId] = job;
+
+    // Log audit event for backup creation
+    try {
+      await AuditLogger.logBackupCreation(req, backupId, {
+        description,
+        includeDatabase,
+        includeFiles,
+        includeImages,
+        compressionLevel
+      });
+      console.log(`✅ Audit log created for backup: ${backupId}`);
+    } catch (auditError) {
+      console.error('⚠️  Audit logging failed (non-critical):', auditError.message);
+    }
 
     // Start backup process (async)
     processBackup(backup, job).catch(error => {
@@ -227,6 +242,20 @@ router.post('/restore/:backupId', authenticateToken, requireRole(['admin']), asy
     // For demo purposes, just return success
     // In production, implement actual restore logic
     await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Log audit event for backup restore
+    try {
+      await AuditLogger.logBackupRestore(req, backupId, {
+        backupDescription: backup.description,
+        restoreDatabase,
+        restoreFiles,
+        restoreImages,
+        overwriteExisting
+      });
+      console.log(`✅ Audit log created for backup restore: ${backupId}`);
+    } catch (auditError) {
+      console.error('⚠️  Audit logging failed (non-critical):', auditError.message);
+    }
 
     res.json({ 
       message: 'Backup restored successfully',

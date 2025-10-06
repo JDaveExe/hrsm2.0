@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { CheckInSession, Patient, VitalSigns, User } = require('../models');
+const { CheckInSession, Patient, User } = require('../models');
 const { Op } = require('sequelize');
 const { authenticateToken: auth } = require('../middleware/auth');
+const AuditLogger = require('../utils/auditLogger');
 
 // Helper function to calculate age from date of birth
 const calculateAge = (dateOfBirth) => {
@@ -157,6 +158,19 @@ router.post('/:sessionId/start', auth, async (req, res) => {
       startedAt: new Date()
     });
 
+    // Get patient information for audit logging
+    const patient = session.Patient;
+    if (patient) {
+      // Log the checkup start action (non-blocking)
+      Promise.resolve().then(async () => {
+        try {
+          await AuditLogger.logCheckupStart(req, patient);
+        } catch (error) {
+          console.warn('Non-critical: Audit logging failed for checkup start:', error.message);
+        }
+      });
+    }
+
     res.json({ 
       message: 'Checkup started successfully',
       session: {
@@ -211,6 +225,19 @@ router.post('/:sessionId/complete', auth, async (req, res) => {
       prescription: prescription || null,
       doctorNotes: notes || null
     });
+
+    // Get patient information for audit logging
+    const patient = session.Patient;
+    if (patient) {
+      // Log the checkup completion action (non-blocking)
+      Promise.resolve().then(async () => {
+        try {
+          await AuditLogger.logCheckupCompletion(req, patient);
+        } catch (error) {
+          console.warn('Non-critical: Audit logging failed for checkup completion:', error.message);
+        }
+      });
+    }
 
     res.json({ 
       message: 'Checkup completed successfully',

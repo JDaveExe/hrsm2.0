@@ -4,6 +4,7 @@ const { CheckInSession, Patient, Appointment, User } = require('../models');
 const { Op, sequelize } = require('sequelize');
 const { sequelize: db } = require('../config/database');
 const { authenticateToken: auth } = require('../middleware/auth');
+const AuditLogger = require('../utils/auditLogger');
 
 // Helper function to calculate age from date of birth
 const calculateAge = (dateOfBirth) => {
@@ -83,7 +84,7 @@ router.get('/today', async (req, res) => {
 });
 
 // Record vital signs for a patient
-router.post('/:sessionId/vital-signs', async (req, res) => {
+router.post('/:sessionId/vital-signs', auth, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const vitalSigns = req.body;
@@ -126,6 +127,12 @@ router.post('/:sessionId/vital-signs', async (req, res) => {
       recordedAt: vitalSigns.recordedAt || new Date(),
       createdAt: new Date()
     });
+
+    // Log the vital signs check action
+    const patient = session.Patient;
+    if (patient) {
+      await AuditLogger.logVitalSignsCheck(req, patient, vitalSigns);
+    }
 
     res.json({ 
       message: 'Vital signs recorded successfully',
@@ -222,7 +229,7 @@ router.post('/debug/test-session/:sessionId', async (req, res) => {
 });
 
 // Notify doctor about a patient
-router.post('/:sessionId/notify-doctor', async (req, res) => {
+router.post('/:sessionId/notify-doctor', auth, async (req, res) => {
   try {
     const { sessionId } = req.params;
     const { assignedDoctor, assignedDoctorName } = req.body;
@@ -243,6 +250,14 @@ router.post('/:sessionId/notify-doctor', async (req, res) => {
       attributes: ['id', 'firstName', 'lastName', 'contactNumber']
     });
 
+    // Get doctor information if assignedDoctor is provided
+    let doctor = null;
+    if (assignedDoctor) {
+      doctor = await User.findByPk(assignedDoctor, {
+        attributes: ['id', 'firstName', 'lastName']
+      });
+    }
+
     // Update session to notify doctor
     await session.update({
       doctorNotified: true,
@@ -250,6 +265,11 @@ router.post('/:sessionId/notify-doctor', async (req, res) => {
       status: 'doctor-notified',
       assignedDoctor: assignedDoctor || null
     });
+
+    // Log patient transfer audit trail
+    if (patient && doctor) {
+      await AuditLogger.logPatientTransfer(req, patient, doctor);
+    }
 
     // Here you could add notification logic (email, SMS, push notification)
     // For now, we'll just log it
@@ -274,7 +294,7 @@ router.post('/:sessionId/notify-doctor', async (req, res) => {
 });
 
 // Create a new check-in session (for adding patients manually)
-router.post('/check-in', async (req, res) => {
+router.post('/check-in', auth, async (req, res) => {
   try {
     const {
       patientId,
@@ -330,6 +350,19 @@ router.post('/check-in', async (req, res) => {
       checkInTime: new Date(),
       status: 'checked-in'
     });
+
+    // Log the patient check-in for audit trail
+    await AuditLogger.logPatientCheckIn(
+      req, 
+      patient.id, 
+      `${patient.firstName} ${patient.lastName}`, 
+      { 
+        method: checkInMethod,
+        serviceType: serviceType,
+        priority: priority,
+        sessionId: session.id
+      }
+    );
 
     res.status(201).json({
       message: 'Patient checked in successfully',
@@ -464,6 +497,28 @@ router.post('/qr-checkin', async (req, res) => {
       checkInTime: new Date(),
       status: 'checked-in'
     });
+
+    // Log QR check-in action using the working pattern
+    try {
+      await AuditLogger.logCustomAction(req, 'patient_check_in', 
+        `${req.user?.firstName || 'Admin'} ${req.user?.lastName || 'User'} checked in patient ${patientName} via QR scan`, {
+          targetType: 'patient',
+          targetId: patientId,
+          targetName: patientName,
+          metadata: {
+            method: 'QR Scan',
+            serviceType,
+            priority,
+            sessionId: session.id,
+            checkInTime: session.checkInTime,
+            patientId,
+            patientName
+          }
+        });
+    } catch (auditError) {
+      console.error('❌ Audit logging failed for patient check-in:', auditError.message);
+      // Don't fail the check-in if audit logging fails
+    }
 
     console.log(`QR check-in successful for patient ${patientName} (ID: ${patientId})`);
 
@@ -693,6 +748,31 @@ router.put('/:sessionId/status', auth, async (req, res) => {
     await transaction.commit();
     console.log('✅ Transaction committed successfully');
 
+    // Log status update action
+    const patientInfo = await Patient.findByPk(session.patientId);
+    const patientName = patientInfo ? `${patientInfo.firstName} ${patientInfo.lastName}` : 'Unknown Patient';
+    
+    await AuditLogger.logCheckupStatusUpdate(currentDoctorId, session.patientId, patientName, {
+      sessionId: sessionId,
+      oldStatus: session.status,
+      newStatus: status,
+      hasNotes: !!notes,
+      hasDiagnosis: !!diagnosis,
+      hasTreatmentPlan: !!treatmentPlan,
+      prescriptionCount: prescriptions?.length || 0
+    });
+
+    // Log checkup completion specifically when status becomes 'completed' (non-blocking)
+    if (status === 'completed' && session.Patient) {
+      Promise.resolve().then(async () => {
+        try {
+          await AuditLogger.logCheckupCompletion(req, session.Patient);
+        } catch (error) {
+          console.warn('Non-critical: Audit logging failed for checkup completion:', error.message);
+        }
+      });
+    }
+
     // Get the updated session with full patient information for proper response
     const updatedSession = await CheckInSession.findByPk(sessionId, {
       include: [
@@ -837,21 +917,29 @@ router.delete('/today/:patientId', async (req, res) => {
 // Get all checkups assigned to doctor
 router.get('/doctor', auth, async (req, res) => {
   try {
+    console.log('=== DOCTOR CHECKUPS ENDPOINT CALLED ===');
     console.log('Getting doctor checkups for doctor ID:', req.user?.id);
+    console.log('Request headers:', req.headers);
     
     // Ensure we have a valid doctor ID from the authenticated user
     if (!req.user || !req.user.id) {
+      console.log('❌ No doctor ID found in request');
       return res.status(401).json({ 
         error: 'Unauthorized - Doctor ID not found in request' 
       });
     }
     
     const doctorId = req.user.id;
+    console.log('✅ Doctor ID confirmed:', doctorId);
+    
+    console.log('🔍 Querying checkups with filter:');
+    console.log('- assignedDoctor:', doctorId);
+    console.log('- status IN:', ['started', 'in-progress', 'completed', 'transferred']);
     
     const checkInSessions = await CheckInSession.findAll({
       where: {
         status: {
-          [Op.in]: ['started', 'in-progress', 'completed']
+          [Op.in]: ['started', 'in-progress', 'completed', 'transferred']
         },
         assignedDoctor: doctorId // Filter by the logged-in doctor's ID
       },
@@ -871,7 +959,10 @@ router.get('/doctor', auth, async (req, res) => {
       order: [['checkInTime', 'DESC']]
     });
 
-    console.log(`Found ${checkInSessions.length} checkups for doctor ${doctorId}`);
+    console.log(`📊 Found ${checkInSessions.length} checkups for doctor ${doctorId}`);
+    checkInSessions.forEach((session, index) => {
+      console.log(`${index + 1}. ID: ${session.id}, Patient: ${session.patientId}, Status: '${session.status}', Time: ${session.checkInTime}`);
+    });
 
     const checkups = checkInSessions.map(session => {
       const patient = session.Patient;
@@ -922,6 +1013,124 @@ router.get('/doctor', auth, async (req, res) => {
     console.error('Error fetching doctor checkups:', error);
     res.status(500).json({ 
       error: 'Failed to fetch doctor checkups',
+      message: error.message 
+    });
+  }
+});
+
+// @route   GET /api/checkups/ongoing
+// @desc    Get doctor's ongoing checkups
+// @access  Private (Doctor)
+router.get('/ongoing', auth, async (req, res) => {
+  try {
+    console.log('Checking ongoing checkups for doctor ID:', req.user?.id);
+    
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ 
+        error: 'Unauthorized - Doctor ID not found in request' 
+      });
+    }
+    
+    const doctorId = req.user.id;
+    
+    // Find ongoing checkups for this doctor
+    const ongoingCheckups = await CheckInSession.findAll({
+      where: {
+        assignedDoctor: doctorId,
+        status: {
+          [Op.in]: ['started', 'in-progress']
+        }
+      },
+      include: [{
+        model: Patient,
+        as: 'Patient',
+        attributes: ['id', 'firstName', 'lastName']
+      }],
+      order: [['startedAt', 'ASC']]
+    });
+    
+    const checkupsData = ongoingCheckups.map(session => ({
+      id: session.id,
+      patientId: session.patientId,
+      patientName: session.Patient ? `${session.Patient.firstName} ${session.Patient.lastName}` : 'Unknown',
+      status: session.status,
+      startedAt: session.startedAt,
+      serviceType: session.serviceType,
+      priority: session.priority,
+      notes: session.notes
+    }));
+    
+    console.log(`Found ${checkupsData.length} ongoing checkups for doctor ${doctorId}`);
+    res.json(checkupsData);
+  } catch (error) {
+    console.error('Error fetching ongoing checkups:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch ongoing checkups',
+      message: error.message 
+    });
+  }
+});
+
+// @route   PUT /api/checkups/force-complete/:sessionId
+// @desc    Force complete a stuck checkup session
+// @access  Private (Doctor/Admin)
+router.put('/force-complete/:sessionId', auth, async (req, res) => {
+  try {
+    console.log('Force completing checkup session:', req.params.sessionId, 'by user:', req.user?.id);
+    
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ 
+        error: 'Unauthorized - User ID not found in request' 
+      });
+    }
+    
+    const { sessionId } = req.params;
+    const userId = req.user.id;
+    
+    // Find the checkup session
+    const session = await CheckInSession.findByPk(sessionId);
+    if (!session) {
+      return res.status(404).json({ error: 'Checkup session not found' });
+    }
+    
+    // Only the assigned doctor or admin can force complete
+    if (req.user.role !== 'admin' && session.assignedDoctor !== userId) {
+      return res.status(403).json({ 
+        error: 'Access denied - Only the assigned doctor or admin can force complete this checkup' 
+      });
+    }
+    
+    // Force complete the checkup
+    await session.update({
+      status: 'completed',
+      completedAt: new Date(),
+      notes: (session.notes || '') + `\n[Force completed by ${req.user.role} at ${new Date().toISOString()}]`
+    });
+    
+    // Log force completion action
+    const patientInfo = await Patient.findByPk(session.patientId);
+    const patientName = patientInfo ? `${patientInfo.firstName} ${patientInfo.lastName}` : 'Unknown Patient';
+    
+    await AuditLogger.logCheckupForceComplete(userId, session.patientId, patientName, {
+      sessionId: sessionId,
+      previousStatus: session.status,
+      userRole: req.user.role,
+      assignedDoctor: session.assignedDoctor
+    });
+    
+    console.log(`Checkup ${sessionId} force completed by ${req.user.role} ${userId}`);
+    
+    res.json({
+      success: true,
+      message: 'Checkup force completed successfully',
+      sessionId: session.id,
+      status: session.status,
+      completedAt: session.completedAt
+    });
+  } catch (error) {
+    console.error('Error force completing checkup:', error);
+    res.status(500).json({ 
+      error: 'Failed to force complete checkup',
       message: error.message 
     });
   }
@@ -1052,6 +1261,17 @@ router.post('/', auth, async (req, res) => {
       createdAt: checkupSession.createdAt,
       updatedAt: checkupSession.updatedAt
     };
+
+    // Log checkup start to audit trail (non-blocking)
+    if (patient) {
+      Promise.resolve().then(async () => {
+        try {
+          await AuditLogger.logCheckupStart(req, patient);
+        } catch (error) {
+          console.warn('Non-critical: Audit logging failed for checkup start:', error.message);
+        }
+      });
+    }
 
     console.log('Checkup session created successfully:', formattedSession);
     res.status(201).json(formattedSession);

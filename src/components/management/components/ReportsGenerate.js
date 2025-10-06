@@ -1,19 +1,43 @@
 import React, { useState } from 'react';
 import { Row, Col, Card, Form, Button } from 'react-bootstrap';
+import axios from 'axios';
 
 const ReportsGenerate = ({ currentDateTime, isDarkMode }) => {
   const [generatingReport, setGeneratingReport] = useState(false);
   const [selectedReportType, setSelectedReportType] = useState('');
   const [dateRange, setDateRange] = useState({ from: '', to: '' });
 
-  const handleGenerateReport = (type) => {
+  const handleGenerateReport = async (type) => {
     setGeneratingReport(true);
-    // Simulate report generation
-    setTimeout(() => {
+    
+    try {
+      // Log report generation to audit trail
+      const token = localStorage.getItem('token') || window.__authToken;
+      await axios.post('/api/audit/log-report', {
+        reportType: type,
+        reportDetails: {
+          reportName: type,
+          format: 'PDF/Excel',
+          dateRange: dateRange,
+          reportId: `report_${Date.now()}`
+        }
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      // Simulate report generation
+      setTimeout(() => {
+        setGeneratingReport(false);
+        alert(`${type} report generated successfully!`);
+      }, 2000);
+    } catch (error) {
+      console.error('Error generating report:', error);
       setGeneratingReport(false);
-      // Here you would typically call an API to generate the report
-      alert(`${type} report generated successfully!`);
-    }, 2000);
+      alert('Failed to generate report');
+    }
   };
 
   const reportTypes = [

@@ -8,8 +8,8 @@ import PatientManagement from './components/PatientManagement';
 import AppointmentManager from './components/AppointmentManager';
 import VitalSignsManager from './components/VitalSignsManager';
 import SystemSettings from './components/SystemSettings';
+import AuditTrail from './components/AuditTrail';
 import LoadingSpinner from './components/LoadingSpinner';
-import SimulationMode from './components/SimulationMode';
 import CheckupManager from './components/CheckupManager';
 import BackupManager from './components/BackupManager';
 import ResetCheckupDataModal from './components/ResetCheckupDataModal';
@@ -21,9 +21,6 @@ import sealmainImage from '../../images/sealmain.png';
 const AdminLayout = () => {
   const { user, logout } = useAuth();
   const { 
-    simulationModeStatus,
-    updateSimulationMode,
-    disableSimulationMode,
     forceRefreshAllData
   } = useData();
 
@@ -33,7 +30,6 @@ const AdminLayout = () => {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showSimulationModal, setShowSimulationModal] = useState(false);
   const [showFPSMonitor, setShowFPSMonitor] = useState(false);
   const [showResetCheckupModal, setShowResetCheckupModal] = useState(false);
   
@@ -41,32 +37,16 @@ const AdminLayout = () => {
   const [pendingNotifications, setPendingNotifications] = useState([]);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
 
-  // Update time every second (real or simulated)
+  // Update time every second
   useEffect(() => {
     const interval = setInterval(() => {
-      if (simulationModeStatus?.enabled && simulationModeStatus?.currentSimulatedDate) {
-        // Use simulated time - update by keeping the time flowing
-        const simulatedDate = new Date(simulationModeStatus.currentSimulatedDate);
-        const now = new Date();
-        const timeDifference = now.getTime() - new Date(simulationModeStatus.activatedAt || now).getTime();
-        const currentSimulatedTime = new Date(simulatedDate.getTime() + timeDifference);
-        setCurrentDateTime(currentSimulatedTime);
-      } else {
-        // Use real time
-        setCurrentDateTime(new Date());
-      }
+      setCurrentDateTime(new Date());
     }, 1000);
     return () => clearInterval(interval);
-  }, [simulationModeStatus?.enabled, simulationModeStatus?.currentSimulatedDate, simulationModeStatus?.activatedAt]);
+  }, []);
 
   // Navigation handler with loading state
   const handleNavigation = useCallback((path, tabToActivate = null) => {
-    // Handle special navigation cases
-    if (path === 'Simulation Mode') {
-      setShowSimulationModal(true);
-      return;
-    }
-    
     setIsLoading(true);
     setCurrentPath(path);
     
@@ -176,47 +156,6 @@ const AdminLayout = () => {
     setShowLogoutModal(true);
   }, []);
 
-  // Simulation mode handlers
-  const handleSimulationToggle = useCallback(async () => {
-    try {
-      if (simulationModeStatus?.enabled) {
-        disableSimulationMode();
-      } else {
-        const defaultSettings = {
-          enabled: true,
-          currentSimulatedDate: new Date(),
-          smsSimulation: true,
-          emailSimulation: true,
-          dataSimulation: false,
-          chartSimulation: false
-        };
-        updateSimulationMode(defaultSettings, user?.username || 'admin');
-      }
-    } catch (error) {
-      console.error('Error toggling simulation mode:', error);
-    }
-  }, [simulationModeStatus?.enabled, updateSimulationMode, disableSimulationMode, user]);
-
-  const handleSimulationUpdate = useCallback(async (settings) => {
-    try {
-      if (settings.enabled) {
-        const simulationData = {
-          enabled: settings.enabled,
-          currentSimulatedDate: new Date(settings.simulatedDateTime),
-          smsSimulation: settings.mockSmsService,
-          emailSimulation: settings.mockEmailService,
-          dataSimulation: settings.autoGenerateTestData,
-          chartSimulation: settings.chartSimulation
-        };
-        updateSimulationMode(simulationData, user?.username || 'admin');
-      } else {
-        disableSimulationMode();
-      }
-    } catch (error) {
-      console.error('Error updating simulation settings:', error);
-    }
-  }, [updateSimulationMode, disableSimulationMode, user]);
-
   // Reset checkup data handler
   const handleResetCheckupData = useCallback(() => {
     setShowResetCheckupModal(true);
@@ -246,6 +185,8 @@ const AdminLayout = () => {
         return CheckupManager;
       case 'User Management':
         return UserManagement;
+      case 'Audit Trail':
+        return AuditTrail;
       case 'Patient Database':
       case 'Patient Management':
         return PatientManagement;
@@ -284,8 +225,6 @@ const AdminLayout = () => {
         handleNavigation={handleNavigation}
         currentPath={currentPath}
         handleLogout={handleLogout}
-        simulationMode={simulationModeStatus}
-        handleSimulationToggle={handleSimulationToggle}
         handleResetCheckupData={handleResetCheckupData}
         sealmainImage={sealmainImage}
         showFPSMonitor={showFPSMonitor}
@@ -311,12 +250,6 @@ const AdminLayout = () => {
             <div className="user-info">
               <div className="date-time">
                 <span>{currentDateTime.toLocaleString()}</span>
-                {simulationModeStatus?.enabled && (
-                  <span className="simulation-indicator">
-                    <i className="bi bi-lightning-charge me-1"></i>
-                    Simulating
-                  </span>
-                )}
                 <PerformanceIndicator show={showFPSMonitor} />
               </div>
               
@@ -374,7 +307,6 @@ const AdminLayout = () => {
               <CurrentComponent
                 currentPath={currentPath}
                 currentDateTime={currentDateTime}
-                simulationMode={simulationModeStatus}
               />
             )}
           </div>
@@ -413,15 +345,6 @@ const AdminLayout = () => {
           </div>
         </div>
       )}
-
-      {/* Simulation Mode Modal */}
-      <SimulationMode
-        show={showSimulationModal}
-        onHide={() => setShowSimulationModal(false)}
-        simulationMode={simulationModeStatus}
-        onSimulationToggle={handleSimulationToggle}
-        onSimulationUpdate={handleSimulationUpdate}
-      />
 
       {/* Reset Checkup Data Modal */}
       <ResetCheckupDataModal

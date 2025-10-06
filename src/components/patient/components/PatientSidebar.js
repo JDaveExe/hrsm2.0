@@ -117,9 +117,9 @@ const PatientSidebar = memo(({
                 </Link>
               </li>
               <li onClick={() => handleNavigationClick('Settings')}>
-                <Link to="#" aria-label="Settings">
-                  <i className="bi bi-gear"></i>
-                  <span>Custom & History</span>
+                <Link to="#" aria-label="Login History">
+                  <i className="bi bi-clock-history"></i>
+                  <span>Login History</span>
                 </Link>
               </li>
             </ul>

@@ -1,0 +1,21 @@
+{
+  "metadata": {
+    "id": "backup_1759742506045_i9rur8jeg",
+    "description": "Manual backup - 10/6/2025, 5:21:45 PM",
+    "createdAt": "2025-10-06T09:21:46.045Z",
+    "createdBy": 10029,
+    "status": "in_progress",
+    "includeDatabase": true,
+    "includeFiles": true,
+    "includeImages": true,
+    "compressionLevel": 6,
+    "size": 0,
+    "filePath": null
+  },
+  "timestamp": "2025-10-06T09:21:51.082Z",
+  "components": {
+    "database": "database_backup_data",
+    "files": "files_backup_data",
+    "images": "images_backup_data"
+  }
+}

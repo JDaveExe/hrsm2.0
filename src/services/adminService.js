@@ -498,6 +498,23 @@ const getTodaysCheckupStats = async () => {
 };
 
 /**
+ * Deletes a patient by ID
+ * @param {number} patientId - The ID of the patient to delete
+ * @returns {Promise<Object>} A promise that resolves to the deletion response
+ */
+const deletePatient = async (patientId) => {
+  try {
+    const response = await axios.delete(`/api/patients/${patientId}`, {
+      headers: getAuthHeader(),
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting patient:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
+/**
  * Fetches medicine usage analytics data for charts
  * @returns {Promise<Array>} A promise that resolves to medicine usage data
  */
@@ -541,6 +558,7 @@ const adminService = {
   createFamiliesForPatients,
   createPatient,
   updatePatient,
+  deletePatient,
   createStaffUser,
   getUserList,
   updateUser,

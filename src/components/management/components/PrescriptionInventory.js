@@ -191,10 +191,12 @@ const PrescriptionInventory = ({ currentDateTime, isDarkMode }) => {
         supplier: selectedMedication.manufacturer || 'Unknown'
       };
 
+      const token = localStorage.getItem('token') || window.__authToken;
       const response = await fetch(`http://localhost:5000/api/medication-batches/${selectedMedication.id}/batches`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(batchData)
       });
@@ -867,8 +869,8 @@ const PrescriptionInventory = ({ currentDateTime, isDarkMode }) => {
                           })}
                         </div>
                       </div>
-                    ) : (
-                      // Fallback to legacy single batch display
+                    ) : selectedMedication.batchNumber ? (
+                      // Fallback to legacy single batch display (only if batchNumber exists)
                       <>
                         <div className="detail-item">
                           <strong>Batch Number:</strong> {selectedMedication.batchNumber || 'N/A'}
@@ -886,10 +888,16 @@ const PrescriptionInventory = ({ currentDateTime, isDarkMode }) => {
                         <div className="mt-2">
                           <small className="text-warning">
                             <i className="bi bi-exclamation-triangle me-1"></i>
-                            Legacy data - consider migrating to batch system
+                            Legacy data - add new stock to create proper batches
                           </small>
                         </div>
                       </>
+                    ) : (
+                      // No batches at all
+                      <div className="no-batches-message">
+                        <i className="bi bi-info-circle me-2"></i>
+                        <span>No batches available. Add stock to create batches.</span>
+                      </div>
                     )}
                   </div>
                 </Col>

@@ -78,15 +78,6 @@ export const DataProvider = ({ children }) => {
     loadFromLocalStorage('doctorCheckupsData', [])
   );
 
-  // Simulation mode status - shared between admin and doctor dashboards (handled locally in components)
-  // const [simulationModeStatus, setSimulationModeStatus] = useState(() => 
-  //   loadFromLocalStorage('simulationModeStatus', {
-  //     enabled: false,
-  //     currentSimulatedDate: null,
-  //     activatedBy: null,
-  //     activatedAt: null
-  //   })
-  // );
 
   // Backend connection status
   const [backendConnected, setBackendConnected] = useState(false);
@@ -316,10 +307,6 @@ export const DataProvider = ({ children }) => {
     debouncedSave('doctorCheckupsData', doctorCheckupsData);
   }, [doctorCheckupsData, debouncedSave]);
 
-  // NOTE: simulationModeStatus is now handled locally in DoctorLayout to prevent infinite loops
-  // useEffect(() => {
-  //   debouncedSave('simulationModeStatus', simulationModeStatus);
-  // }, [simulationModeStatus, debouncedSave]);
 
   useEffect(() => {
     debouncedSave('analyticsData', analyticsData);
@@ -758,11 +745,30 @@ export const DataProvider = ({ children }) => {
         return { success: true, data: createdCheckup };
       } else {
         console.warn('DataContext: Failed to create checkup session:', response.status);
+        
         // Remove from local state on failure
         setDoctorCheckupsData(prev => 
           prev.filter(checkup => checkup.id !== newCheckup.id)
         );
-        return { success: false, error: 'Failed to create checkup session' };
+        setSharedCheckupsData(prev => 
+          prev.filter(checkup => checkup.id !== newCheckup.id)
+        );
+        
+        // Get error details
+        const errorData = await response.json().catch(() => null);
+        const errorMessage = errorData?.error || 'Failed to create checkup session';
+        
+        // Check if it's an ongoing checkup validation error
+        if (response.status === 400 && errorMessage.includes('checkup in progress')) {
+          return { 
+            success: false, 
+            error: errorMessage, 
+            isOngoingCheckupError: true,
+            existingCheckupId: errorData?.existingCheckupId
+          };
+        }
+        
+        return { success: false, error: errorMessage };
       }
     } catch (error) {
       console.error('DataContext: Error creating checkup session:', error);
@@ -1345,6 +1351,61 @@ export const DataProvider = ({ children }) => {
     };
   }, [checkBackendConnection]);
 
+  // Get doctor's ongoing checkups
+  const getOngoingCheckups = useCallback(async () => {
+    try {
+      const response = await fetch('/api/checkups/ongoing', {
+        headers: {
+          'Authorization': `Bearer ${window.__authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const ongoingCheckups = await response.json();
+        console.log('DataContext: Found ongoing checkups:', ongoingCheckups);
+        return { success: true, data: ongoingCheckups };
+      } else {
+        const errorData = await response.json().catch(() => null);
+        const errorMessage = errorData?.error || 'Failed to get ongoing checkups';
+        return { success: false, error: errorMessage };
+      }
+    } catch (error) {
+      console.error('DataContext: Error getting ongoing checkups:', error);
+      return { success: false, error: error.message };
+    }
+  }, []);
+
+  // Force complete a stuck checkup
+  const forceCompleteCheckup = useCallback(async (sessionId) => {
+    try {
+      const response = await fetch(`/api/checkups/force-complete/${sessionId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${window.__authToken}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('DataContext: Checkup force completed:', result);
+        
+        // Refresh checkups data
+        await refreshDoctorCheckups();
+        
+        return { success: true, data: result };
+      } else {
+        const errorData = await response.json().catch(() => null);
+        const errorMessage = errorData?.error || 'Failed to force complete checkup';
+        return { success: false, error: errorMessage };
+      }
+    } catch (error) {
+      console.error('DataContext: Error force completing checkup:', error);
+      return { success: false, error: error.message };
+    }
+  }, [refreshDoctorCheckups]);
+
   const value = {
     // Data state
     dashboardData,
@@ -1408,6 +1469,8 @@ export const DataProvider = ({ children }) => {
     startCheckupSession,
     updateCheckupNotes,
     getPatientCheckupHistory,
+    getOngoingCheckups,
+    forceCompleteCheckup,
     
     // Real-time synchronization functions
     refreshDoctorQueue,

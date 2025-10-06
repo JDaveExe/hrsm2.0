@@ -68,6 +68,14 @@ const ManagementSidebar = memo(({
               <span>Healthcare Insights</span>
             </Link>
           </li>
+
+          {/* Audit Trail */}
+          <li className={currentPath === 'Audit Trail' ? 'active' : ''} onClick={() => handleNavigationClick('Audit Trail')}>
+            <Link to="#">
+              <i className="bi bi-clipboard-data"></i>
+              <span>Audit Trail</span>
+            </Link>
+          </li>
         </ul>
       </div>
 

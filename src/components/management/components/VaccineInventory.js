@@ -188,10 +188,12 @@ const VaccineInventory = ({ currentDateTime, isDarkMode }) => {
         supplier: selectedVaccine.manufacturer || 'Unknown'
       };
 
+      const token = localStorage.getItem('token') || window.__authToken;
       const response = await fetch(`http://localhost:5000/api/vaccine-batches/${selectedVaccine.id}/batches`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(batchData)
       });

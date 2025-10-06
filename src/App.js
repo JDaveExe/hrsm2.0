@@ -8,6 +8,7 @@ import './App.css';
 import Header from './components/Header'; // Keep Header for immediate load
 import ProtectedRoute from './components/ProtectedRoute'; // Keep ProtectedRoute for immediate load
 import SessionWarningModal from './components/auth/SessionWarningModal'; // Import session warning modal
+import CriticalAlertBanner from './components/CriticalAlertBanner'; // Import critical alert banner
 
 // Import context providers
 import { AuthProvider } from './context/AuthContext';
@@ -130,6 +131,8 @@ function App() {
             <CSSLoadingGuard>
               <Router>
             <div className="App">
+              {/* Critical Alert Banner - Shows at top of all pages for admin/management */}
+              <CriticalAlertBanner />
               <Header /> {/* Add Header component here */}
               <div className="main-content">
                 <Suspense fallback={

@@ -1,0 +1,286 @@
+/* Critical Alert Banner Styles */
+
+.critical-alert-banner-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.critical-alert-banner {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-bottom: 3px solid #bd2130;
+  animation: slideDown 0.4s ease-out;
+  pointer-events: auto;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.alert-banner-content {
+  padding: 16px 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.alert-banner-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.alert-banner-item:last-child {
+  margin-bottom: 0;
+}
+
+.alert-banner-item:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transform: translateY(-2px);
+}
+
+/* Severity-based styling */
+.alert-banner-item.alert-banner-critical {
+  border-left: 6px solid #dc3545;
+  background: linear-gradient(90deg, rgba(220, 53, 69, 0.1) 0%, rgba(255, 255, 255, 0.95) 5%);
+}
+
+.alert-banner-item.alert-banner-high {
+  border-left: 6px solid #fd7e14;
+  background: linear-gradient(90deg, rgba(253, 126, 20, 0.1) 0%, rgba(255, 255, 255, 0.95) 5%);
+}
+
+.alert-banner-item.alert-banner-medium {
+  border-left: 6px solid #0d6efd;
+  background: linear-gradient(90deg, rgba(13, 110, 253, 0.1) 0%, rgba(255, 255, 255, 0.95) 5%);
+}
+
+/* Icon styling */
+.alert-banner-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Message content */
+.alert-banner-message {
+  flex: 1;
+  min-width: 0;
+}
+
+.alert-banner-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #212529;
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.alert-banner-description {
+  font-size: 15px;
+  color: #495057;
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.alert-banner-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #6c757d;
+  flex-wrap: wrap;
+}
+
+.alert-performer {
+  font-weight: 600;
+  color: #495057;
+}
+
+.alert-time {
+  font-style: italic;
+}
+
+/* Dismiss button */
+.alert-banner-dismiss-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(220, 53, 69, 0.1);
+  border: 2px solid #dc3545;
+  color: #dc3545;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 20px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.alert-banner-dismiss-btn:hover:not(:disabled) {
+  background: #dc3545;
+  color: white;
+  transform: rotate(90deg) scale(1.1);
+}
+
+.alert-banner-dismiss-btn:active:not(:disabled) {
+  transform: rotate(90deg) scale(0.95);
+}
+
+.alert-banner-dismiss-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Footer with dismiss all button */
+.alert-banner-footer {
+  padding: 0 16px 16px 16px;
+  text-align: center;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.alert-banner-dismiss-all-btn {
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid white;
+  color: #dc3545;
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.alert-banner-dismiss-all-btn:hover:not(:disabled) {
+  background: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.alert-banner-dismiss-all-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.alert-banner-dismiss-all-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .alert-banner-content {
+    padding: 12px 16px;
+  }
+
+  .alert-banner-item {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .alert-banner-icon {
+    font-size: 24px;
+  }
+
+  .alert-banner-title {
+    font-size: 16px;
+  }
+
+  .alert-banner-description {
+    font-size: 14px;
+  }
+
+  .alert-banner-meta {
+    font-size: 12px;
+    gap: 12px;
+  }
+
+  .alert-banner-dismiss-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 18px;
+    top: 8px;
+    right: 8px;
+  }
+
+  .alert-banner-footer {
+    padding: 0 12px 12px 12px;
+  }
+
+  .alert-banner-dismiss-all-btn {
+    padding: 8px 20px;
+    font-size: 13px;
+  }
+}
+
+/* Print styles - hide banner when printing */
+@media print {
+  .critical-alert-banner-container {
+    display: none !important;
+  }
+}
+
+/* Accessibility: Focus styles */
+.alert-banner-dismiss-btn:focus,
+.alert-banner-dismiss-all-btn:focus {
+  outline: 3px solid #0d6efd;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .alert-banner-item {
+    border: 2px solid currentColor;
+  }
+
+  .alert-banner-dismiss-btn,
+  .alert-banner-dismiss-all-btn {
+    border-width: 3px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .critical-alert-banner,
+  .alert-banner-item,
+  .alert-banner-icon,
+  .alert-banner-dismiss-btn,
+  .alert-banner-dismiss-all-btn {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -518,22 +518,11 @@ const AppointmentManager = () => {
       
       const patientsData = patientsResult.status === 'fulfilled' && patientsResult.value?.length > 0
         ? patientsResult.value
-        : [
-            { id: 1, name: 'Maria Santos', email: 'maria@example.com' },
-            { id: 2, name: 'Carlos Mendoza', email: 'carlos@example.com' },
-            { id: 3, name: 'Ana Reyes', email: 'ana@example.com' },
-            { id: 4, name: 'Pedro Garcia', email: 'pedro@example.com' },
-            { id: 5, name: 'Sofia Lopez', email: 'sofia@example.com' },
-            { id: 6, name: 'Miguel Torres', email: 'miguel@example.com' }
-          ];
+        : [];
       
       const usersData = usersResult.status === 'fulfilled' && usersResult.value.length > 0
         ? usersResult.value
-        : [
-            { id: 1, name: 'Dr. Santos', role: 'doctor', email: 'santos@example.com' },
-            { id: 2, name: 'Dr. Martinez', role: 'doctor', email: 'martinez@example.com' },
-            { id: 3, name: 'Dr. Garcia', role: 'doctor', email: 'garcia@example.com' }
-          ];
+        : [];
 
       console.log('Final data:', {
         appointments: appointmentsData.length,

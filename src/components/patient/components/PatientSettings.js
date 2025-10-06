@@ -12,23 +12,51 @@ const PatientSettings = memo(({ user, secureApiCall, onRefresh }) => {
 
   // Fetch login history data
   const fetchHistoryData = useCallback(async () => {
-    if (!user?.patientId) return;
+    if (!user?.id) return;
     
     setLoading(true);
+    setError('');
+    
     try {
-      // Set static login history for demonstration
-      setLoginHistory([
-        { date: '2025-09-08', time: '08:30', device: 'Desktop - Chrome', location: 'Home' },
-        { date: '2025-09-07', time: '14:15', device: 'Mobile - Safari', location: 'Office' },
-        { date: '2025-09-06', time: '09:45', device: 'Desktop - Firefox', location: 'Home' }
-      ]);
+      // Get auth token from session storage
+      const authData = sessionStorage.getItem('authData');
+      const token = authData ? JSON.parse(authData).token : null;
+      
+      if (!token) {
+        setError('Authentication token not found');
+        setLoading(false);
+        return;
+      }
+
+      // Fetch real login history from backend
+      const response = await fetch('/api/audit/login-history', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch login history');
+      }
+
+      const result = await response.json();
+      
+      if (result.success && result.data) {
+        setLoginHistory(result.data);
+      } else {
+        throw new Error(result.msg || 'Failed to load login history');
+      }
     } catch (error) {
       console.error('Error fetching login history:', error);
       setError('Unable to load login history');
+      // Fallback to empty array instead of static data
+      setLoginHistory([]);
     } finally {
       setLoading(false);
     }
-  }, [user?.patientId]);
+  }, [user?.id]);
 
   useEffect(() => {
     fetchHistoryData();
@@ -81,6 +109,11 @@ const PatientSettings = memo(({ user, secureApiCall, onRefresh }) => {
           <i className="bi bi-hourglass-split"></i>
           <p>Loading login history...</p>
         </div>
+      ) : error ? (
+        <div className="alert alert-danger">
+          <i className="bi bi-exclamation-triangle me-2"></i>
+          {error}
+        </div>
       ) : (
         <div className="history-grid">
           {/* Login History */}
@@ -91,14 +124,22 @@ const PatientSettings = memo(({ user, secureApiCall, onRefresh }) => {
               <span className="count-badge">{loginHistory.length}</span>
             </div>
             <div className="history-content">
-              <div className="history-list">
-                {loginHistory.map((login, index) => (
-                  <div key={index} className="history-item">
-                    <span className="date">{login.date} at {login.time}</span>
-                    <span className="description">{login.device} - {login.location}</span>
-                  </div>
-                ))}
-              </div>
+              {loginHistory.length === 0 ? (
+                <div className="empty-state" style={{ textAlign: 'center', padding: '2rem' }}>
+                  <i className="bi bi-clock-history" style={{ fontSize: '3rem', color: '#6c757d' }}></i>
+                  <p>No login history available yet</p>
+                  <small className="text-muted">Your login activity will appear here</small>
+                </div>
+              ) : (
+                <div className="history-list">
+                  {loginHistory.map((login, index) => (
+                    <div key={login.id || index} className="history-item">
+                      <span className="date">{login.date} at {login.time}</span>
+                      <span className="description">{login.device} - {login.location}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -108,8 +149,7 @@ const PatientSettings = memo(({ user, secureApiCall, onRefresh }) => {
         <div className="alert alert-info">
           <i className="bi bi-info-circle"></i>
           <div>
-            <strong>Data Management:</strong> You can export your login history or request data deletion 
-            by contacting our support team. All data is stored securely and in compliance with healthcare regulations.
+            <strong>Data Management:</strong> You can export your login history.
           </div>
         </div>
       </div>

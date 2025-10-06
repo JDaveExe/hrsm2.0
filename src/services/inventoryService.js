@@ -14,7 +14,7 @@ class InventoryService {
     // Request interceptor to add auth token
     this.api.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('token') || window.__authToken;
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -434,11 +434,12 @@ class InventoryService {
       console.log(`📊 Fetching prescription analytics for ${timePeriod}...`);
       
       // Use dashboard API directly (not inventory API)
+      const token = localStorage.getItem('token') || window.__authToken;
       const dashboardApi = axios.create({
         baseURL: `${API_BASE_URL}/dashboard`,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
       
@@ -484,11 +485,12 @@ class InventoryService {
       console.log('💊 Fetching medicine usage analytics...');
       
       // Use dashboard API directly (not inventory API)
+      const token = localStorage.getItem('token') || window.__authToken;
       const dashboardApi = axios.create({
         baseURL: `${API_BASE_URL}/dashboard`,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         }
       });
       

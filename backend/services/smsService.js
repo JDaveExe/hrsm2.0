@@ -5,7 +5,8 @@ class SMSService {
     this.client = null;
     this.isConfigured = false;
     this.isProduction = process.env.NODE_ENV === 'production';
-    this.provider = process.env.SMS_PROVIDER || 'mock';
+    this.useMockMode = process.env.ENABLE_SMS_MOCK === 'true';
+    this.provider = process.env.SMS_PROVIDER || 'twilio';
     
     this.initializeTwilio();
   }
@@ -16,13 +17,33 @@ class SMSService {
       const authToken = process.env.TWILIO_AUTH_TOKEN;
       const fromNumber = process.env.TWILIO_PHONE_NUMBER;
 
+      // Check if mock mode is explicitly enabled
+      if (this.useMockMode) {
+        console.log('⚠️  SMS Mock Mode enabled - SMS will be simulated (not sent)');
+        this.provider = 'mock';
+        return;
+      }
+
       if (accountSid && authToken && fromNumber) {
+        // Validate credentials are not placeholder values
+        if (accountSid === 'your_twilio_account_sid_here' || 
+            authToken === 'your_twilio_auth_token_here' ||
+            fromNumber === '+1234567890') {
+          console.log('⚠️  Twilio credentials are placeholder values, using mock SMS service');
+          console.log('⚠️  Please update your .env file with real Twilio credentials');
+          this.provider = 'mock';
+          return;
+        }
+
         this.client = twilio(accountSid, authToken);
         this.fromNumber = fromNumber;
         this.isConfigured = true;
+        this.provider = 'twilio';
         console.log('✅ Twilio SMS service initialized successfully');
+        console.log(`📱 SMS Provider: ${this.provider} | From Number: ${this.fromNumber}`);
       } else {
         console.log('⚠️  Twilio credentials not found, using mock SMS service');
+        console.log('⚠️  Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER in .env');
         this.provider = 'mock';
       }
     } catch (error) {

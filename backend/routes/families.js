@@ -3,6 +3,7 @@ const { body, validationResult } = require('express-validator');
 const Family = require('../models/Family');
 const Patient = require('../models/Patient');
 const { authenticateToken: auth } = require('../middleware/auth');
+const AuditLogger = require('../utils/auditLogger');
 
 const router = express.Router();
 
@@ -52,6 +53,20 @@ router.post(
 
     try {
       const family = await Family.create(req.body);
+      
+      // Log family creation audit (non-blocking for better performance)
+      Promise.resolve().then(async () => {
+        try {
+          await AuditLogger.logFamilyCreation(req, family.id, family.familyName, {
+            surname: family.surname,
+            headOfFamily: family.headOfFamily,
+            contactNumber: family.contactNumber
+          });
+        } catch (auditError) {
+          console.error('⚠️  Audit logging failed (non-critical):', auditError.message);
+        }
+      });
+      
       res.status(201).json(family);
     } catch (err) {
       console.error(err.message);

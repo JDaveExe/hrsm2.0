@@ -201,8 +201,8 @@ const DoctorLayout = () => {
         currentPath={currentPath}
         handleLogout={handleLogout}
         sealmainImage={sealmainImage}
-        showFPSMonitor={showFPSMonitor}
-        handleFPSToggle={handleFPSToggle}
+        doctorQueueData={doctorQueueData}
+        sharedCheckupsData={sharedCheckupsData}
       />
 
       {/* Main Content Area */}

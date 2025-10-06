@@ -313,10 +313,9 @@
 
 /* Simulation Mode Styles */
 .checkup-manager .badge.bg-info {
-  background-color: #9BC4E2 !important;
-  color: #1976d2;
+  color: #ffffff;
+  border: 1px solid #0d6efd;  
 }
-
 /* Vital Signs Modal Styles */
 .vital-signs-modal .modal-body {
   padding: 1.5rem;

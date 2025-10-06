@@ -8,6 +8,7 @@ const Patient = require('../models/Patient');
 const { DoctorSession } = require('../models');
 const { authenticateToken: auth } = require('../middleware/auth');
 const { smartIdAllocation } = require('../middleware/smartIdAllocation');
+const AuditLogger = require('../utils/auditLogger');
 
 const router = express.Router();
 
@@ -115,7 +116,7 @@ router.post(
         return res.status(400).json({ msg: 'Either email or phone number is required' });
       }
 
-      // Check if user already exists - only check for non-null values
+      // Check if user already exists - check both User and Patient tables
       const existenceConditions = [];
       if (cleanEmail) {
         existenceConditions.push({ email: cleanEmail });
@@ -125,28 +126,34 @@ router.post(
       }
       
       let user = null;
+      let existingPatient = null;
+      
       if (existenceConditions.length > 0) {
+        // Check User table
         user = await User.findOne({
+          where: {
+            [Op.or]: existenceConditions
+          }
+        });
+        
+        // Also check Patient table for existing email/phone
+        existingPatient = await Patient.findOne({
           where: {
             [Op.or]: existenceConditions
           }
         });
       }
 
-      if (user) {
+      if (user || existingPatient) {
         return res.status(400).json({ msg: 'User already exists with this email or phone number' });
       }
 
-      // Hash password
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-
-      // Create new User
+      // Create new User - password will be hashed by beforeCreate hook
       user = await User.create({
         username: username,
         email: cleanEmail,
         contactNumber: cleanPhoneNumber,
-        password: hashedPassword,
+        password: password, // Pass plain password - hook will hash it
         role: 'patient',
         firstName: firstName,
         lastName: lastName
@@ -154,6 +161,9 @@ router.post(
 
       // Generate QR code token
       const qrCode = `${user.id}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+
+      // Clean values for Patient table - convert empty strings to null for unique fields
+      const cleanPhilHealth = (philHealthNumber === '' || philHealthNumber === 'N/A') ? null : philHealthNumber;
 
       // Create new Patient associated with the User
       const patient = await Patient.create({
@@ -165,12 +175,14 @@ router.post(
         dateOfBirth,
         gender,
         civilStatus,
+        contactNumber: cleanPhoneNumber, // Add contact number to Patient table
+        email: cleanEmail, // Add email to Patient table (for display purposes)
         houseNo,
         street,
         barangay,
         city,
         region,
-        philHealthNumber,
+        philHealthNumber: cleanPhilHealth, // Use null instead of empty string
         familyId: null, // Ensures the patient is unsorted
         qrCode: qrCode
       });
@@ -180,6 +192,7 @@ router.post(
         user: {
           id: user.id,
           role: user.role,
+          username: user.username,
           patientId: patient.id,
         },
       };
@@ -211,7 +224,19 @@ router.post(
       );
     } catch (err) {
       console.error('Registration error:', err.message);
-      res.status(500).send('Server error during registration');
+      console.error('Full error:', err);
+      
+      // Provide more specific error messages
+      if (err.name === 'SequelizeValidationError') {
+        const validationErrors = err.errors.map(e => e.message).join(', ');
+        return res.status(400).json({ msg: `Validation error: ${validationErrors}` });
+      }
+      
+      if (err.name === 'SequelizeUniqueConstraintError') {
+        return res.status(400).json({ msg: 'User already exists with this email or phone number' });
+      }
+      
+      res.status(500).json({ msg: 'Server error during registration', error: err.message });
     }
   }
 );
@@ -287,6 +312,9 @@ router.post(
         isActive: true
       });
 
+      // Log the user creation action
+      await AuditLogger.logUserCreation(req, user);
+
       res.json({ 
         msg: 'User created successfully',
         user: {
@@ -356,7 +384,8 @@ router.post(
               {
                 [Op.or]: [
                   { username: login },
-                  { email: login }
+                  { email: login },
+                  { contactNumber: login }
                 ]
               },
               { role: { [Op.in]: ['admin', 'doctor', 'patient', 'management'] } },
@@ -368,6 +397,7 @@ router.post(
         if (user) {
           // Verify password for database users
           const isMatch = await bcrypt.compare(password, user.password);
+          
           if (!isMatch) {
             return res.status(400).json({ msg: 'Invalid credentials' });
           }
@@ -434,6 +464,9 @@ router.post(
             user: {
                 id: user.id,
                 role: user.role,
+                username: user.username,
+                firstName: user.firstName,
+                lastName: user.lastName,
                 patientId: user.patientId || null, // Include patientId in JWT token
             },
         };
@@ -479,6 +512,33 @@ router.post(
                         console.error('Error creating doctor session:', sessionError);
                         // Don't fail the login if session creation fails
                     }
+                }
+                
+                // Log successful login to audit trail
+                try {
+                    await AuditLogger.logCustomAction(
+                        { 
+                            user: { id: user.id, role: user.role, firstName: user.firstName, lastName: user.lastName },
+                            ip: req.ip || req.connection.remoteAddress,
+                            headers: req.headers
+                        },
+                        'user_login',
+                        `${user.firstName} ${user.lastName} logged in`,
+                        {
+                            targetType: 'user',
+                            targetId: user.id,
+                            targetName: `${user.firstName} ${user.lastName}`,
+                            metadata: {
+                                role: user.role,
+                                loginMethod: login.includes('@') ? 'email' : 'username',
+                                userAgent: req.headers['user-agent'] || 'Unknown',
+                                device: req.headers['user-agent'] ? req.headers['user-agent'].split(' ')[0] : 'Unknown'
+                            }
+                        }
+                    );
+                } catch (auditError) {
+                    console.error('⚠️  Failed to log login event:', auditError.message);
+                    // Don't fail the login if audit logging fails
                 }
                 
                 res.json({ 
@@ -537,6 +597,55 @@ router.post('/logout', async (req, res) => {
   } catch (err) {
     console.error('Logout error:', err.message);
     res.status(500).json({ message: 'Server error during logout' });
+  }
+});
+
+// @route   PUT api/auth/profile
+// @desc    Update current user's profile
+// @access  Private
+router.put('/profile', auth, async (req, res) => {
+  try {
+    const { firstName, lastName, email, contactNumber, position, specialization, licenseNumber, biography } = req.body;
+    const userId = req.user.id;
+    
+    // Find user
+    let user = await User.findByPk(userId);
+    
+    if (!user) {
+      return res.status(404).json({ msg: 'User not found' });
+    }
+
+    // Update user data - only update provided fields
+    if (firstName !== undefined) user.firstName = firstName;
+    if (lastName !== undefined) user.lastName = lastName;
+    if (email !== undefined) user.email = email;
+    if (contactNumber !== undefined) user.contactNumber = contactNumber;
+    if (position !== undefined) user.position = position;
+    if (specialization !== undefined) user.specialization = specialization;
+    if (licenseNumber !== undefined) user.licenseNumber = licenseNumber;
+    if (biography !== undefined) user.biography = biography;
+    
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        contactNumber: user.contactNumber,
+        role: user.role,
+        position: user.position,
+        specialization: user.specialization,
+        licenseNumber: user.licenseNumber,
+        biography: user.biography
+      }
+    });
+  } catch (err) {
+    console.error('Profile update error:', err.message);
+    res.status(500).json({ msg: 'Server Error' });
   }
 });
 

@@ -9,8 +9,6 @@ const DoctorSidebar = memo(({
   currentPath, 
   handleLogout, 
   sealmainImage,
-  showFPSMonitor,
-  handleFPSToggle,
   doctorQueueData,
   sharedCheckupsData
 }) => {
@@ -132,18 +130,6 @@ const DoctorSidebar = memo(({
             title={sidebarOpen ? 'Collapse Sidebar' : 'Expand Sidebar'}
           >
             <i className={`bi ${sidebarOpen ? 'bi-chevron-left' : 'bi-list'}`}></i>
-          </button>
-        </div>
-
-        {/* FPS Monitor Toggle */}
-        <div className="fps-toggle-section">
-          <button 
-            className={`fps-toggle-btn ${showFPSMonitor ? 'active' : ''}`}
-            onClick={handleFPSToggle}
-            title={showFPSMonitor ? 'Hide Performance Monitor' : 'Show Performance Monitor'}
-          >
-            <i className={`bi ${showFPSMonitor ? 'bi-speedometer2' : 'bi-speedometer'}`}></i>
-            <span>Performance</span>
           </button>
         </div>
 

@@ -64,6 +64,14 @@ const PatientManagement = memo(() => {
   const [patientsWithQR, setPatientsWithQR] = useState(new Set()); // Track patients who have generated QR codes
   const [selectedFamilyForAssignment, setSelectedFamilyForAssignment] = useState(''); // For manual family assignment
   const [generatedPassword, setGeneratedPassword] = useState(null); // Store generated password for notice
+  const [deleteCooldown, setDeleteCooldown] = useState(0); // Cooldown timer for delete button (10 seconds)
+  
+  // Password reset state for admin edit patient
+  const [isChangingPatientPassword, setIsChangingPatientPassword] = useState(false);
+  const [patientPasswordData, setPatientPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
 
   // Medical conditions modal state
   const [showMedicalConditionsModal, setShowMedicalConditionsModal] = useState(false);
@@ -108,6 +116,16 @@ const PatientManagement = memo(() => {
       }
     }
   }, []);
+
+  // Cooldown timer effect for delete button
+  useEffect(() => {
+    if (deleteCooldown > 0) {
+      const timer = setTimeout(() => {
+        setDeleteCooldown(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [deleteCooldown]);
 
   // Form data with optimized state management (prevents input delays)
   const [patientFormData, setPatientFormData] = useState({
@@ -535,11 +553,30 @@ const PatientManagement = memo(() => {
 
     // Add to today's checkups through API
     try {
+      // Get auth token
+      const getAuthToken = () => {
+        if (window.__authToken) return window.__authToken;
+        const authData = sessionStorage.getItem('authData');
+        if (authData) {
+          const parsed = JSON.parse(authData);
+          return parsed ? parsed.token : null;
+        }
+        const localAuthData = JSON.parse(localStorage.getItem('auth') || 'null');
+        return localAuthData ? localAuthData.token : null;
+      };
+
+      const token = getAuthToken();
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
       const response = await fetch('/api/checkups/check-in', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
         body: JSON.stringify({
           patientId: patient.id,
           serviceType: newCheckup.serviceType,
@@ -637,6 +674,9 @@ const PatientManagement = memo(() => {
   const handleEditPatient = useCallback(() => {
     setEditPatientData({ ...selectedPatient });
     setShowEditPatientModal(true);
+    // Reset password state
+    setIsChangingPatientPassword(false);
+    setPatientPasswordData({ newPassword: '', confirmPassword: '' });
     setShowManageDropdown(false);
   }, [selectedPatient]);
 
@@ -792,6 +832,33 @@ const PatientManagement = memo(() => {
 
       setLoading(true);
       
+      // Validate password if admin is trying to change it
+      if (isChangingPatientPassword) {
+        if (!patientPasswordData.newPassword || !patientPasswordData.confirmPassword) {
+          setAlert({ type: 'danger', message: 'Please enter both password fields' });
+          setLoading(false);
+          window.__authLogout = originalLogout;
+          return;
+        }
+        
+        if (patientPasswordData.newPassword !== patientPasswordData.confirmPassword) {
+          setAlert({ type: 'danger', message: 'Passwords do not match' });
+          setLoading(false);
+          window.__authLogout = originalLogout;
+          return;
+        }
+        
+        if (patientPasswordData.newPassword.length < 6) {
+          setAlert({ type: 'danger', message: 'Password must be at least 6 characters long' });
+          setLoading(false);
+          window.__authLogout = originalLogout;
+          return;
+        }
+        
+        // Add password to update data
+        editPatientData.password = patientPasswordData.newPassword;
+      }
+      
       // Validate required fields
       const requiredFields = [
         { field: 'firstName', message: 'First Name is required' },
@@ -824,9 +891,16 @@ const PatientManagement = memo(() => {
       // Update selected patient data
       setSelectedPatient(editPatientData);
       
+      // Reset password state
+      setIsChangingPatientPassword(false);
+      setPatientPasswordData({ newPassword: '', confirmPassword: '' });
+      
       // Close modal and show success
       setShowEditPatientModal(false);
-      setAlert({ type: 'success', message: 'Patient information updated successfully!' });
+      setAlert({ 
+        type: 'success', 
+        message: 'Patient information updated successfully!' + (isChangingPatientPassword ? ' Password has been changed.' : '')
+      });
     } catch (error) {
       console.error('Error updating patient:', error);
       setAlert({ type: 'danger', message: 'Error updating patient. Please try again.' });
@@ -1486,7 +1560,7 @@ const PatientManagement = memo(() => {
               </div>
             </Tab>
 
-            <Tab eventKey="unsorted" title={`Unsorted Members (${unsortedMembersData?.length || 0})`}>
+            <Tab eventKey="unsorted" title={`Unsorted Members (${unsortedMembersData?.filter(p => !p.firstName?.toLowerCase().includes('test') && !p.lastName?.toLowerCase().includes('test')).length || 0})`}>
               <div className="unsorted-section">
                 <div className="section-header mb-4">
                   <div className="section-info">
@@ -1499,7 +1573,7 @@ const PatientManagement = memo(() => {
                     <Button 
                       variant="success"
                       onClick={handleAutosort}
-                      disabled={!unsortedMembersData?.length || isLoadingAutosort}
+                      disabled={!unsortedMembersData?.filter(p => !p.firstName?.toLowerCase().includes('test') && !p.lastName?.toLowerCase().includes('test')).length || isLoadingAutosort}
                     >
                       <i className="bi bi-magic me-1"></i>
                       {isLoadingAutosort ? 'Autosorting...' : 'AutoSort by Surname'}
@@ -1507,7 +1581,7 @@ const PatientManagement = memo(() => {
                   </div>
                 </div>
                 
-                {!unsortedMembersData?.length ? (
+                {!unsortedMembersData?.filter(p => !p.firstName?.toLowerCase().includes('test') && !p.lastName?.toLowerCase().includes('test')).length ? (
                   <div className="empty-state">
                     <i className="bi bi-check-circle"></i>
                     <h4>All patients are sorted into families!</h4>
@@ -1527,7 +1601,10 @@ const PatientManagement = memo(() => {
                         </tr>
                       </thead>
                       <tbody>
-                        {(unsortedMembersData || []).map(patient => (
+                        {(unsortedMembersData || []).filter(patient => 
+                          !patient.firstName?.toLowerCase().includes('test') && 
+                          !patient.lastName?.toLowerCase().includes('test')
+                        ).map(patient => (
                           <tr key={patient.id}>
                             <td style={{textAlign: 'left'}}>
                               <strong>{patient.firstName} {patient.lastName}</strong>
@@ -2323,6 +2400,7 @@ const PatientManagement = memo(() => {
           </Button>
           <Button 
             variant={confirmAction === 'delete' ? 'danger' : 'warning'}
+            disabled={confirmAction === 'delete' && deleteCooldown > 0}
             onClick={async () => {
               if (confirmAction === 'reassign') {
                 // PREVENT LOGOUT: Check if user is still authenticated
@@ -2367,14 +2445,63 @@ const PatientManagement = memo(() => {
                   // Restore logout function
                   window.__authLogout = originalLogout;
                 }
-              } else {
-                console.log(`${confirmAction} action confirmed for patient:`, selectedPatient);
-                setShowConfirmModal(false);
-                // Implementation for actual delete would go here
+              } else if (confirmAction === 'delete') {
+                // Delete patient with cooldown
+                if (!window.__authToken) {
+                  console.warn('No auth token available, skipping delete');
+                  setAlert({ type: 'warning', message: 'Please log in again to delete patient.' });
+                  setShowConfirmModal(false);
+                  return;
+                }
+
+                // Temporarily prevent logout during API operation
+                const originalLogout = window.__authLogout;
+                window.__authLogout = null;
+
+                try {
+                  setLoading(true);
+                  console.log('Deleting patient:', selectedPatient);
+
+                  // Call API to delete patient (audit log is automatically created in backend)
+                  await adminService.deletePatient(selectedPatient.id);
+                  
+                  // Set cooldown timer (10 seconds)
+                  setDeleteCooldown(10);
+                  
+                  // Refresh data
+                  await Promise.all([
+                    fetchAllPatients(),
+                    fetchAllFamilies(),
+                    fetchUnsortedMembers()
+                  ]);
+                  
+                  // Close modals
+                  setShowConfirmModal(false);
+                  setShowPatientDetailsModal(false);
+                  
+                  setAlert({ 
+                    type: 'success', 
+                    message: `Patient ${selectedPatient.firstName} ${selectedPatient.lastName} has been permanently deleted.` 
+                  });
+                } catch (error) {
+                  console.error('Error deleting patient:', error);
+                  setAlert({ 
+                    type: 'danger', 
+                    message: error.response?.data?.msg || 'Error deleting patient. Please try again.' 
+                  });
+                } finally {
+                  setLoading(false);
+                  // Restore logout function
+                  window.__authLogout = originalLogout;
+                }
               }
             }}
           >
-            {confirmAction === 'reassign' ? 'Reassign' : 'Delete'}
+            {confirmAction === 'reassign' 
+              ? 'Reassign' 
+              : confirmAction === 'delete' && deleteCooldown > 0 
+                ? `Wait ${deleteCooldown}s` 
+                : 'Delete'}
           </Button>
         </Modal.Footer>
       </Modal>
@@ -2870,7 +2997,7 @@ const PatientManagement = memo(() => {
                 </Card.Header>
                 <Card.Body>
                   <Row className="mb-3">
-                    <Col md={6}>
+                    <Col md={4}>
                       <Form.Group>
                         <Form.Label>Email</Form.Label>
                         <Form.Control 
@@ -2880,7 +3007,7 @@ const PatientManagement = memo(() => {
                         />
                       </Form.Group>
                     </Col>
-                    <Col md={6}>
+                    <Col md={4}>
                       <Form.Group>
                         <Form.Label>Phone Number <span className="text-danger">*</span></Form.Label>
                         <Form.Control 
@@ -2890,6 +3017,32 @@ const PatientManagement = memo(() => {
                           placeholder="09XXXXXXXXX" 
                           required
                         />
+                      </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label>Password</Form.Label>
+                        <Form.Control 
+                          type="password" 
+                          value={patientPasswordData.newPassword}
+                          onChange={(e) => {
+                            setPatientPasswordData(prev => ({ ...prev, newPassword: e.target.value }));
+                            // Show confirm password field when user starts typing
+                            if (e.target.value && !isChangingPatientPassword) {
+                              setIsChangingPatientPassword(true);
+                            }
+                          }}
+                          placeholder="Enter new password (leave empty to keep current)"
+                        />
+                        {isChangingPatientPassword && patientPasswordData.newPassword && (
+                          <Form.Control 
+                            type="password" 
+                            className="mt-2"
+                            value={patientPasswordData.confirmPassword}
+                            onChange={(e) => setPatientPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                            placeholder="Confirm new password"
+                          />
+                        )}
                       </Form.Group>
                     </Col>
                   </Row>

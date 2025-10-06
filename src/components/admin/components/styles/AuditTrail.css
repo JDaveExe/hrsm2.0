@@ -1,0 +1,563 @@
+/* AuditTrail.css - Admin Theme */
+.audit-trail-container {
+  padding: 1.5rem;
+  background: #f8f9fa;
+  min-height: calc(100vh - 60px);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Container spacing */
+.filter-container {
+  margin-bottom: 1.5rem;
+}
+
+.table-container {
+  margin: 0 auto;
+}
+
+/* Filter button styling */
+.filter-buttons {
+  margin-top: 1.8rem;
+}
+
+.filter-buttons .btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+}
+
+.filter-buttons .btn i {
+  font-size: 0.9rem;
+}
+
+/* Header pagination styling */
+.header-pagination .pagination {
+  margin-bottom: 0;
+}
+
+.header-pagination .page-link {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  border-color: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.8);
+  background-color: transparent;
+}
+
+/* Border pagination styling */
+.border-pagination {
+  border: 1px solid #007bff;
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.border-pagination-item .page-link {
+  border: 1px solid #007bff !important;
+  border-left: none !important;
+  margin-left: -1px;
+  position: relative;
+  color: #007bff;
+  background-color: #fff;
+  transition: all 0.15s ease-in-out;
+}
+
+.border-pagination-item:first-child .page-link {
+  border-left: 1px solid #007bff !important;
+  border-top-left-radius: 0.375rem;
+  border-bottom-left-radius: 0.375rem;
+}
+
+.border-pagination-item:last-child .page-link {
+  border-top-right-radius: 0.375rem;
+  border-bottom-right-radius: 0.375rem;
+}
+
+.border-pagination-item .page-link:hover {
+  background-color: #e7f3ff;
+  border-color: #0056b3;
+  color: #0056b3;
+  z-index: 2;
+}
+
+.border-pagination-item.active .page-link {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: #fff;
+  z-index: 3;
+}
+
+.border-pagination-item.disabled .page-link {
+  color: #6c757d;
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
+}
+
+.border-pagination-item.disabled .page-link:hover {
+  background-color: #f8f9fa;
+  border-color: #dee2e6;
+  color: #6c757d;
+}
+
+.header-pagination .page-link:hover {
+  color: white;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.header-pagination .page-item.active .page-link {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: white;
+}
+
+.header-pagination .page-item.disabled .page-link {
+  color: rgba(255, 255, 255, 0.4);
+  background-color: transparent;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Filter Card Styling - Admin Blue Theme */
+.audit-trail-container .card-header {
+  color: #0056b3;;
+  border: 2px solid #0056b3;
+}
+
+.audit-trail-container .card-header h5 {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Filter Form Styling */
+.audit-trail-container .form-label {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.25rem;
+}
+
+.audit-trail-container .form-control,
+.audit-trail-container .form-select {
+  border: 1px solid #dee2e6;
+  border-radius: 0.375rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.audit-trail-container .form-control:focus,
+.audit-trail-container .form-select:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.audit-trail-container .input-group-text {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  color: #6c757d;
+}
+
+/* Button Styling - Admin Theme */
+.audit-trail-container .btn {
+  background: #ffffff;
+  border: 1px solid #0056b3;
+  color: #0056b3;
+  transition: all 0.15s ease-in-out;
+}
+
+.audit-trail-container .btn-primary {
+  background: #ffffff;
+  border: 1px solid #0056b3;
+  color: #0056b3;
+}
+
+.audit-trail-container .btn-primary:hover {
+  background: #0056b3;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.audit-trail-container .btn-outline-secondary:hover {
+  background: #0056b3;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.audit-trail-container .btn-outline-info:hover {
+  background-color: #0dcaf0;
+  border-color: #0dcaf0;
+}
+
+.audit-trail-container .btn-outline-success:hover {
+  background-color: #198754;
+  border-color: #198754;
+}
+
+/* Table Styling - Admin Theme with Lighter Background */
+.audit-trail-container .table {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+  background-color: #ffffff;
+}
+
+.audit-trail-container .table thead th {
+  background: #ffffff;
+  color: #0056b3;
+  border: 1px solid #0056b3;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1rem 0.75rem;
+}
+
+.audit-trail-container .table tbody td {
+  padding: 0.75rem;
+  vertical-align: middle;
+  border: 1px solid #0056b3;
+  background-color: #ffffff;
+}
+
+.audit-trail-container .table tbody tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.audit-trail-container .table-hover tbody tr:hover {
+  background-color: rgba(0, 123, 255, 0.05) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+}
+
+/* Badge Styling */
+.audit-trail-container .badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.35em 0.65em;
+  border-radius: 0.375rem;
+}
+
+/* Audit Description Styling */
+.audit-description {
+  display: block;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Card Styling for Statistics */
+.audit-trail-container .modal .card {
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.audit-trail-container .modal .card-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  color: #495057;
+  border-bottom: 1px solid #dee2e6;
+  font-weight: 600;
+}
+
+/* Pagination Styling - Admin Theme */
+.audit-trail-container .pagination {
+  margin-top: 1rem;
+}
+
+.audit-trail-container .page-link {
+  color: #007bff;
+  border: 1px solid #dee2e6;
+  padding: 0.5rem 0.75rem;
+}
+
+.audit-trail-container .page-link:hover {
+  color: #0056b3;
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+}
+
+.audit-trail-container .page-item.active .page-link {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  border-color: #007bff;
+  color: white;
+}
+
+/* Loading and Empty States - Admin Theme */
+.audit-trail-container .spinner-border {
+  width: 3rem;
+  height: 3rem;
+  color: #007bff;
+}
+
+/* Alert Styling */
+.audit-trail-container .alert {
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 500;
+}
+
+.audit-trail-container .alert-danger {
+  background: linear-gradient(135deg, #f8d7da 0%, #f5c2c7 100%);
+  color: #721c24;
+}
+
+/* Modal Styling - Admin Theme */
+.audit-trail-container .modal-header {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border-bottom: none;
+}
+
+.audit-trail-container .modal-title {
+  font-weight: 600;
+}
+
+.audit-trail-container .modal-content {
+  border: none;
+  border-radius: 0.75rem;
+  box-shadow: 0 1rem 3rem rgba(0, 123, 255, 0.175);
+}
+
+/* Improved Spacing and Layout */
+.audit-trail-container .card {
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 123, 255, 0.075);
+  margin-bottom: 1.5rem;
+}
+
+.audit-trail-container .card-body {
+  padding: 1.5rem;
+}
+
+.audit-trail-container .table-responsive {
+  margin: 0;
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+/* Fix table container spacing */
+.audit-trail-container .card:last-child {
+  margin-bottom: 0;
+}
+
+/* Form control focus states - Admin theme */
+.audit-trail-container .form-control:focus,
+.audit-trail-container .form-select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .audit-trail-container {
+    padding: 1rem;
+  }
+  
+  .filter-buttons {
+    margin-top: 1rem;
+    justify-content: center;
+  }
+  
+  .filter-buttons .btn {
+    margin: 0 0.25rem;
+  }
+}
+
+.audit-trail-container .modal-body {
+  padding: 1.5rem;
+}
+
+.audit-trail-container .modal-footer {
+  border-top: 1px solid #dee2e6;
+  padding: 1rem 1.5rem;
+}
+
+/* Pre-formatted code in modal */
+.audit-trail-container pre {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .audit-trail-container .table-responsive {
+    font-size: 0.8rem;
+  }
+  
+  .audit-trail-container .btn {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  .audit-trail-container .form-control,
+  .audit-trail-container .form-select {
+    font-size: 0.875rem;
+  }
+  
+  .audit-description {
+    max-width: 200px;
+  }
+}
+
+@media (max-width: 576px) {
+  .audit-trail-container h2 {
+    font-size: 1.5rem;
+  }
+  
+  .audit-trail-container .col-md-3,
+  .audit-trail-container .col-md-2,
+  .audit-trail-container .col-md-1 {
+    margin-bottom: 1rem;
+  }
+  
+  .audit-description {
+    max-width: 150px;
+  }
+  
+  .audit-trail-container .table thead th,
+  .audit-trail-container .table tbody td {
+    padding: 0.5rem 0.25rem;
+  }
+}
+
+/* Custom Scrollbar for Table */
+.audit-trail-container .table-responsive::-webkit-scrollbar {
+  height: 8px;
+}
+
+.audit-trail-container .table-responsive::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.audit-trail-container .table-responsive::-webkit-scrollbar-thumb {
+  background: #667eea;
+  border-radius: 4px;
+}
+
+.audit-trail-container .table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #5a6fd8;
+}
+
+/* Role-specific Color Coding */
+.audit-trail-container .badge.bg-danger {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+}
+
+.audit-trail-container .badge.bg-primary {
+  background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%) !important;
+}
+
+.audit-trail-container .badge.bg-success {
+  background: linear-gradient(135deg, #198754 0%, #146c43 100%) !important;
+}
+
+.audit-trail-container .badge.bg-info {
+  background: linear-gradient(135deg, #0dcaf0 0%, #3dd5f3 100%) !important;
+}
+
+.audit-trail-container .badge.bg-warning {
+  background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%) !important;
+  color: #000 !important;
+}
+
+.audit-trail-container .badge.bg-secondary {
+  background: linear-gradient(135deg, #6c757d 0%, #5c636a 100%) !important;
+}
+
+/* Tooltip Enhancements */
+.audit-trail-container .tooltip {
+  font-size: 0.8rem;
+}
+
+/* Loading State Improvements */
+.audit-trail-container .loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  color: #6c757d;
+}
+
+.audit-trail-container .loading-state i {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+/* Statistics Cards */
+.audit-trail-container .stats-card {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 0.75rem;
+  transition: transform 0.2s ease-in-out;
+}
+
+.audit-trail-container .stats-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Metadata display styling */
+.metadata-display {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.metadata-display .bg-light {
+  border: 1px solid #e9ecef;
+}
+
+.metadata-display strong {
+  display: inline-block;
+  min-width: 120px;
+  font-weight: 600;
+}
+
+.metadata-display code {
+  font-size: 0.85em;
+  word-break: break-all;
+}
+
+.metadata-display details summary::-webkit-details-marker {
+  color: #007bff;
+}
+
+.metadata-display details[open] summary {
+  margin-bottom: 0.5rem;
+}
+
+.metadata-display pre {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+/* Refresh button spin animation */
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Refresh button hover effect */
+.filter-buttons .btn-outline-primary:hover i.bi-arrow-clockwise {
+  transform: rotate(180deg);
+  transition: transform 0.3s ease-in-out;
+}

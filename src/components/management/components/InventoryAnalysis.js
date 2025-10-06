@@ -4,6 +4,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, 
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import LoadingManagementBar from '../LoadingManagementBar';
 import inventoryService from '../../../services/inventoryService';
+import axios from 'axios';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend, ArcElement);
 
@@ -657,6 +658,29 @@ const InventoryAnalysis = ({ currentDateTime, isDarkMode, timePeriod = '30days',
         chartType: recommendedChartType,
         dataLabels: deepCopyChartData.labels?.length || 0,
         dataPoints: deepCopyChartData.datasets?.[0]?.data?.length || 0
+      });
+
+      // Log report generation to audit trail (non-blocking)
+      const token = localStorage.getItem('token') || window.__authToken;
+      axios.post('/api/audit/log-report', {
+        reportType: reportType.name,
+        reportDetails: {
+          reportName: reportType.name,
+          format: 'Chart',
+          reportId: reportId,
+          isCustomReport: true,
+          chartType: recommendedChartType,
+          source: 'inventory-analysis',
+          dataPoints: deepCopyChartData.datasets?.[0]?.data?.length || 0
+        }
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }).catch(err => {
+        console.warn('Failed to log report generation to audit trail:', err);
+        // Don't fail the report creation if audit logging fails
       });
 
       // Navigate to Reports page if navigation function provided

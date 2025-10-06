@@ -18,7 +18,6 @@ const CheckupManager = () => {
     patientsData, 
     sharedCheckupsData, 
     syncCheckupStatus,
-    simulationModeStatus,
     doctorQueueData,
     updateDoctorQueueStatus,
     addToQueue,
@@ -191,9 +190,6 @@ const CheckupManager = () => {
 
   // Get current date for display
   const getCurrentDate = () => {
-    if (simulationModeStatus?.enabled && simulationModeStatus?.currentSimulatedDate) {
-      return new Date(simulationModeStatus.currentSimulatedDate);
-    }
     return new Date();
   };
 
@@ -1362,7 +1358,7 @@ const CheckupManager = () => {
                           </span>
                         )}
                       </td>
-                      <td>{new Date(item.queuedAt || Date.now()).toLocaleTimeString()}</td>
+                      <td>{item.queuedAt || 'N/A'}</td>
                       <td>
                         <Badge bg={item.source === 'admin_checkup' ? 'primary' : 'secondary'}>
                           {item.source === 'admin_checkup' ? 'Checkup' : 'Manual'}

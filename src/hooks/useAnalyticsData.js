@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { useDashboardStats } from './useDashboard';
-import { useSimulation } from './useSimulation';
 
 /**
  * Shared analytics data hook that provides consistent chart data
  * across dashboard analytics and report components
  */
-export const useAnalyticsData = (simulationMode = false) => {
+export const useAnalyticsData = () => {
   const { 
     patientsData, 
     familiesData, 
@@ -22,52 +21,8 @@ export const useAnalyticsData = (simulationMode = false) => {
     error: statsError 
   } = useDashboardStats();
 
-  // Simulation mode integration
-  const { 
-    isEnabled: simulationEnabled, 
-    shouldSimulateCharts, 
-    generateSimulatedData 
-  } = useSimulation();
-
   // Calculate chart data that's shared between analytics and reports
   const chartData = useMemo(() => {
-    // Use simulated data if simulation mode is enabled
-    if (simulationMode && shouldSimulateCharts && generateSimulatedData) {
-      const simulatedPatientData = generateSimulatedData.patients();
-      const simulatedAppointmentData = generateSimulatedData.appointments();
-      const simulatedServiceData = generateSimulatedData.services();
-
-      return {
-        checkupTrends: {
-          labels: simulatedAppointmentData.labels,
-          datasets: [{
-            label: 'Daily Checkups (Simulated)',
-            data: simulatedAppointmentData.datasets[0].data,
-            backgroundColor: '#9BC4E2',
-            borderColor: '#7FB5DC',
-            borderWidth: 2,
-            fill: false
-          }]
-        },
-        medicineUsage: {
-          labels: ['Paracetamol', 'Amoxicillin', 'Ibuprofen', 'Cetirizine', 'Aspirin'],
-          datasets: [{
-            data: [25, 18, 15, 12, 8],
-            backgroundColor: ['#60a5fa', '#34d399', '#fbbf24', '#f87171', '#a78bfa'],
-            borderWidth: 0
-          }]
-        },
-        vaccineUsage: {
-          labels: ['COVID-19', 'Influenza', 'Hepatitis B', 'Tetanus', 'Pneumonia'],
-          datasets: [{
-            data: [45, 28, 20, 15, 12],
-            backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'],
-            borderWidth: 0
-          }]
-        }
-      };
-    }
-
     // Real data processing
     let checkupTrendsData = [0, 0, 0, 0, 0, 0, 0]; // Default for Mon-Sun
     const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -133,7 +88,7 @@ export const useAnalyticsData = (simulationMode = false) => {
         }]
       }
     };
-  }, [dbStats, simulationMode, shouldSimulateCharts, generateSimulatedData]);
+  }, [dbStats]);
 
   // Chart options for different chart types
   const chartOptions = {

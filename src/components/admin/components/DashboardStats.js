@@ -4,7 +4,6 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import { Line, Bar, Pie } from 'react-chartjs-2';
 import { useData } from '../../../context/DataContext';
 import { useDashboardStats } from '../../../hooks/useDashboard';
-import { useSimulation } from '../../../hooks/useSimulation';
 import { useCommonAlerts } from './AlertUtils';
 import ForecastingDashboard from './ForecastingDashboard';
 import EnhancedForecastingDashboard from './EnhancedForecastingDashboard';
@@ -26,7 +25,7 @@ ChartJS.register(
   Filler
 );
 
-const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
+const DashboardStats = memo(({ currentDateTime }) => {
   const [dashboardTabKey, setDashboardTabKey] = useState('analytics');
   const [alertShown, setAlertShown] = useState({
     loading: false,
@@ -52,13 +51,6 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
     renderAlerts,
     clearAllAlerts
   } = useCommonAlerts();
-  
-  // Simulation mode integration
-  const { 
-    isEnabled: simulationEnabled, 
-    shouldSimulateCharts, 
-    generateSimulatedData 
-  } = useSimulation();
   
   const {
     patientsData,
@@ -320,52 +312,6 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
 
   // Chart data calculations
   const chartData = useMemo(() => {
-    // Use simulated data if chart simulation is enabled
-    if (shouldSimulateCharts) {
-      const simulatedPatientData = generateSimulatedData.patients();
-      const simulatedAppointmentData = generateSimulatedData.appointments();
-      const simulatedServiceData = generateSimulatedData.services();
-
-      return {
-        checkups: {
-          labels: simulatedAppointmentData.labels,
-          datasets: [{
-            label: 'Daily Checkups (Simulated)',
-            data: simulatedAppointmentData.datasets[0].data,
-            backgroundColor: '#9BC4E2',
-            borderColor: '#7FB5DC',
-            borderWidth: 2,
-            borderRadius: 5,
-            barThickness: 40
-          }]
-        },
-        gender: {
-          labels: ['Male', 'Female'],
-          datasets: [{
-            data: [120, 130], // Simulated gender distribution
-            backgroundColor: ['#9BC4E2', '#7FB5DC'],
-            hoverBackgroundColor: ['#82B3DA', '#6AA8D7']
-          }]
-        },
-        patientGrowth: simulatedPatientData,
-        ageDistribution: {
-          labels: ['0-10', '11-20', '21-30', '31-40', '41-50', '51-60', '61+'],
-          datasets: [{
-            label: 'Age Distribution (Simulated)',
-            data: [45, 38, 52, 67, 43, 29, 18],
-            backgroundColor: '#9BC4E2',
-            borderColor: '#7FB5DC',
-            borderWidth: 1,
-            barThickness: 15,
-            borderRadius: 3
-          }]
-        },
-        serviceDistribution: simulatedServiceData
-      };
-    }
-
-
-    
     // Calculate real gender data - prioritize database stats
     let genderData = { male: 0, female: 0 };
     if (dbStats?.patients) {
@@ -626,7 +572,7 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
         }]
       }
     };
-  }, [dashboardStats.totalPatients, patientsData, unsortedMembersData, shouldSimulateCharts, generateSimulatedData, medicineUsageData, prescriptionAnalytics, dbStats, medicineUsageMetric, checkupTrendsChartData]);
+  }, [dashboardStats.totalPatients, patientsData, unsortedMembersData, medicineUsageData, prescriptionAnalytics, dbStats, medicineUsageMetric, checkupTrendsChartData]);
 
   // Alert management effects - with proper state tracking to prevent continuous alerts
   useEffect(() => {
@@ -668,36 +614,6 @@ const DashboardStats = memo(({ currentDateTime, simulationMode }) => {
     <div className="dashboard-stats">
       {/* Smart Alert Management */}
       {renderAlerts()}
-
-      {/* Simulation Mode Indicators */}
-      {simulationEnabled && (
-        <Alert variant="info" className="mb-3">
-          <div className="d-flex justify-content-between align-items-center">
-            <span>
-              <i className="bi bi-lightning-charge me-2"></i>
-              Simulation Mode Active
-              {shouldSimulateCharts && (
-                <span className="ms-2 badge bg-secondary">
-                  Chart Simulation: ON
-                </span>
-              )}
-            </span>
-            <small className="text-muted">
-              {shouldSimulateCharts ? 'Showing simulated chart data' : 'Showing real data with simulated time'}
-            </small>
-          </div>
-        </Alert>
-      )}
-
-      {/* Legacy simulation badge for backward compatibility */}
-      {simulationMode?.isEnabled && (
-        <div className="simulation-badge-container mb-3">
-          <div className="simulation-badge">
-            <i className="bi bi-flask"></i>
-            Simulation Mode Active
-          </div>
-        </div>
-      )}
 
       {/* Dashboard Tabs */}
       <Tabs

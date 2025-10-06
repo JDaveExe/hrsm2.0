@@ -110,8 +110,9 @@ const DoctorSettings = () => {
     setErrorMessage('');
     
     try {
-      // Update user profile via API
-      await userService.updateUser(user.id, profileData);
+      // Update user profile via API using the new profile endpoint
+      const response = await userService.updateProfile(profileData);
+      console.log('Profile update response:', response);
       setShowSuccessAlert(true);
       setTimeout(() => setShowSuccessAlert(false), 3000);
     } catch (error) {

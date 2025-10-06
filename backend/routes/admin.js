@@ -5,6 +5,7 @@ const Patient = require('../models/Patient');
 const Family = require('../models/Family');
 const User = require('../models/User');
 const { authenticateToken: auth } = require('../middleware/auth');
+const AuditLogger = require('../utils/auditLogger');
 
 // Import vaccine batch migration routes
 const vaccineBatchMigrationRoutes = require('./admin/vaccine-batch-migration');
@@ -79,6 +80,23 @@ router.post('/assign-family',
       }
 
       await patient.update({ familyId: family.id });
+      
+      // Log family assignment audit (non-blocking for better performance)
+      Promise.resolve().then(async () => {
+        try {
+          await AuditLogger.logFamilyAssignment(
+            req, 
+            patient.id, 
+            `${patient.firstName} ${patient.lastName}`,
+            family.id,
+            family.familyName,
+            { newFamilyCreated: createNewFamily }
+          );
+        } catch (auditError) {
+          console.error('⚠️  Audit logging failed (non-critical):', auditError.message);
+        }
+      });
+      
       res.json({ msg: 'Patient assigned to family successfully', patient, family });
 
     } catch (err) {
@@ -250,6 +268,20 @@ router.delete('/users/:id', [auth, adminOnly], async (req, res) => {
     // Soft delete by setting isActive to false
     await user.update({ isActive: false });
 
+    // Log the user deletion action
+    await AuditLogger.logCustomAction(req, 'removed_user', 
+      `${req.user.firstName} ${req.user.lastName} removed user ${user.firstName} ${user.lastName}`, {
+        targetType: 'user',
+        targetId: user.id,
+        targetName: `${user.firstName} ${user.lastName}`,
+        metadata: {
+          deletedUserId: user.id,
+          deletedUserRole: user.role,
+          deletedUserAccessLevel: user.accessLevel,
+          deletedAt: new Date().toISOString()
+        }
+      });
+
     res.json({ msg: 'User deleted successfully' });
   } catch (err) {
     console.error('Error deleting user:', err.message);
@@ -415,6 +447,47 @@ router.post('/reset-checkup-data', [auth, adminOnly], async (req, res) => {
     
   } catch (err) {
     console.error('Error resetting checkup data:', err.message);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
+// @route   POST api/admin/clear-audit-logs
+// @desc    Clear all audit log data (admin only)
+// @access  Private/Admin
+router.post('/clear-audit-logs', [auth, adminOnly], async (req, res) => {
+  try {
+    console.log(`🗑️  Admin ${req.user.id} clearing audit logs...`);
+    
+    const { sequelize } = require('../config/database');
+    
+    // Get current count before clearing
+    const [countResult] = await sequelize.query('SELECT COUNT(*) as count FROM audit_logs');
+    const currentCount = countResult[0]?.count || 0;
+    
+    // Clear all audit log data
+    await sequelize.query('DELETE FROM audit_logs');
+    
+    // Reset auto-increment counter
+    await sequelize.query('ALTER TABLE audit_logs AUTO_INCREMENT = 1');
+    
+    // Verify the table is empty
+    const [verifyResult] = await sequelize.query('SELECT COUNT(*) as count FROM audit_logs');
+    const finalCount = verifyResult[0]?.count || 0;
+    
+    const clearTimestamp = new Date().toISOString();
+    
+    console.log(`✅ Cleared ${currentCount} audit log entries. Final count: ${finalCount}`);
+    
+    res.json({
+      message: 'Audit logs cleared successfully',
+      clearedEntries: currentCount,
+      finalCount: finalCount,
+      clearTimestamp,
+      clearedBy: req.user.id
+    });
+    
+  } catch (err) {
+    console.error('Error clearing audit logs:', err.message);
     res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });

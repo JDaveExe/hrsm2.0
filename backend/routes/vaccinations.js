@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const { Vaccination, Patient } = require('../models');
+const { Vaccination, Patient, User } = require('../models');
 const { authenticateToken: auth } = require('../middleware/auth');
 const { Op, Sequelize } = require('sequelize');
+const AuditLogger = require('../utils/auditLogger');
 
 // Get all vaccination records
 router.get('/', auth, async (req, res) => {
@@ -256,6 +257,29 @@ router.post('/', auth, async (req, res) => {
       category,
       administrationRoute,
       createdBy: req.user.id // Assuming auth middleware adds user to req
+    });
+
+    // Get patient and vaccine information for audit logging (non-blocking)
+    Promise.resolve().then(async () => {
+      try {
+        const patient = await Patient.findByPk(patientId);
+        if (patient) {
+          const vaccineInfo = {
+            name: vaccineName,
+            vaccineName: vaccineName,
+            manufacturer: req.body.manufacturer || 'Unknown Manufacturer',
+            lotNumber,
+            dose,
+            administrationSite,
+            administeredAt: administeredAt || new Date().toISOString()
+          };
+          
+          // Log the vaccination action
+          await AuditLogger.logVaccination(req, patient, vaccineInfo);
+        }
+      } catch (auditError) {
+        console.error('⚠️  Audit logging failed (non-critical):', auditError.message);
+      }
     });
 
     res.status(201).json({

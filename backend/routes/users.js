@@ -269,8 +269,23 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(404).json({ msg: 'User not found' });
     }
 
+    const userName = `${user.firstName} ${user.lastName}`;
+    const userRole = user.role;
+
     // Delete user
     await user.destroy();
+    
+    // Log the user deletion for audit trail
+    const AuditLogger = require('../utils/auditLogger');
+    await AuditLogger.logUserDeletion(
+      userId,
+      userName,
+      userRole,
+      req.user.id,
+      req.user.role,
+      `${req.user.firstName} ${req.user.lastName}`,
+      req
+    );
     
     res.json({ msg: 'User removed' });
   } catch (err) {

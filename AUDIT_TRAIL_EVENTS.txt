@@ -1,0 +1,140 @@
+COMPREHENSIVE AUDIT TRAIL EVENTS TO TRACK
+===========================================
+
+Based on the original requirements, the audit trail should track the following events:
+
+ADMIN ACTIONS:
+==============
+1. PATIENT_REMOVAL - When admin removes a patient from the system
+   - Action: "removed_patient"
+   - Target: Patient record
+   - Metadata: Patient ID, name, reason for removal
+
+2. PATIENT_CHECK_IN - When admin checks in a patient
+   - Action: "checked_in_patient"  
+   - Target: Patient record
+   - Metadata: Patient ID, check-in time, queue position
+
+3. VITAL_SIGNS_CHECK - When admin records vital signs for a patient
+   - Action: "checked_vital_signs"
+   - Target: Patient record
+   - Metadata: Patient ID, vital signs data (BP, temp, etc.)
+
+4. PATIENT_TRANSFER - When admin transfers a patient to a doctor
+   - Action: "transferred_patient"
+   - Target: Patient record
+   - Metadata: Patient ID, from doctor, to doctor
+
+5. PATIENT_VACCINATION - When admin administers vaccination
+   - Action: "vaccinated_patient"
+   - Target: Patient record
+   - Metadata: Patient ID, vaccine type, batch number
+
+6. USER_CREATION - When admin creates new user accounts
+   - Action: "added_new_user"
+   - Target: User record
+   - Metadata: New user ID, role, username
+
+DOCTOR ACTIONS:
+===============
+7. CHECKUP_START - When doctor starts a checkup session
+   - Action: "started_checkup"
+   - Target: Checkup record
+   - Metadata: Patient ID, doctor ID, start time
+
+8. CHECKUP_FINISH - When doctor completes a checkup
+   - Action: "finished_checkup" 
+   - Target: Checkup record
+   - Metadata: Patient ID, doctor ID, end time, diagnosis
+
+MANAGEMENT ACTIONS:
+===================
+9. MEDICATION_MANAGEMENT - When management adds new medications
+   - Action: "added_new_medication"
+   - Target: Medication record
+   - Metadata: Medication name, type, quantity
+
+10. VACCINE_MANAGEMENT - When management adds new vaccines
+    - Action: "added_new_vaccine"
+    - Target: Vaccine record
+    - Metadata: Vaccine name, type, batch info
+
+11. STOCK_MANAGEMENT - When management adds stock/inventory
+    - Action: "added_stocks"
+    - Target: Inventory record
+    - Metadata: Item type, quantity, supplier
+
+12. REPORT_CREATION - When management creates system reports
+    - Action: "created_report"
+    - Target: Report record
+    - Metadata: Report type, date range, parameters
+
+SYSTEM ACTIONS (Already Working):
+=================================
+13. AUDIT_VIEW - When users view audit logs (✓ Working)
+    - Action: "viewed_audit_logs"
+    - Target: System
+    - Metadata: User ID, view parameters
+
+14. AUDIT_EXPORT - When users export audit logs
+    - Action: "exported_audit_logs"
+    - Target: System
+    - Metadata: Export format, date range, filters
+
+INTEGRATION POINTS NEEDED:
+==========================
+
+Frontend Integration Required:
+- src/components/admin/components/PatientManagement.js (patient removal, check-in, vital signs, transfer)
+- src/components/admin/components/UserManagement.js (user creation)
+- src/components/admin/components/VaccinationManager.js (vaccination tracking)
+- src/components/doctor/DoctorDashboard.js (checkup start/finish)
+- src/components/management/ (medication, vaccine, stock, report management)
+
+Backend Integration Required:
+- backend/routes/admin.js (admin actions)
+- backend/routes/patients.js (patient operations)
+- backend/routes/auth.js (user creation)
+- backend/routes/checkups.js (doctor checkup operations)
+- backend/routes/vaccinations.js (vaccination tracking)
+- backend/routes/medications.js (medication management)
+- backend/routes/inventory.js (stock management)
+- backend/routes/reports.js (report generation)
+
+API ENDPOINTS TO AUDIT:
+=======================
+- POST /api/admin/remove-patient
+- POST /api/patients/check-in
+- POST /api/patients/vital-signs
+- POST /api/patients/transfer
+- POST /api/vaccinations/administer
+- POST /api/auth/register
+- POST /api/checkups/start
+- POST /api/checkups/finish
+- POST /api/medications/add
+- POST /api/vaccines/add
+- POST /api/inventory/add-stock
+- POST /api/reports/generate
+
+TESTING SCRIPTS NEEDED:
+=======================
+1. test-patient-operations.js - Test patient removal, check-in, vital signs, transfer
+2. test-user-management.js - Test user creation and management
+3. test-vaccination.js - Test vaccination administration
+4. test-checkup-workflow.js - Test doctor checkup start/finish
+5. test-inventory-management.js - Test medication, vaccine, stock management
+6. test-report-generation.js - Test report creation
+7. test-comprehensive-audit.js - Test all audit events in sequence
+
+MISSING INTEGRATIONS (Why audit isn't tracking):
+===============================================
+Most of the backend route handlers are not calling the audit logging functions.
+The auditLogger utility exists but needs to be integrated into each route that should be tracked.
+
+NEXT STEPS:
+===========
+1. Create testing scripts to simulate each action
+2. Verify which routes are missing audit integration
+3. Add audit logging calls to missing routes
+4. Test each audit event type
+5. Verify frontend displays all audit types correctly

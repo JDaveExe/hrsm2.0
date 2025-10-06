@@ -3,9 +3,11 @@
 
 const express = require('express');
 const router = express.Router();
+const { authenticateToken: auth } = require('../middleware/auth');
 const { sequelize } = require('../config/database');
 const fs = require('fs').promises;
 const path = require('path');
+const AuditLogger = require('../utils/auditLogger');
 
 // JSON vaccine data path
 const vaccinesJsonPath = path.join(__dirname, '../data/vaccines.json');
@@ -65,7 +67,7 @@ router.get('/:vaccineId/batches', async (req, res) => {
 });
 
 // Create new vaccine batch
-router.post('/:vaccineId/batches', async (req, res) => {
+router.post('/:vaccineId/batches', auth, async (req, res) => {
     try {
         await initializeVaccineModels();
         
@@ -136,6 +138,17 @@ router.post('/:vaccineId/batches', async (req, res) => {
             notes,
             status: 'active',
             createdBy: req.user?.id || 1 // Default to system user
+        });
+        
+        // Log stock addition audit trail - using consolidated stock_update
+        const vaccineForAudit = {
+            id: vaccine.id,
+            vaccineName: vaccine.name,
+            batchNumber: batchNumber
+        };
+        await AuditLogger.logStockUpdate(req, vaccineForAudit, 'added', dosesReceived, 'vaccine', {
+            expiryDate: expiryDate,
+            batchNumber: batchNumber
         });
         
         res.status(201).json({
@@ -341,6 +354,9 @@ router.delete('/:batchId/dispose', async (req, res) => {
             disposedBy: req.user?.id || 1, // Default to admin user
             notes: (batch.notes || '') + ` | Disposed on ${new Date().toLocaleDateString()}`
         });
+        
+        // Log disposal to audit trail
+        await AuditLogger.logItemDisposal(req, batch, 'vaccine', 'expired');
         
         res.json({
             message: 'Batch disposed successfully',

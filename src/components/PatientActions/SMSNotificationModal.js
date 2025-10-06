@@ -4,9 +4,7 @@ import axios from 'axios';
 import './styles/ActionModals.css';
 
 const SMSNotificationModal = ({ show, onHide, patient }) => {
-  const [contactMethod, setContactMethod] = useState('sms'); // 'sms' or 'email'
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [email, setEmail] = useState('');
   const [urgencyLevel, setUrgencyLevel] = useState('Normal');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -49,38 +47,18 @@ const SMSNotificationModal = ({ show, onHide, patient }) => {
     return cleanPhone.length >= 10 && !phone.toLowerCase().includes('n/a');
   };
 
-  const isValidEmail = (email) => {
-    if (!email || email.trim() === '') return false;
-    const lowerEmail = email.toLowerCase();
-    if (lowerEmail === 'n/a' || lowerEmail.includes('example.com') || lowerEmail.includes('placeholder')) return false;
-    return email.includes('@') && email.includes('.');
-  };
-
   const hasValidPhone = isValidPhone(patient?.phoneNumber || patient?.contactNumber);
-  const hasValidEmail = isValidEmail(patient?.email);
 
   // Initialize form data when modal opens or patient changes
   useEffect(() => {
     if (show && patient) {
       setPhoneNumber(patient.phoneNumber || patient.contactNumber || '');
-      setEmail(patient.email || '');
-      
-      // Auto-select contact method based on available valid data
-      if (hasValidPhone) {
-        setContactMethod('sms');
-      } else if (hasValidEmail) {
-        setContactMethod('email');
-      } else {
-        // Default to SMS if no valid data, but buttons will be disabled
-        setContactMethod('sms');
-      }
-      
       setMessage('');
       setSelectedTemplate('');
       setCharacterCount(0);
       setUrgencyLevel('Normal');
     }
-  }, [show, patient, hasValidPhone, hasValidEmail]);
+  }, [show, patient]);
 
   // Update character count when message changes
   useEffect(() => {
@@ -121,19 +99,14 @@ const SMSNotificationModal = ({ show, onHide, patient }) => {
 
   // Validate form
   const isFormValid = () => {
-    // First check if the selected contact method is valid
-    if (contactMethod === 'sms') {
-      return hasValidPhone && phoneNumber.length >= 10 && message.trim().length > 0;
-    } else {
-      return hasValidEmail && email.includes('@') && email.includes('.') && message.trim().length > 0;
-    }
+    return hasValidPhone && phoneNumber.length >= 10 && message.trim().length > 0;
   };
 
   // Handle send notification
   const handleSendNotification = async () => {
-    // Check if any contact method is available
-    if (!hasValidPhone && !hasValidEmail) {
-      alert('No valid contact information available for this patient.');
+    // Check if phone is available
+    if (!hasValidPhone) {
+      alert('No valid phone number available for this patient.');
       return;
     }
 
@@ -145,50 +118,34 @@ const SMSNotificationModal = ({ show, onHide, patient }) => {
     setIsLoading(true);
 
     try {
-      let response;
-      
-      if (contactMethod === 'sms') {
-        // Format phone number for API
-        let formattedPhone = phoneNumber;
-        if (phoneNumber.length === 11 && phoneNumber.startsWith('09')) {
-          formattedPhone = `+63${phoneNumber.substring(1)}`;
-        } else if (phoneNumber.length === 10) {
-          formattedPhone = `+639${phoneNumber}`;
-        }
-
-        response = await axios.post('/api/notifications/send-sms', {
-          recipient: formattedPhone,
-          message: message,
-          options: {
-            urgency: urgencyLevel.toLowerCase(),
-            patientId: patient?.id,
-            patientName: `${patient?.firstName} ${patient?.lastName}`,
-            type: selectedTemplate || 'custom'
-          }
-        });
-      } else {
-        response = await axios.post('/api/notifications/send-email', {
-          recipient: email,
-          subject: `Health Center Notification - ${urgencyLevel}`,
-          content: message,
-          options: {
-            urgency: urgencyLevel.toLowerCase(),
-            patientId: patient?.id,
-            patientName: `${patient?.firstName} ${patient?.lastName}`,
-            type: selectedTemplate || 'custom'
-          }
-        });
+      // Format phone number for API
+      let formattedPhone = phoneNumber;
+      if (phoneNumber.length === 11 && phoneNumber.startsWith('09')) {
+        formattedPhone = `+63${phoneNumber.substring(1)}`;
+      } else if (phoneNumber.length === 10) {
+        formattedPhone = `+639${phoneNumber}`;
       }
+
+      const response = await axios.post('/api/notifications/send-sms', {
+        recipient: formattedPhone,
+        message: message,
+        options: {
+          urgency: urgencyLevel.toLowerCase(),
+          patientId: patient?.id,
+          patientName: `${patient?.firstName} ${patient?.lastName}`,
+          type: selectedTemplate || 'custom'
+        }
+      });
 
       if (response.data.success) {
-        alert(`${contactMethod.toUpperCase()} sent successfully!`);
+        alert('SMS sent successfully!');
         onHide();
       } else {
-        alert(`Failed to send ${contactMethod.toUpperCase()}: ${response.data.error}`);
+        alert(`Failed to send SMS: ${response.data.error}`);
       }
     } catch (error) {
-      console.error('Send notification error:', error);
-      alert(`Error sending ${contactMethod.toUpperCase()}: ${error.response?.data?.error || error.message}`);
+      console.error('Send SMS error:', error);
+      alert(`Error sending SMS: ${error.response?.data?.error || error.message}`);
     } finally {
       setIsLoading(false);
     }
@@ -212,93 +169,16 @@ const SMSNotificationModal = ({ show, onHide, patient }) => {
         }}
       >
         <Modal.Title style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <i className={`bi ${contactMethod === 'sms' ? 'bi-chat-dots' : 'bi-envelope'}`}></i>
-          Send {contactMethod === 'sms' ? 'SMS' : 'Email'} Notification: {patient?.firstName} {patient?.lastName}
-          <Badge bg="warning" text="dark" style={{ fontSize: '0.7rem', marginLeft: '10px' }}>
-            Mock Mode
-          </Badge>
+          <i className="bi bi-chat-dots"></i>
+          Send SMS Notification: {patient?.firstName} {patient?.lastName}
         </Modal.Title>
       </Modal.Header>
 
       <Modal.Body style={{ background: '#ffffff', padding: '25px' }}>
         <Form>
-          {/* Contact Method Switch */}
+          {/* Urgency Level */}
           <Row className="mb-3">
-            <Col md={6}>
-              <Form.Label style={{ fontWeight: 600, color: '#2c3e50', marginBottom: '8px' }}>
-                Contact Method:
-              </Form.Label>
-              <div style={{ display: 'flex', gap: '10px', marginTop: '5px' }}>
-                <div style={{ position: 'relative' }}>
-                  <Button
-                    variant={contactMethod === 'sms' ? 'primary' : hasValidPhone ? 'outline-secondary' : 'outline-danger'}
-                    onClick={() => hasValidPhone && setContactMethod('sms')}
-                    disabled={!hasValidPhone}
-                    style={{
-                      padding: '10px 20px',
-                      borderRadius: '8px',
-                      fontWeight: 500,
-                      transition: 'all 0.2s ease',
-                      border: '2px solid transparent',
-                      opacity: hasValidPhone ? 1 : 0.6,
-                      cursor: hasValidPhone ? 'pointer' : 'not-allowed'
-                    }}
-                    title={hasValidPhone ? 'Send SMS notification' : 'No valid phone number available'}
-                  >
-                    <i className="bi bi-phone me-2"></i>
-                    SMS
-                    {!hasValidPhone && <i className="bi bi-x-circle ms-2" style={{ fontSize: '0.8rem' }}></i>}
-                  </Button>
-                </div>
-                
-                <div style={{ position: 'relative' }}>
-                  <Button
-                    variant={contactMethod === 'email' ? 'primary' : hasValidEmail ? 'outline-secondary' : 'outline-danger'}
-                    onClick={() => hasValidEmail && setContactMethod('email')}
-                    disabled={!hasValidEmail}
-                    style={{
-                      padding: '10px 20px',
-                      borderRadius: '8px',
-                      fontWeight: 500,
-                      transition: 'all 0.2s ease',
-                      border: '2px solid transparent',
-                      opacity: hasValidEmail ? 1 : 0.6,
-                      cursor: hasValidEmail ? 'pointer' : 'not-allowed'
-                    }}
-                    title={hasValidEmail ? 'Send email notification' : 'No valid email address available'}
-                  >
-                    <i className="bi bi-envelope me-2"></i>
-                    Email
-                    {!hasValidEmail && <i className="bi bi-x-circle ms-2" style={{ fontSize: '0.8rem' }}></i>}
-                  </Button>
-                </div>
-              </div>
-              
-              {/* Contact method availability status */}
-              {(!hasValidPhone || !hasValidEmail) && (
-                <div style={{ marginTop: '8px', fontSize: '0.85rem' }}>
-                  {!hasValidPhone && !hasValidEmail && (
-                    <div style={{ color: '#dc3545', fontWeight: 500 }}>
-                      <i className="bi bi-exclamation-triangle me-1"></i>
-                      No valid contact information available
-                    </div>
-                  )}
-                  {!hasValidPhone && hasValidEmail && (
-                    <div style={{ color: '#856404' }}>
-                      <i className="bi bi-info-circle me-1"></i>
-                      Phone number not available (SMS disabled)
-                    </div>
-                  )}
-                  {hasValidPhone && !hasValidEmail && (
-                    <div style={{ color: '#856404' }}>
-                      <i className="bi bi-info-circle me-1"></i>
-                      Email address not available (Email disabled)
-                    </div>
-                  )}
-                </div>
-              )}
-            </Col>
-            <Col md={6}>
+            <Col md={12}>
               <Form.Label style={{ fontWeight: 600, color: '#2c3e50' }}>
                 Urgency Level:
               </Form.Label>
@@ -319,48 +199,27 @@ const SMSNotificationModal = ({ show, onHide, patient }) => {
           <Row className="mb-3">
             <Col md={12}>
               <Form.Label style={{ fontWeight: 600, color: '#2c3e50' }}>
-                {contactMethod === 'sms' ? 'Recipient Phone Number:' : 'Recipient Email Address:'}
+                Recipient Phone Number:
               </Form.Label>
-              {contactMethod === 'sms' ? (
-                <Form.Control
-                  type="text"
-                  value={formatPhoneDisplay(phoneNumber)}
-                  onChange={handlePhoneNumberChange}
-                  placeholder="09123456789"
-                  maxLength={13} // Account for formatting
-                  disabled={!hasValidPhone}
-                  style={{ 
-                    borderColor: hasValidPhone ? '#dee2e6' : '#dc3545', 
-                    fontSize: '1.1rem', 
-                    padding: '12px',
-                    backgroundColor: hasValidPhone ? '#ffffff' : '#f8f9fa',
-                    opacity: hasValidPhone ? 1 : 0.7
-                  }}
-                />
-              ) : (
-                <Form.Control
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="patient@example.com"
-                  disabled={!hasValidEmail}
-                  style={{ 
-                    borderColor: hasValidEmail ? '#dee2e6' : '#dc3545', 
-                    fontSize: '1.1rem', 
-                    padding: '12px',
-                    backgroundColor: hasValidEmail ? '#ffffff' : '#f8f9fa',
-                    opacity: hasValidEmail ? 1 : 0.7
-                  }}
-                />
-              )}
-              <Form.Text className={hasValidPhone || hasValidEmail ? "text-muted" : "text-danger"}>
-                {contactMethod === 'sms' 
-                  ? hasValidPhone 
-                    ? 'Enter a valid Philippine mobile number (11 digits)' 
-                    : 'No valid phone number available (N/A or invalid)'
-                  : hasValidEmail 
-                    ? 'Enter a valid email address'
-                    : 'No valid email address available (N/A, placeholder, or invalid)'
+              <Form.Control
+                type="text"
+                value={formatPhoneDisplay(phoneNumber)}
+                onChange={handlePhoneNumberChange}
+                placeholder="09123456789"
+                maxLength={13} // Account for formatting
+                disabled={!hasValidPhone}
+                style={{ 
+                  borderColor: hasValidPhone ? '#dee2e6' : '#dc3545', 
+                  fontSize: '1.1rem', 
+                  padding: '12px',
+                  backgroundColor: hasValidPhone ? '#ffffff' : '#f8f9fa',
+                  opacity: hasValidPhone ? 1 : 0.7
+                }}
+              />
+              <Form.Text className={hasValidPhone ? "text-muted" : "text-danger"}>
+                {hasValidPhone 
+                  ? 'Enter a valid Philippine mobile number (11 digits)' 
+                  : 'No valid phone number available (N/A or invalid)'
                 }
               </Form.Text>
             </Col>
@@ -406,7 +265,7 @@ const SMSNotificationModal = ({ show, onHide, patient }) => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Enter your message here..."
-                maxLength={contactMethod === 'sms' ? 160 : 1000}
+                maxLength={160}
                 style={{ 
                   borderColor: '#dee2e6', 
                   fontSize: '1rem', 
@@ -423,9 +282,9 @@ const SMSNotificationModal = ({ show, onHide, patient }) => {
                 color: '#6c757d'
               }}>
                 <span>
-                  {characterCount}/{contactMethod === 'sms' ? 160 : 1000} characters
+                  {characterCount}/160 characters
                 </span>
-                {contactMethod === 'sms' && characterCount > 160 && (
+                {characterCount > 160 && (
                   <span style={{ color: '#dc3545' }}>
                     Message too long for SMS
                   </span>
@@ -449,9 +308,6 @@ const SMSNotificationModal = ({ show, onHide, patient }) => {
                     <div><strong>Name:</strong> {patient.firstName} {patient.lastName}</div>
                     {patient.phoneNumber && (
                       <div><strong>Phone:</strong> {patient.phoneNumber}</div>
-                    )}
-                    {patient.email && (
-                      <div><strong>Email:</strong> {patient.email}</div>
                     )}
                   </div>
                 </div>
@@ -489,8 +345,8 @@ const SMSNotificationModal = ({ show, onHide, patient }) => {
             </>
           ) : (
             <>
-              <i className={`bi ${contactMethod === 'sms' ? 'bi-chat-dots' : 'bi-envelope'}`}></i>
-              Send {contactMethod === 'sms' ? 'SMS' : 'Email'}
+              <i className="bi bi-chat-dots"></i>
+              Send SMS
             </>
           )}
         </Button>

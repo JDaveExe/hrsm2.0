@@ -7,6 +7,7 @@ const express = require('express');
 const router = express.Router();
 const SimpleHealthForecasting = require('../services/simpleHealthForecasting');
 const { authenticateToken: auth } = require('../middleware/auth');
+const AuditLogger = require('../utils/auditLogger');
 
 const forecasting = new SimpleHealthForecasting();
 
@@ -111,6 +112,17 @@ router.post('/comprehensive-report', auth, async (req, res) => {
     const healthData = await getComprehensiveHealthData();
     
     const report = forecasting.generateForecastReport(healthData);
+    
+    // Log report generation to audit trail
+    await AuditLogger.logReportGeneration(req, 'comprehensive-health-forecast', {
+      reportName: 'Comprehensive Health Forecast Report',
+      format: 'JSON',
+      reportId: `forecast_${Date.now()}`,
+      dateRange: {
+        from: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        to: new Date().toISOString().split('T')[0]
+      }
+    });
     
     res.json({
       success: true,

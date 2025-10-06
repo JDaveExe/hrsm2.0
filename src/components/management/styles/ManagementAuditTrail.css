@@ -1,0 +1,613 @@
+/* ManagementAuditTrail.css - Management Theme (Green) */
+.management-audit-trail-container {
+  padding: 1.5rem;
+  background: #f8f9fa;
+  min-height: calc(100vh - 60px);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Management color scheme - Primary Green */
+:root {
+  --management-primary: #28a745;
+  --management-primary-light: rgba(40, 167, 69, 0.1);
+  --management-primary-hover: #218838;
+  --management-success: #28a745;
+  --management-warning: #ffc107;
+  --management-danger: #dc3545;
+  --management-info: #17a2b8;
+}
+
+/* Filter Card */
+.management-filter-card {
+  border: 1px solid #28a745 !important;
+  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.1);
+}
+
+.management-filter-card .form-label {
+  font-weight: 500;
+  font-size: 0.8rem;
+  color: #495057;
+  margin-bottom: 0.35rem;
+}
+
+.management-filter-card .form-control,
+.management-filter-card .form-select {
+  border-color: #28a745;
+  font-size: 0.875rem;
+  height: calc(1.5em + 0.5rem + 2px);
+}
+
+.management-filter-card .form-control:focus,
+.management-filter-card .form-select:focus {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.15);
+}
+
+.management-filter-card .btn-primary {
+  background-color: #28a745;
+  border-color: #28a745;
+  height: calc(1.5em + 0.5rem + 2px);
+}
+
+.management-filter-card .btn-primary:hover {
+  background-color: #218838;
+  border-color: #1e7e34;
+}
+
+.management-filter-card .icon-btn {
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.25rem;
+}
+
+.management-filter-card .btn-outline-success {
+  border-color: #28a745;
+  color: #28a745;
+}
+
+.management-filter-card .btn-outline-success:hover {
+  background-color: #28a745;
+  border-color: #28a745;
+  color: white;
+}
+
+.management-filter-card .btn-outline-secondary {
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.management-filter-card .btn-outline-secondary:hover {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: white;
+}
+
+/* Row spacing */
+.management-filter-card .g-3 {
+  --bs-gutter-y: 0.75rem;
+  --bs-gutter-x: 0.75rem;
+}
+
+/* Table Card */
+.management-table-card {
+  border: 1px solid #28a745 !important;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.12);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* Table Styling */
+.management-audit-table {
+  margin-bottom: 0;
+}
+
+.management-audit-table thead {
+  background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+  color: white;
+}
+
+.management-audit-table thead th {
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1rem 0.75rem;
+  border: none;
+  white-space: nowrap;
+}
+
+.management-audit-table tbody tr {
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.management-audit-table tbody tr:hover {
+  background-color: var(--management-primary-light);
+  transform: translateY(-1px);
+  border-left-color: #28a745;
+}
+
+.management-audit-table tbody td {
+  padding: 0.875rem 0.75rem;
+  vertical-align: middle;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+/* Badge Styling - Override Bootstrap defaults and add gradients */
+.management-audit-trail-container .badge.bg-danger {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+}
+
+.management-audit-trail-container .badge.bg-primary {
+  background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%) !important;
+}
+
+.management-audit-trail-container .badge.bg-success {
+  background: linear-gradient(135deg, #198754 0%, #146c43 100%) !important;
+}
+
+.management-audit-trail-container .badge.bg-info {
+  background: linear-gradient(135deg, #0dcaf0 0%, #3dd5f3 100%) !important;
+}
+
+.management-audit-trail-container .badge.bg-warning {
+  background: linear-gradient(135deg, #ffc107 0%, #e0a800 100%) !important;
+  color: #000 !important;
+}
+
+.management-audit-trail-container .badge.bg-secondary {
+  background: linear-gradient(135deg, #e9ecef 0%, #d6dde3 100%) !important;
+  color: #495057 !important;
+}
+
+/* User avatar */
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  border: 2px solid rgba(40, 167, 69, 0.2);
+}
+
+/* Timestamp Cell */
+.timestamp-cell {
+  color: #6c757d;
+  font-family: 'Courier New', monospace;
+}
+
+/* Badges */
+.management-audit-table .badge {
+  padding: 0.375rem 0.75rem;
+  font-weight: 500;
+  font-size: 0.75rem;
+}
+
+/* Pagination */
+.management-pagination {
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.management-pagination .page-link {
+  color: #28a745;
+  border: 1px solid #28a745;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  min-width: 38px;
+  text-align: center;
+  border-radius: 0.375rem;
+  margin: 0;
+  transition: all 0.2s ease;
+}
+
+.management-pagination .page-link:hover {
+  background-color: rgba(40, 167, 69, 0.1);
+  border-color: #28a745;
+  color: #28a745;
+}
+
+.management-pagination .page-item.active .page-link {
+  background-color: #28a745;
+  border-color: #28a745;
+  color: white;
+  font-weight: 600;
+}
+
+.management-pagination .page-item.disabled .page-link {
+  color: #6c757d;
+  background-color: #fff;
+  border-color: #dee2e6;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Custom prev/next buttons */
+.management-pagination .custom-prev .page-link,
+.management-pagination .custom-next .page-link {
+  font-size: 1rem;
+  font-weight: bold;
+  padding: 0.4rem 0.75rem;
+}
+
+.management-pagination .custom-prev.disabled .page-link,
+.management-pagination .custom-next.disabled .page-link {
+  cursor: not-allowed;
+}
+
+/* Ellipsis */
+.management-pagination .page-item.disabled .page-link {
+  background-color: transparent;
+  border-color: transparent;
+  color: #6c757d;
+}
+
+/* Buttons */
+.management-audit-trail-container .btn-primary {
+  background-color: var(--management-primary);
+  border-color: var(--management-primary);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.management-audit-trail-container .btn-primary:hover {
+  background-color: var(--management-primary-hover);
+  border-color: var(--management-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.2);
+}
+
+.management-audit-trail-container .btn-outline-primary {
+  color: var(--management-primary);
+  border-color: var(--management-primary);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.management-audit-trail-container .btn-outline-primary:hover {
+  background-color: var(--management-primary);
+  border-color: var(--management-primary);
+  color: white;
+  transform: translateY(-1px);
+}
+
+/* Modal Styling - Management Theme (Green) */
+.management-audit-trail-container .modal-header {
+  background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%);
+  color: white;
+  border-bottom: none;
+}
+
+.management-audit-trail-container .modal-header .btn-close {
+  filter: brightness(0) invert(1);
+}
+
+.management-audit-trail-container .modal-title {
+  font-weight: 600;
+  color: white;
+}
+
+.management-audit-trail-container .modal-content {
+  border: none;
+  border-radius: 0.75rem;
+  box-shadow: 0 1rem 3rem rgba(40, 167, 69, 0.175);
+}
+
+.log-details .detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.log-details .detail-row:last-child {
+  border-bottom: none;
+}
+
+.log-details .detail-row strong {
+  color: #495057;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.log-details .detail-row span {
+  color: #212529;
+  font-size: 0.95rem;
+  word-wrap: break-word;
+}
+
+.log-details .detail-row .bg-light {
+  background-color: #f8f9fa !important;
+  border: 1px solid #e9ecef;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin-top: 0.5rem;
+}
+
+.log-details .detail-row pre {
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #212529;
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Statistics Cards */
+.management-audit-trail-container .card {
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.management-audit-trail-container .card:hover {
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.management-audit-trail-container .card h2 {
+  margin-bottom: 0;
+  font-weight: 700;
+}
+
+.management-audit-trail-container .card h6 {
+  color: #6c757d;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+}
+
+/* Empty State */
+.management-audit-trail-container .bi-inbox {
+  color: #6c757d;
+  opacity: 0.5;
+}
+
+/* Loading State */
+.management-audit-trail-container .spinner-border-primary {
+  color: var(--management-primary);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .management-audit-trail-container {
+    padding: 1rem;
+  }
+
+  .management-audit-table thead th {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .management-audit-table tbody td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 0.75rem;
+  }
+
+  .management-filter-card .col-md-3,
+  .management-filter-card .col-md-2,
+  .management-filter-card .col-md-1 {
+    margin-bottom: 1rem;
+  }
+}
+
+/* Scrollbar Styling */
+.table-responsive::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: var(--management-primary);
+  border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: var(--management-primary-hover);
+}
+
+/* Action Button */
+.management-audit-table .btn-outline-primary {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  border-width: 1px;
+}
+
+.management-audit-table .btn-outline-primary:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* Alert Styling */
+.management-audit-trail-container .alert {
+  border-radius: 0.5rem;
+  border-left: 4px solid;
+}
+
+.management-audit-trail-container .alert-danger {
+  border-left-color: var(--management-danger);
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+/* Header Styling */
+.management-audit-trail-container h2 {
+  color: #212529;
+  font-weight: 700;
+}
+
+.management-audit-trail-container h2 i {
+  color: var(--management-primary);
+}
+
+.management-audit-trail-container .text-muted {
+  color: #6c757d !important;
+}
+
+/* Additional Details Section */
+.log-details .detail-row {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.log-details .detail-row:last-child {
+  border-bottom: none;
+}
+
+.log-details .detail-row strong {
+  color: #495057;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.log-details .detail-row span {
+  color: #fff;
+  font-size: 0.95rem;
+  word-wrap: break-word;
+}
+
+.log-details .detail-row .bg-light {
+  background-color: #f8f9fa !important;
+  border: 1px solid #e9ecef;
+  border-radius: 0.375rem;
+  padding: 1rem;
+  margin-top: 0.5rem;
+}
+
+.log-details .detail-row pre {
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: #212529;
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Handle empty/invalid data gracefully */
+.management-audit-table td span:empty::before,
+.log-details span:empty::before {
+  content: 'N/A';
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Invalid date styling */
+.timestamp-cell {
+  color: #495057;
+  font-weight: 500;
+}
+
+.timestamp-cell small:contains('Invalid') {
+  color: #dc3545;
+  font-style: italic;
+}
+
+/* Unknown user styling */
+.fw-medium:contains('Unknown') {
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* Metadata display styling - Match Admin */
+.metadata-display {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.metadata-display .bg-light {
+  border: 1px solid #e9ecef !important;
+  background-color: #f8f9fa !important;
+}
+
+.metadata-display strong {
+  display: inline-block;
+  min-width: 120px;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.metadata-display code {
+  font-size: 0.85em;
+  word-break: break-all;
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+}
+
+.metadata-display details summary {
+  cursor: pointer;
+  user-select: none;
+}
+
+.metadata-display details summary::-webkit-details-marker {
+  color: #28a745;
+}
+
+.metadata-display details[open] summary {
+  margin-bottom: 0.5rem;
+}
+
+.metadata-display pre {
+  max-height: 200px;
+  overflow-y: auto;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  background-color: #fff;
+  border: 1px solid #dee2e6;
+  padding: 0.5rem;
+  margin: 0;
+}
+
+.metadata-display .mb-2 {
+  margin-bottom: 0.5rem !important;
+  display: block;
+}
+
+.metadata-display .text-success {
+  color: #28a745 !important;
+}
+
+.metadata-display .text-info {
+  color: #17a2b8 !important;
+}

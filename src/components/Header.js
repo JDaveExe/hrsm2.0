@@ -25,16 +25,6 @@ const Header = memo(() => {
     [location.pathname]
   );
 
-  // Check for special instance modes based on port
-  const currentPort = window.location.port;
-  const instanceConfig = {
-    '3001': { label: '🩺 DOCTOR MODE', color: '#28a745' },
-    '3002': { label: '👤 PATIENT MODE', color: '#007bff' },
-    '3003': { label: '⚙️ ADMIN MODE', color: '#dc3545' }
-  };
-  
-  const instanceMode = instanceConfig[currentPort];
-
   const { dateStr, timeStr } = useMemo(() => ({
     dateStr: currentDateTime.toLocaleDateString('en-US', { 
       weekday: 'long', 
@@ -59,22 +49,6 @@ const Header = memo(() => {
         <div className="top-info-inner">
           <span className="top-date">{dateStr}</span>
           <span className="top-time">{timeStr}</span>
-          {instanceMode && (
-            <span 
-              className="instance-indicator" 
-              style={{
-                marginLeft: '20px',
-                padding: '4px 8px',
-                backgroundColor: instanceMode.color,
-                color: 'white',
-                borderRadius: '4px',
-                fontSize: '12px',
-                fontWeight: 'bold'
-              }}
-            >
-              {instanceMode.label} (Port {currentPort})
-            </span>
-          )}
         </div>
       </div>
       {/* Main navigation now in blue bar (previously date/time bar) */}

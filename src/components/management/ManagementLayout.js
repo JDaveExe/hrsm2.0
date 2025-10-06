@@ -5,6 +5,7 @@ import ManagementSidebar from './components/ManagementSidebar';
 import InventoryManagement from './components/InventoryManagement';
 import ReportsManager from './components/ReportsManager';
 import HealthcareInsights from './components/HealthcareInsights';
+import ManagementAuditTrail from './components/ManagementAuditTrail';
 import LoadingManagementBar from './LoadingManagementBar';
 import './styles/ManagementLayout.css';
 import sealmainImage from '../../images/sealmain.png';
@@ -90,6 +91,8 @@ const ManagementLayout = () => {
         return <ReportsManager {...componentProps} />;
       case 'Healthcare Insights':
         return <HealthcareInsights {...componentProps} onNavigateToReports={handleNavigateToReports} />;
+      case 'Audit Trail':
+        return <ManagementAuditTrail user={user} />;
       default:
         return <InventoryManagement {...componentProps} onNavigateToReports={handleNavigateToReports} />;
     }

@@ -263,7 +263,9 @@ const PatientActionsSection = ({ selectedPatient }) => {
             </div>
           </div>
           
-          <div className="col-md-4">
+          {/* SMS Button - Temporarily hidden until Twilio is configured */}
+          {/* Uncomment when ready to use real SMS functionality */}
+          {/* <div className="col-md-4">
             <div 
               className="h-100 d-flex align-items-center p-3"
               style={{
@@ -295,7 +297,7 @@ const PatientActionsSection = ({ selectedPatient }) => {
                 </small>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 

@@ -8,8 +8,6 @@ const AdminSidebar = memo(({
   handleNavigation, 
   currentPath, 
   handleLogout, 
-  simulationMode, 
-  handleSimulationToggle,
   sealmainImage,
   showFPSMonitor,
   handleFPSToggle,
@@ -113,6 +111,12 @@ const AdminSidebar = memo(({
                   <span>User Management</span>
                 </Link>
               </li>
+              <li onClick={() => handleNavigationClick('Audit Trail')}>
+                <Link to="#">
+                  <i className="bi bi-clipboard-data"></i>
+                  <span>Audit Trail</span>
+                </Link>
+              </li>
               <li className={activeSubDropdown === 'systemConfig' ? 'dropdown active' : 'dropdown'}>
                 <Link to="#" onClick={(e) => { e.stopPropagation(); handleSubDropdownToggle('systemConfig', e); }}>
                   <i className="bi bi-sliders"></i>
@@ -120,12 +124,6 @@ const AdminSidebar = memo(({
                   <i className={`bi ${activeSubDropdown === 'systemConfig' ? 'bi-chevron-down' : 'bi-chevron-right'} dropdown-icon`}></i>
                 </Link>
                 <ul className={activeSubDropdown === 'systemConfig' ? 'dropdown-menu show' : 'dropdown-menu'}>
-                  <li onClick={() => handleNavigationClick('Simulation Mode')}>
-                    <Link to="#">
-                      <i className="bi bi-play-circle"></i>
-                      <span>Simulation Mode</span>
-                    </Link>
-                  </li>
                   <li onClick={() => handleResetCheckupDataClick()}>
                     <Link to="#">
                       <i className="bi bi-arrow-clockwise"></i>
@@ -168,22 +166,6 @@ const AdminSidebar = memo(({
           <span className="logout-text">Logout</span>
         </button>
       </div>
-
-      {simulationMode?.isEnabled && (
-        <div className="simulation-mode-indicator">
-          <div className="simulation-status">
-            <i className="bi bi-flask text-warning"></i>
-            <span className="link_name">Simulation Active</span>
-            <button 
-              className="btn btn-sm btn-outline-warning"
-              onClick={handleSimulationToggle}
-              title="Disable Simulation Mode"
-            >
-              <i className="bi bi-x"></i>
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 });

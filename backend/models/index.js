@@ -8,6 +8,8 @@ const Appointment = require('./Appointment');
 const CheckInSession = require('./CheckInSession.sequelize');
 const DoctorSession = require('./DoctorSession');
 const Vaccination = require('./Vaccination');
+const AuditLog = require('./AuditLog');
+const AuditNotification = require('./AuditNotification');
 
 // Define associations
 User.hasOne(Patient, { foreignKey: 'userId' });
@@ -55,6 +57,14 @@ Vaccination.belongsTo(Patient, { foreignKey: 'patientId', as: 'Patient' });
 User.hasMany(Vaccination, { foreignKey: 'createdBy', as: 'createdVaccinations' });
 Vaccination.belongsTo(User, { foreignKey: 'createdBy', as: 'CreatedBy' });
 
+// AuditLog associations - Note: No foreign key constraints to preserve audit integrity
+// User.hasMany(AuditLog, { foreignKey: 'userId', as: 'auditLogs' });
+// AuditLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+
+// AuditNotification associations
+AuditNotification.belongsTo(AuditLog, { foreignKey: 'auditLogId', as: 'auditLog' });
+AuditLog.hasMany(AuditNotification, { foreignKey: 'auditLogId', as: 'notifications' });
+
 module.exports = {
   Family,
   Patient,
@@ -63,5 +73,7 @@ module.exports = {
   Appointment,
   CheckInSession,
   DoctorSession,
-  Vaccination
+  Vaccination,
+  AuditLog,
+  AuditNotification
 };

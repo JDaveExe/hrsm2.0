@@ -63,11 +63,24 @@ const deleteUser = async (userId) => {
   }
 };
 
+const updateProfile = async (profileData) => {
+  try {
+    console.log('🔧 userService.updateProfile() calling /api/auth/profile');
+    const response = await axios.put('/api/auth/profile', profileData);
+    console.log('✅ userService.updateProfile() success:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ userService.updateProfile() error:', error.response ? error.response.data : error.message);
+    throw error;
+  }
+};
+
 const userService = {
   getUsers,
   createUser,
   updateUser,
   deleteUser,
+  updateProfile,
 };
 
 export default userService;

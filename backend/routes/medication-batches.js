@@ -1,312 +1,203 @@
-// SAFE BATCH SYSTEM IMPLEMENTATION
-// Phase 1: Add MedicationBatch model and batch endpoints without breaking existing system
+// MEDICATION BATCH SYSTEM - JSON FILE STORAGE
+// Provides proper batch tracking with FIFO deduction
 
 const express = require('express');
 const router = express.Router();
-const { sequelize } = require('../config/database');
+const { authenticateToken: auth } = require('../middleware/auth');
+const fs = require('fs').promises;
+const path = require('path');
+const AuditLogger = require('../utils/auditLogger');
 
-// Initialize models
-let Medication, MedicationBatch;
+// Data file paths
+const medicationsDataPath = path.join(__dirname, '../data/medications.json');
+const batchesDataPath = path.join(__dirname, '../data/medication_batches.json');
 
-async function initializeModels() {
-    if (!Medication) {
-        const MedicationModel = require('../models/Prescription.sequelize');
-        Medication = MedicationModel(sequelize);
+// Helper function to read JSON data
+const readJsonFile = async (filePath) => {
+  try {
+    const data = await fs.readFile(filePath, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      return [];
     }
-    
-    if (!MedicationBatch) {
-        const MedicationBatchModel = require('../models/MedicationBatch');
-        MedicationBatch = MedicationBatchModel(sequelize);
-        
-        // Create the table if it doesn't exist
-        await MedicationBatch.sync({ alter: false }); // Don't alter existing table structure
-    }
-    
-    // Set up associations if not already done
-    if (!Medication.associations.batches) {
-        Medication.hasMany(MedicationBatch, {
-            foreignKey: 'medicationId',
-            as: 'batches'
-        });
-        
-        MedicationBatch.belongsTo(Medication, {
-            foreignKey: 'medicationId',
-            as: 'medication'
-        });
-    }
-}
+    throw error;
+  }
+};
 
-// BATCH MANAGEMENT ENDPOINTS (New, safe)
+// Helper function to write JSON data
+const writeJsonFile = async (filePath, data) => {
+  await fs.writeFile(filePath, JSON.stringify(data, null, 2));
+};
 
 // Get all batches for a specific medication
 router.get('/:medicationId/batches', async (req, res) => {
-    try {
-        await initializeModels();
-        
-        const { medicationId } = req.params;
-        
-        const batches = await MedicationBatch.findAll({
-            where: { medicationId },
-            order: [['expiryDate', 'ASC']],
-            include: [{
-                model: Medication,
-                as: 'medication',
-                attributes: ['name', 'strength', 'form']
-            }]
-        });
-        
-        res.json(batches);
-    } catch (error) {
-        console.error('Error fetching batches:', error);
-        res.status(500).json({ 
-            error: 'Failed to fetch batches',
-            message: error.message 
-        });
-    }
+  try {
+    const { medicationId } = req.params;
+    const batches = await readJsonFile(batchesDataPath);
+    
+    // Filter batches for this medication and sort by expiry date (FIFO)
+    const medicationBatches = batches
+      .filter(batch => batch.medicationId === parseInt(medicationId))
+      .sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+    
+    console.log(`📦 Found ${medicationBatches.length} batches for medication ${medicationId}`);
+    res.json(medicationBatches);
+  } catch (error) {
+    console.error('Error fetching batches:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch batches',
+      message: error.message 
+    });
+  }
 });
 
-// Create new batch (this will replace the old add-stock logic)
-router.post('/:medicationId/batches', async (req, res) => {
-    try {
-        await initializeModels();
-        
-        const { medicationId } = req.params;
-        const {
-            batchNumber,
-            quantityReceived,
-            unitCost,
-            expiryDate,
-            supplier,
-            purchaseOrderNumber,
-            storageLocation,
-            notes
-        } = req.body;
-        
-        // Validate required fields
-        if (!batchNumber || !quantityReceived || !expiryDate) {
-            return res.status(400).json({
-                error: 'Missing required fields',
-                required: ['batchNumber', 'quantityReceived', 'expiryDate']
-            });
-        }
-        
-        // Check if medication exists
-        const medication = await Medication.findByPk(medicationId);
-        if (!medication) {
-            return res.status(404).json({ error: 'Medication not found' });
-        }
-        
-        // Check if batch number already exists
-        const existingBatch = await MedicationBatch.findOne({
-            where: { batchNumber }
-        });
-        
-        if (existingBatch) {
-            return res.status(400).json({ 
-                error: 'Batch number already exists',
-                existingBatch: existingBatch.batchNumber
-            });
-        }
-        
-        // Create new batch
-        const newBatch = await MedicationBatch.create({
-            medicationId,
-            batchNumber,
-            quantityReceived,
-            quantityRemaining: quantityReceived, // Initially all quantity is remaining
-            unitCost: unitCost || medication.unitCost || 0,
-            expiryDate,
-            supplier: supplier || medication.manufacturer,
-            purchaseOrderNumber,
-            storageLocation,
-            notes,
-            status: 'active',
-            createdBy: req.user?.id || 1 // Default to system user
-        });
-        
-        res.status(201).json({
-            message: 'Batch created successfully',
-            batch: newBatch
-        });
-        
-    } catch (error) {
-        console.error('Error creating batch:', error);
-        res.status(500).json({ 
-            error: 'Failed to create batch',
-            message: error.message 
-        });
-    }
+// Get all batches (for management overview)
+router.get('/', async (req, res) => {
+  try {
+    const batches = await readJsonFile(batchesDataPath);
+    const medications = await readJsonFile(medicationsDataPath);
+    
+    // Enrich batches with medication info
+    const enrichedBatches = batches.map(batch => {
+      const medication = medications.find(m => m.id === batch.medicationId);
+      return {
+        ...batch,
+        medicationName: medication?.name || 'Unknown',
+        medicationForm: medication?.form || '',
+        medicationStrength: medication?.strength || ''
+      };
+    }).sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+    
+    console.log(`📦 Loaded ${enrichedBatches.length} total medication batches`);
+    res.json(enrichedBatches);
+  } catch (error) {
+    console.error('Error fetching all batches:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch batches',
+      message: error.message 
+    });
+  }
 });
 
-// Get medication with all batches (enhanced inventory view)
-router.get('/:medicationId/enhanced', async (req, res) => {
-    try {
-        await initializeModels();
-        
-        const { medicationId } = req.params;
-        
-        const medication = await Medication.findByPk(medicationId, {
-            include: [{
-                model: MedicationBatch,
-                as: 'batches',
-                where: { status: 'active' },
-                required: false,
-                order: [['expiryDate', 'ASC']]
-            }]
-        });
-        
-        if (!medication) {
-            return res.status(404).json({ error: 'Medication not found' });
-        }
-        
-        // Calculate enhanced data
-        const activeBatches = medication.batches || [];
-        const totalStock = activeBatches.reduce((sum, batch) => sum + batch.quantityRemaining, 0);
-        const nextExpiryDate = activeBatches.length > 0 ? activeBatches[0].expiryDate : null;
-        const batchCount = activeBatches.length;
-        
-        // Enhanced medication object
-        const enhancedMedication = {
-            ...medication.toJSON(),
-            totalStock,
-            nextExpiryDate,
-            batchCount,
-            batches: activeBatches.map(batch => ({
-                id: batch.id,
-                batchNumber: batch.batchNumber,
-                quantityRemaining: batch.quantityRemaining,
-                expiryDate: batch.expiryDate,
-                unitCost: batch.unitCost,
-                status: batch.status,
-                daysUntilExpiry: Math.ceil((new Date(batch.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))
-            }))
-        };
-        
-        res.json(enhancedMedication);
-        
-    } catch (error) {
-        console.error('Error fetching enhanced medication:', error);
-        res.status(500).json({ 
-            error: 'Failed to fetch enhanced medication data',
-            message: error.message 
-        });
+// Create new batch (add stock)
+router.post('/:medicationId/batches', auth, async (req, res) => {
+  try {
+    const { medicationId } = req.params;
+    const {
+      batchNumber,
+      quantityReceived,
+      unitCost,
+      expiryDate,
+      supplier,
+      purchaseOrderNumber,
+      storageLocation,
+      notes
+    } = req.body;
+    
+    // Validate required fields
+    if (!batchNumber || !quantityReceived || !expiryDate) {
+      return res.status(400).json({
+        error: 'Missing required fields',
+        required: ['batchNumber', 'quantityReceived', 'expiryDate']
+      });
     }
-});
-
-// MIGRATION ENDPOINT (Test only - will create batch records from existing data)
-router.post('/migrate-to-batches', async (req, res) => {
-    try {
-        console.log('🚨 STARTING BATCH MIGRATION');
-        
-        await initializeModels();
-        
-        // Get all medications
-        const medications = await Medication.findAll({
-            where: { isActive: true }
-        });
-        
-        let migratedCount = 0;
-        let errors = [];
-        
-        for (const medication of medications) {
-            try {
-                // Check if this medication already has batches
-                const existingBatches = await MedicationBatch.findAll({
-                    where: { medicationId: medication.id }
-                });
-                
-                if (existingBatches.length > 0) {
-                    console.log(`Skipping ${medication.name} - already has batches`);
-                    continue;
-                }
-                
-                // Create batch from existing medication data
-                if (medication.batchNumber && medication.unitsInStock) {
-                    await MedicationBatch.create({
-                        medicationId: medication.id,
-                        batchNumber: medication.batchNumber,
-                        quantityReceived: medication.unitsInStock,
-                        quantityRemaining: medication.unitsInStock,
-                        unitCost: medication.unitCost || 0,
-                        expiryDate: medication.expiryDate,
-                        supplier: medication.manufacturer || 'Unknown',
-                        status: new Date(medication.expiryDate) < new Date() ? 'expired' : 'active',
-                        notes: 'Migrated from legacy system',
-                        createdBy: 1
-                    });
-                    
-                    migratedCount++;
-                    console.log(`✅ Migrated: ${medication.name}`);
-                } else {
-                    errors.push(`Missing data for ${medication.name}`);
-                }
-                
-            } catch (error) {
-                errors.push(`Error migrating ${medication.name}: ${error.message}`);
-            }
-        }
-        
-        res.json({
-            message: 'Migration completed',
-            totalMedications: medications.length,
-            migratedCount,
-            errors: errors.length,
-            errorDetails: errors
-        });
-        
-    } catch (error) {
-        console.error('Migration error:', error);
-        res.status(500).json({ 
-            error: 'Migration failed',
-            message: error.message 
-        });
+    
+    // Read data files
+    const medications = await readJsonFile(medicationsDataPath);
+    const batches = await readJsonFile(batchesDataPath);
+    
+    // Check if medication exists
+    const medicationIndex = medications.findIndex(m => m.id === parseInt(medicationId));
+    if (medicationIndex === -1) {
+      return res.status(404).json({ error: 'Medication not found' });
     }
-});
-
-// MEDICATION BATCH DISPOSAL ENDPOINT
-router.delete('/:batchId/dispose', async (req, res) => {
-    try {
-        await initializeMedicationModels();
-        
-        const { batchId } = req.params;
-        
-        // Find the batch
-        const batch = await MedicationBatch.findByPk(batchId);
-        if (!batch) {
-            return res.status(404).json({ error: 'Batch not found' });
-        }
-        
-        // Check if batch is expired
-        const isExpired = new Date(batch.expiryDate) < new Date();
-        if (!isExpired) {
-            return res.status(400).json({ 
-                error: 'Cannot dispose non-expired batch',
-                message: 'Only expired batches can be disposed'
-            });
-        }
-        
-        // Update batch status to disposed instead of deleting
-        await batch.update({
-            status: 'Disposed',
-            disposedAt: new Date(),
-            disposedBy: req.user?.id || 1, // Default to admin user
-            notes: (batch.notes || '') + ` | Disposed on ${new Date().toLocaleDateString()}`
-        });
-        
-        res.json({
-            message: 'Batch disposed successfully',
-            batchId: batch.id,
-            batchNumber: batch.batchNumber,
-            disposedAt: new Date()
-        });
-        
-    } catch (error) {
-        console.error('Error disposing medication batch:', error);
-        res.status(500).json({ 
-            error: 'Failed to dispose batch',
-            message: error.message 
-        });
+    
+    const medication = medications[medicationIndex];
+    
+    // Check if batch number already exists for this medication
+    const existingBatch = batches.find(
+      b => b.medicationId === parseInt(medicationId) && b.batchNumber === batchNumber
+    );
+    
+    if (existingBatch) {
+      return res.status(400).json({ 
+        error: 'Batch number already exists for this medication',
+        existingBatch 
+      });
     }
+    
+    // Create new batch
+    const newBatch = {
+      id: batches.length > 0 ? Math.max(...batches.map(b => b.id)) + 1 : 1,
+      medicationId: parseInt(medicationId),
+      batchNumber,
+      quantityReceived: parseInt(quantityReceived),
+      quantityRemaining: parseInt(quantityReceived),
+      unitCost: parseFloat(unitCost) || medication.unitCost || 0,
+      expiryDate,
+      supplier: supplier || 'Unknown',
+      purchaseOrderNumber: purchaseOrderNumber || null,
+      storageLocation: storageLocation || 'Main Storage',
+      notes: notes || '',
+      status: 'active',
+      receivedDate: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Add batch to batches array
+    batches.push(newBatch);
+    
+    // Update medication's total stock
+    medication.unitsInStock = (medication.unitsInStock || 0) + parseInt(quantityReceived);
+    medication.updatedAt = new Date().toISOString();
+    
+    // Remove legacy batch fields if they exist
+    delete medication.batchNumber;
+    
+    medications[medicationIndex] = medication;
+    
+    // Save both files
+    await writeJsonFile(batchesDataPath, batches);
+    await writeJsonFile(medicationsDataPath, medications);
+    
+    console.log(`✅ Created batch ${batchNumber} for ${medication.name}: +${quantityReceived} units`);
+    
+    // Audit logging for stock addition - using consolidated stock_update
+    if (req.user) {
+      Promise.resolve().then(async () => {
+        try {
+          const medicationForAudit = {
+            id: medication.id,
+            medicationName: medication.name
+          };
+          await AuditLogger.logStockUpdate(req, medicationForAudit, 'added', parseInt(quantityReceived), 'medication', {
+            expiryDate: expiryDate,
+            batchNumber: batchNumber
+          });
+        } catch (error) {
+          console.warn('Non-critical: Audit logging failed:', error.message);
+        }
+      });
+    }
+    
+    res.status(201).json({
+      message: 'Batch created successfully',
+      batch: newBatch,
+      medication: {
+        id: medication.id,
+        name: medication.name,
+        unitsInStock: medication.unitsInStock
+      }
+    });
+  } catch (error) {
+    console.error('Error creating batch:', error);
+    res.status(500).json({ 
+      error: 'Failed to create batch',
+      message: error.message 
+    });
+  }
 });
 
 module.exports = router;

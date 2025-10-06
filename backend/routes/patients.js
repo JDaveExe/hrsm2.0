@@ -7,6 +7,7 @@ const User = require('../models/User');
 const Family = require('../models/Family');
 const { authenticateToken: auth } = require('../middleware/auth');
 const { smartIdAllocation } = require('../middleware/smartIdAllocation');
+const AuditLogger = require('../utils/auditLogger');
 
 // Ensure associations are loaded
 require('../models/index');
@@ -19,8 +20,7 @@ const router = express.Router();
 router.post(
   '/',
   [
-    // Temporarily commented out auth for testing
-    // auth, 
+    auth, 
     smartIdAllocation('patient'), // Smart ID allocation for patients
     [
       body('firstName', 'First name is required').not().isEmpty(),
@@ -157,6 +157,29 @@ router.post(
         
         // Commit the transaction
         await transaction.commit();
+        
+        // Get family name if patient was assigned to a family
+        let familyName = null;
+        if (patient.familyId) {
+          const family = await Family.findByPk(patient.familyId);
+          familyName = family ? family.familyName : null;
+        }
+        
+        // Log patient creation audit (non-blocking for better performance)
+        Promise.resolve().then(async () => {
+          try {
+            await AuditLogger.logPatientCreation(req, patient.id, `${patient.firstName} ${patient.lastName}`, {
+              hasUserAccount: !!user,
+              qrCode: patient.qrCode,
+              contactNumber: patient.contactNumber,
+              email: patient.email,
+              familyId: patient.familyId,
+              familyName: familyName
+            });
+          } catch (auditError) {
+            console.error('⚠️  Audit logging failed (non-critical):', auditError.message);
+          }
+        });
         
         // Return patient data with generated password info
         res.status(201).json({
@@ -447,6 +470,7 @@ router.put('/me/profile', auth, async (req, res) => {
       civilStatus,
       email,
       contactNumber,
+      password,
       houseNo,
       street,
       barangay,
@@ -481,6 +505,7 @@ router.put('/me/profile', auth, async (req, res) => {
     if (age !== undefined) updateData.age = age;
     if (gender !== undefined) updateData.gender = cleanValue(gender);
     if (civilStatus !== undefined) updateData.civilStatus = cleanValue(civilStatus);
+    if (email !== undefined) updateData.email = cleanValue(email); // Add email to Patient table
     if (contactNumber !== undefined) updateData.contactNumber = cleanValue(contactNumber);
     if (houseNo !== undefined) updateData.houseNo = cleanValue(houseNo);
     if (street !== undefined) updateData.street = cleanValue(street);
@@ -501,16 +526,41 @@ router.put('/me/profile', auth, async (req, res) => {
       throw new Error(`Failed to update patient: ${updateError.message}`);
     }
 
-    // Update email in User table if provided
-    if (email !== undefined) {
+    // Update email and/or contactNumber and/or password in User table if provided
+    if (email !== undefined || contactNumber !== undefined || password !== undefined) {
       try {
         const user = await User.findOne({ where: { id: patient.userId } });
         if (user) {
-          await user.update({ email: email });
-          console.log('User email updated successfully');
+          const userUpdateData = {};
+          
+          // Update email if provided
+          if (email !== undefined) {
+            const cleanEmail = (email === '' || email === 'N/A') ? null : email;
+            userUpdateData.email = cleanEmail;
+          }
+          
+          // Update contact number if provided
+          if (contactNumber !== undefined) {
+            const cleanPhone = (contactNumber === '' || contactNumber === 'N/A') ? null : contactNumber;
+            userUpdateData.contactNumber = cleanPhone;
+          }
+          
+          // Update password if provided (will be hashed by beforeUpdate hook)
+          if (password !== undefined && password !== '' && password !== null) {
+            userUpdateData.password = password;
+          }
+          
+          // Update username to match the new email or phone (whichever is available)
+          // This ensures login still works after updating email/phone
+          const newUsername = userUpdateData.email || userUpdateData.contactNumber || user.contactNumber || user.email;
+          if (newUsername) {
+            userUpdateData.username = newUsername;
+          }
+          
+          await user.update(userUpdateData);
         }
       } catch (userUpdateError) {
-        console.log('Error updating user email:', userUpdateError.message);
+        console.log('Error updating user credentials:', userUpdateError.message);
         // Continue anyway, the patient data was updated successfully
       }
     }
@@ -670,7 +720,54 @@ router.put('/:id', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Patient not found' });
     }
 
-    await patient.update(req.body);
+    const oldData = { ...patient.toJSON() };
+    
+    // Extract fields that need to be updated in User table
+    const { password, email, contactNumber, ...patientFields } = req.body;
+    
+    // Update Patient table
+    await patient.update(patientFields);
+    
+    // Update User table if email, contactNumber, or password is provided
+    if (password !== undefined || email !== undefined || contactNumber !== undefined) {
+      const user = await User.findOne({ where: { id: patient.userId } });
+      if (user) {
+        const userUpdateData = {};
+        
+        // Update email if provided
+        if (email !== undefined) {
+          const cleanEmail = (email === '' || email === 'N/A') ? null : email;
+          userUpdateData.email = cleanEmail;
+        }
+        
+        // Update contact number if provided
+        if (contactNumber !== undefined) {
+          const cleanPhone = (contactNumber === '' || contactNumber === 'N/A') ? null : contactNumber;
+          userUpdateData.contactNumber = cleanPhone;
+        }
+        
+        // Update password if provided (will be hashed by beforeUpdate hook)
+        if (password !== undefined && password !== '' && password !== null) {
+          userUpdateData.password = password;
+        }
+        
+        // Update username to match the new email or phone (whichever is available)
+        const newUsername = userUpdateData.email || userUpdateData.contactNumber || user.contactNumber || user.email;
+        if (newUsername) {
+          userUpdateData.username = newUsername;
+        }
+        
+        await user.update(userUpdateData);
+      }
+    }
+    
+    // Log patient update audit
+    await AuditLogger.logPatientUpdate(req, patient.id, `${patient.firstName} ${patient.lastName}`, {
+      updatedFields: Object.keys(req.body),
+      previousData: oldData,
+      newData: patient.toJSON()
+    });
+    
     res.json(patient);
   } catch (err) {
     console.error(err.message);
@@ -688,6 +785,9 @@ router.delete('/:id', auth, async (req, res) => {
     if (!patient) {
       return res.status(404).json({ msg: 'Patient not found' });
     }
+
+    // Log the patient removal action before deletion
+    await AuditLogger.logPatientRemoval(req, patient);
 
     await patient.destroy();
     res.json({ msg: 'Patient removed' });

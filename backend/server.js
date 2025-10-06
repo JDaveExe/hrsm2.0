@@ -11,6 +11,9 @@ const { User, Patient, Family, VitalSigns, Appointment } = require('./models');
 
 const app = express();
 
+// Trust proxy for proper IP address extraction
+app.set('trust proxy', true);
+
 // Middleware
 app.use(cors({
   origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:3003', 'http://localhost:5000'],
@@ -63,6 +66,8 @@ app.use('/api/inventory-analytics', require('./routes/inventoryAnalytics'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/checkups', require('./routes/checkups'));
 app.use('/api/medications', require('./routes/medications'));
+app.use('/api/audit', require('./routes/audit'));
+app.use('/api/audit-notifications', require('./routes/auditNotifications'));
 app.use('/api/medication-batches', require('./routes/medication-batches')); // Medication batch management
 app.use('/api/vaccine-batches', require('./routes/vaccine-batches')); // Vaccine batch management
 app.use('/api/vaccinations', require('./routes/vaccinations'));

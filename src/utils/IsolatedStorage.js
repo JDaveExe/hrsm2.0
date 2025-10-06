@@ -35,7 +35,6 @@ export const isolatedStorage = {
   // Method to migrate existing data to isolated storage
   migrateExistingData: () => {
     const keysToMigrate = [
-      'simulationMode',
       'doctorQueue', 
       'dashboardData',
       'appointmentsData',

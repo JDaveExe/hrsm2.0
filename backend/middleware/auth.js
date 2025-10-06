@@ -31,11 +31,66 @@ const auth = async (req, res, next) => {
     // TEMPORARY bypass for development - REMOVE IN PRODUCTION
     if (token === 'temp-admin-token' && process.env.NODE_ENV !== 'production') {
       console.log('🔐 Using temporary admin token');
-      req.user = {
-        id: 10020, // Use actual admin user ID from database
-        email: 'admin@brgymaybunga.health',
-        role: 'admin'
-      };
+      
+      // Try to fetch the primary admin user (prefer "Jelly Test" over "System Administrator")
+      try {
+        // First try to find Jelly Test admin user
+        let adminUser = await User.findOne({ 
+          where: { 
+            firstName: 'Jelly',
+            role: 'admin', 
+            isActive: true 
+          },
+          attributes: ['id', 'username', 'email', 'role', 'firstName', 'lastName', 'position']
+        });
+        
+        // Fallback to any active admin if Jelly not found
+        if (!adminUser) {
+          adminUser = await User.findOne({ 
+            where: { role: 'admin', isActive: true },
+            attributes: ['id', 'username', 'email', 'role', 'firstName', 'lastName', 'position'],
+            order: [['id', 'DESC']] // Get the newest admin user
+          });
+        }
+        
+        if (adminUser) {
+          console.log('🔐 Found admin user:', adminUser.firstName, adminUser.lastName, `(ID: ${adminUser.id})`);
+          req.user = {
+            id: adminUser.id,
+            username: adminUser.username,
+            email: adminUser.email,
+            role: adminUser.role,
+            firstName: adminUser.firstName,
+            lastName: adminUser.lastName,
+            position: adminUser.position
+          };
+        } else {
+          // Fallback to default admin info if no admin user found
+          console.log('🔐 No admin user found, using fallback');
+          req.user = {
+            id: 1, // Use ID 1 as fallback
+            username: 'admin',
+            email: 'admin@brgymaybunga.health',
+            role: 'admin',
+            firstName: 'System',
+            lastName: 'Administrator',
+            position: 'System Administrator'
+          };
+        }
+      } catch (dbError) {
+        console.error('🔐 Database error fetching admin user:', dbError.message);
+        // Fallback to default admin info
+        req.user = {
+          id: 1,
+          username: 'admin',
+          email: 'admin@brgymaybunga.health',
+          role: 'admin',
+          firstName: 'System',
+          lastName: 'Administrator',
+          position: 'System Administrator'
+        };
+      }
+      
       return next();
     }
 

@@ -23,6 +23,13 @@ const PatientProfile = memo(({
   // QR Code Modal state
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrCodeData, setQrCodeData] = useState('');
+  
+  // Password change state
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    newPassword: '',
+    confirmPassword: ''
+  });
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -87,6 +94,9 @@ const PatientProfile = memo(({
         bloodType: convertValue(profileData?.bloodType),
         medicalConditions: convertValue(profileData?.medicalConditions)
       });
+      // Reset password change state
+      setIsChangingPassword(false);
+      setPasswordData({ newPassword: '', confirmPassword: '' });
     }
     setIsEditing(!isEditing);
   };
@@ -133,6 +143,27 @@ const PatientProfile = memo(({
   // Handle save changes
   const handleSaveChanges = async () => {
     try {
+      // Validate password if user is trying to change it
+      if (isChangingPassword) {
+        if (!passwordData.newPassword || !passwordData.confirmPassword) {
+          setError('Please enter both password fields');
+          return;
+        }
+        
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+          setError('Passwords do not match');
+          return;
+        }
+        
+        if (passwordData.newPassword.length < 6) {
+          setError('Password must be at least 6 characters long');
+          return;
+        }
+        
+        // Add password to form data
+        editFormData.password = passwordData.newPassword;
+      }
+      
       setLoading(true);
       const response = await secureApiCall('/api/patients/me/profile', {
         method: 'PUT',
@@ -143,7 +174,11 @@ const PatientProfile = memo(({
         setProfileData(response);
         setIsEditing(false);
         setEditFormData(null);
+        setIsChangingPassword(false);
+        setPasswordData({ newPassword: '', confirmPassword: '' });
+        setError(null);
         // Optionally show success message
+        alert('Profile updated successfully!' + (isChangingPassword ? ' Password has been changed.' : ''));
       }
     } catch (err) {
       console.error('Error saving profile:', err);
@@ -157,6 +192,9 @@ const PatientProfile = memo(({
   const handleCancelEdit = () => {
     setIsEditing(false);
     setEditFormData(null);
+    setIsChangingPassword(false);
+    setPasswordData({ newPassword: '', confirmPassword: '' });
+    setError(null);
   };
 
   // Handle QR Code generation
@@ -347,6 +385,46 @@ const PatientProfile = memo(({
       );
     }
   };
+  
+  // Render password field with special handling
+  const renderPasswordField = () => {
+    if (isEditing) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+          <input
+            type="password"
+            className="profile-info-value"
+            value={passwordData.newPassword}
+            onChange={(e) => {
+              setPasswordData(prev => ({ ...prev, newPassword: e.target.value }));
+              // Show confirm password field when user starts typing
+              if (e.target.value && !isChangingPassword) {
+                setIsChangingPassword(true);
+              }
+            }}
+            placeholder="Enter new password (leave empty to keep current)"
+          />
+          {isChangingPassword && passwordData.newPassword && (
+            <input
+              type="password"
+              className="profile-info-value"
+              value={passwordData.confirmPassword}
+              onChange={(e) => setPasswordData(prev => ({ ...prev, confirmPassword: e.target.value }))}
+              placeholder="Confirm new password"
+              style={{ marginTop: '4px' }}
+            />
+          )}
+        </div>
+      );
+    } else {
+      // Display mode - show asterisks
+      return (
+        <div className="profile-info-value">
+          ••••••••
+        </div>
+      );
+    }
+  };
 
   if (loading) {
     return (
@@ -503,7 +581,10 @@ const PatientProfile = memo(({
                   <div className="profile-info-label">Phone Number:</div>
                   {renderFormField('Phone Number', 'contactNumber', 'tel')}
                 </div>
-                <div className="profile-info-item"></div>
+                <div className="profile-info-item">
+                  <div className="profile-info-label">Password:</div>
+                  {renderPasswordField()}
+                </div>
                 <div className="profile-info-item"></div>
               </div>
               
