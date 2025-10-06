@@ -38,6 +38,13 @@ const connectDB = async () => {
     
     await sequelize.authenticate();
     console.log('✅ MySQL Connected successfully!');
+    
+    // Auto-sync database tables (create if they don't exist)
+    if (process.env.NODE_ENV === 'production' && process.env.SYNC_DATABASE === 'true') {
+      console.log('🔄 Syncing database schema...');
+      await sequelize.sync({ alter: true });
+      console.log('✅ Database schema synced successfully!');
+    }
   } catch (error) {
     console.error('❌ Unable to connect to the database:', error.message);
     console.error('Full error:', error);
