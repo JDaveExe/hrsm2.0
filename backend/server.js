@@ -66,6 +66,7 @@ const initializeServer = async () => {
 initializeServer();
 
 // Routes
+app.use('/api/init', require('./routes/init'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/patients', require('./routes/patients'));
 app.use('/api/families', require('./routes/families'));
