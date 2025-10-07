@@ -1,14 +1,15 @@
 'use strict';
 
-const Family = require('./Family');
-const Patient = require('./Patient');
+// Import models in dependency order (parent tables first)
 const User = require('./User');
+const Family = require('./Family');
+const AuditLog = require('./AuditLog');
+const Patient = require('./Patient');
 const VitalSigns = require('./VitalSigns');
 const Appointment = require('./Appointment');
 const CheckInSession = require('./CheckInSession.sequelize');
 const DoctorSession = require('./DoctorSession');
 const Vaccination = require('./Vaccination');
-const AuditLog = require('./AuditLog');
 const AuditNotification = require('./AuditNotification');
 
 // Define associations
@@ -66,14 +67,14 @@ AuditNotification.belongsTo(AuditLog, { foreignKey: 'auditLogId', as: 'auditLog'
 AuditLog.hasMany(AuditNotification, { foreignKey: 'auditLogId', as: 'notifications' });
 
 module.exports = {
-  Family,
-  Patient,
   User,
+  Family,
+  AuditLog,
+  Patient,
   VitalSigns,
   Appointment,
   CheckInSession,
   DoctorSession,
   Vaccination,
-  AuditLog,
   AuditNotification
 };
