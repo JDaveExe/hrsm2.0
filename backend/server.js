@@ -33,15 +33,15 @@ const initializeServer = async () => {
     // Initialize database protection
     await dbProtection.initializeDatabase();
     
-    // Sync database with alter to add new columns
-    await sequelize.sync({ alter: true });
-    console.log('Database connected - tables synchronized');
+    // Skip Sequelize sync - use manual initialization endpoint instead
+    // await sequelize.sync({ alter: true });
+    console.log('Database connected - manual initialization available at /api/init/init-database');
     
-    // Create default users (including management)
-    const User = require('./models/User');
-    await User.createDefaultUsers();
+    // Skip default user creation - handled by manual initialization
+    // const User = require('./models/User');
+    // await User.createDefaultUsers();
     
-    // Note: Using hardcoded fallback accounts in auth.js instead of database records
+    // Note: Using manual database initialization endpoint instead of auto-sync
     console.log(`Database connection established successfully!`);
     
     // Show security info
