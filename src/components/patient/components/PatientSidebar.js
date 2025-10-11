@@ -57,7 +57,7 @@ const PatientSidebar = memo(({
             </Link>
           </li>
 
-          {/* Medical Records Dropdown - No History Items */}
+          {/* Medical Records Dropdown */}
           <li className={activeDropdown === 'medicalRecords' ? 'dropdown active' : 'dropdown'}>
             <Link to="#" onClick={() => handleDropdownToggle('medicalRecords')}>
               <i className="bi bi-folder-plus"></i>
@@ -77,12 +77,8 @@ const PatientSidebar = memo(({
                   <span>Immunizations</span>
                 </Link>
               </li>
-              <li onClick={() => handleNavigationClick('Lab Results')}>
-                <Link to="#" aria-label="Lab Results">
-                  <i className="bi bi-file-earmark-medical"></i>
-                  <span>Lab Results</span>
-                </Link>
-              </li>
+              {/* Lab Results - Temporarily removed for update */}
+              {/* Will be re-enabled after lab referral system improvements */}
             </ul>
           </li>
 
@@ -102,7 +98,7 @@ const PatientSidebar = memo(({
             </Link>
           </li>
 
-          {/* Settings Dropdown - New Structure */}
+          {/* Settings Dropdown - Simplified */}
           <li className={activeDropdown === 'settings' ? 'dropdown active' : 'dropdown'}>
             <Link to="#" onClick={() => handleDropdownToggle('settings')}>
               <i className="bi bi-gear"></i>
@@ -116,12 +112,8 @@ const PatientSidebar = memo(({
                   <span>My Profile</span>
                 </Link>
               </li>
-              <li onClick={() => handleNavigationClick('Settings')}>
-                <Link to="#" aria-label="Login History">
-                  <i className="bi bi-clock-history"></i>
-                  <span>Login History</span>
-                </Link>
-              </li>
+              {/* Login History - Temporarily removed for update */}
+              {/* Will be re-enabled after login history system improvements */}
             </ul>
           </li>
         </ul>

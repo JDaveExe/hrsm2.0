@@ -21,6 +21,18 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
   const [availableServices, setAvailableServices] = useState([]);
   const [lastBookingTime, setLastBookingTime] = useState(null);
   const [todayBookingCount, setTodayBookingCount] = useState(0);
+  // Emergency appointment states
+  const [showEmergencyWarningModal, setShowEmergencyWarningModal] = useState(false);
+  const [showEmergencyBookingModal, setShowEmergencyBookingModal] = useState(false);
+  const [emergencyWarningCountdown, setEmergencyWarningCountdown] = useState(3);
+  const [emergencyUsageData, setEmergencyUsageData] = useState(null);
+  const [emergencyBookingForm, setEmergencyBookingForm] = useState({
+    date: '',
+    time: '',
+    reasonCategory: '',
+    reasonDetails: '',
+    symptoms: ''
+  });
   // Modal states for appointment management
   const [selectedAppointmentForView, setSelectedAppointmentForView] = useState(null);
   const [selectedAppointmentForCancel, setSelectedAppointmentForCancel] = useState(null);
@@ -60,29 +72,50 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
   };
 
   // Get the minimum bookable date (2 days ahead, excluding weekends)
+  // Patients aged 60+ can book anytime (no 2-day restriction)
   const getMinBookableDate = () => {
     const today = new Date();
     let minDate = new Date(today);
     
-    // Add 2 days minimum
-    minDate.setDate(today.getDate() + 2);
+    // Check if patient is 60 or older
+    const isSenior = user?.age && parseInt(user.age) >= 60;
     
-    // If the minimum date falls on a weekend, move to next Monday
-    while (isWeekend(minDate.toISOString().split('T')[0])) {
-      minDate.setDate(minDate.getDate() + 1);
+    if (isSenior) {
+      // Seniors can book starting today
+      // Just skip weekends
+      while (isWeekend(minDate.toISOString().split('T')[0])) {
+        minDate.setDate(minDate.getDate() + 1);
+      }
+    } else {
+      // Regular patients: Add 2 days minimum
+      minDate.setDate(today.getDate() + 2);
+      
+      // If the minimum date falls on a weekend, move to next Monday
+      while (isWeekend(minDate.toISOString().split('T')[0])) {
+        minDate.setDate(minDate.getDate() + 1);
+      }
     }
     
     return minDate.toISOString().split('T')[0];
   };
 
-  // Check if a date is valid for booking (not today, tomorrow, or weekend)
+  // Check if a date is valid for booking
+  // Patients aged 60+ can book anytime (no 2-day restriction)
   const isValidBookingDate = (date) => {
     const today = new Date();
     const selectedDate = new Date(date);
     const daysDiff = Math.ceil((selectedDate - today) / (1000 * 60 * 60 * 24));
     
-    // Must be at least 2 days ahead and not a weekend
-    return daysDiff >= 2 && !isWeekend(date);
+    // Check if patient is 60 or older
+    const isSenior = user?.age && parseInt(user.age) >= 60;
+    
+    if (isSenior) {
+      // Seniors can book anytime (today or future), just not on weekends
+      return daysDiff >= 0 && !isWeekend(date);
+    } else {
+      // Regular patients: Must be at least 2 days ahead and not a weekend
+      return daysDiff >= 2 && !isWeekend(date);
+    }
   };
 
   // Available service types based on date/time
@@ -506,6 +539,136 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
       setSelectedAppointmentForCancel(null);
     }
   }, [selectedAppointmentForCancel]);
+
+  // Emergency Appointment Handlers
+  const handleEmergencyButtonClick = async () => {
+    try {
+      // Close the booking modal if it's open
+      setShowBookingModal(false);
+      
+      // Check emergency usage limits before showing warning
+      const patientId = user?.patientId || user?.id;
+      const response = await appointmentService.checkEmergencyUsage(patientId);
+      setEmergencyUsageData(response);
+      
+      if (!response.canRequestEmergency) {
+        if (response.cooldown.isWithinCooldown) {
+          setError(`You must wait ${response.cooldown.daysUntilCooldownEnds} more days before requesting another emergency appointment (14-day cooldown).`);
+        } else if (response.limits.monthlyLimitReached) {
+          setError(`You have reached the maximum of 2 emergency appointments per 30 days. Please wait ${response.limits.daysUntilMonthlyReset} days or book a regular appointment.`);
+        }
+        setTimeout(() => setError(''), 7000);
+        return;
+      }
+      
+      // Show warning modal and start countdown
+      setEmergencyWarningCountdown(3);
+      setShowEmergencyWarningModal(true);
+    } catch (error) {
+      console.error('Error checking emergency usage:', error);
+      setError('Failed to check emergency appointment eligibility. Please try again.');
+      setTimeout(() => setError(''), 5000);
+    }
+  };
+
+  // Emergency warning countdown timer
+  useEffect(() => {
+    if (showEmergencyWarningModal && emergencyWarningCountdown > 0) {
+      const timer = setTimeout(() => {
+        setEmergencyWarningCountdown(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [showEmergencyWarningModal, emergencyWarningCountdown]);
+
+  const handleEmergencyWarningAccept = () => {
+    setShowEmergencyWarningModal(false);
+    setShowEmergencyBookingModal(true);
+    // Set default date to today for emergency
+    const today = new Date().toISOString().split('T')[0];
+    setEmergencyBookingForm(prev => ({ ...prev, date: today }));
+  };
+
+  const handleEmergencyWarningCancel = () => {
+    setShowEmergencyWarningModal(false);
+    setEmergencyWarningCountdown(3);
+  };
+
+  const handleEmergencyBookingFormChange = (field, value) => {
+    setEmergencyBookingForm(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleEmergencyBookingSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!emergencyBookingForm.date || !emergencyBookingForm.time || 
+        !emergencyBookingForm.reasonCategory || !emergencyBookingForm.reasonDetails) {
+      setError('Please fill in all required fields.');
+      setTimeout(() => setError(''), 5000);
+      return;
+    }
+    
+    try {
+      setIsLoading(true);
+      const patientId = user?.patientId || user?.id;
+      
+      const appointmentData = {
+        patientId: patientId,
+        appointmentDate: emergencyBookingForm.date,
+        appointmentTime: emergencyBookingForm.time,
+        type: 'Emergency Consultation',
+        priority: 'Emergency',
+        symptoms: emergencyBookingForm.symptoms || '',
+        notes: `Emergency Reason: ${emergencyBookingForm.reasonDetails}`,
+        vitalSignsRequired: true,
+        isEmergency: true,
+        emergencyReason: emergencyBookingForm.reasonDetails,
+        emergencyReasonCategory: emergencyBookingForm.reasonCategory
+      };
+      
+      await appointmentService.createAppointment(appointmentData);
+      
+      setSuccess('🚨 Emergency appointment booked successfully! Admin has been notified.');
+      setShowEmergencyBookingModal(false);
+      setEmergencyBookingForm({
+        date: '',
+        time: '',
+        reasonCategory: '',
+        reasonDetails: '',
+        symptoms: ''
+      });
+      setRefreshTrigger(prev => prev + 1);
+      
+      setTimeout(() => setSuccess(''), 5000);
+    } catch (error) {
+      console.error('Error booking emergency appointment:', error);
+      const errorData = error.response?.data;
+      
+      if (errorData?.errorCode === 'EMERGENCY_MONTHLY_LIMIT') {
+        setError('You have reached the monthly limit of 2 emergency appointments.');
+      } else if (errorData?.errorCode === 'EMERGENCY_COOLDOWN') {
+        setError(errorData.error || 'You must wait before requesting another emergency appointment.');
+      } else {
+        setError(errorData?.error || 'Failed to book emergency appointment. Please try again.');
+      }
+      
+      setTimeout(() => setError(''), 7000);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEmergencyBookingCancel = () => {
+    setShowEmergencyBookingModal(false);
+    setEmergencyBookingForm({
+      date: '',
+      time: '',
+      reasonCategory: '',
+      reasonDetails: '',
+      symptoms: ''
+    });
+  };
 
   // Filter appointments - exclude cancelled appointments from today's schedule
   const todaysAppointments = appointments.filter(apt => {
@@ -1001,10 +1164,13 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
                 Book New Appointment
               </h3>
               <button 
-                className="close-btn"
-                onClick={() => setShowBookingModal(false)}
+                className="emergency-apt-trigger-btn-modal"
+                onClick={handleEmergencyButtonClick}
+                title="Request Emergency Consultation"
+                type="button"
               >
-                <i className="bi bi-x"></i>
+                <i className="bi bi-exclamation-triangle-fill"></i>
+                Emergency
               </button>
             </div>
             
@@ -1472,6 +1638,194 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* Emergency Warning Modal */}
+      {showEmergencyWarningModal && (
+        <div className="emergency-apt-warning-overlay">
+          <div className="emergency-apt-warning-modal">
+            <div className="emergency-apt-warning-header">
+              <i className="bi bi-exclamation-triangle-fill emergency-apt-warning-icon"></i>
+              <h3>Emergency Appointment Warning</h3>
+            </div>
+            
+            <div className="emergency-apt-warning-content">
+              <div className="emergency-apt-warning-message">
+                <p><strong>⚠️ Important Information:</strong></p>
+                <ul>
+                  <li>Emergency appointments bypass the standard 2-day advance booking requirement</li>
+                  <li>This feature is for genuine medical emergencies only</li>
+                  <li>You have a <strong>monthly limit of 2 emergency appointments</strong></li>
+                  <li>There is a <strong>14-day cooldown</strong> between emergency appointments</li>
+                  <li>Misuse may result in restriction of this feature</li>
+                  <li>The admin team will be immediately notified of your request</li>
+                </ul>
+              </div>
+              
+              <div className="emergency-apt-warning-countdown">
+                <div className="emergency-apt-countdown-bar">
+                  <div 
+                    className="emergency-apt-countdown-progress" 
+                    style={{ width: `${(3 - emergencyWarningCountdown) / 3 * 100}%` }}
+                  ></div>
+                </div>
+                <p className="emergency-apt-countdown-text">
+                  {emergencyWarningCountdown > 0 
+                    ? `Please read carefully (${emergencyWarningCountdown}s)` 
+                    : 'You may proceed'}
+                </p>
+              </div>
+            </div>
+            
+            <div className="emergency-apt-warning-actions">
+              <button 
+                className="emergency-apt-btn-cancel"
+                onClick={handleEmergencyWarningCancel}
+              >
+                Cancel
+              </button>
+              <button 
+                className="emergency-apt-btn-accept"
+                onClick={handleEmergencyWarningAccept}
+                disabled={emergencyWarningCountdown > 0}
+              >
+                {emergencyWarningCountdown > 0 ? `Wait ${emergencyWarningCountdown}s` : 'I Understand'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Emergency Booking Modal */}
+      {showEmergencyBookingModal && (
+        <div className="emergency-apt-booking-overlay">
+          <div className="emergency-apt-booking-modal">
+            <div className="emergency-apt-booking-header">
+              <i className="bi bi-hospital-fill emergency-apt-booking-icon"></i>
+              <h3>🚨 Emergency Consultation Booking</h3>
+            </div>
+            
+            <form onSubmit={handleEmergencyBookingSubmit} className="emergency-apt-booking-form">
+              <div className="emergency-apt-info-banner">
+                <i className="bi bi-info-circle-fill"></i>
+                <span>Service Type: <strong>Emergency Consultation</strong> (Cannot be changed)</span>
+              </div>
+              
+              <div className="emergency-apt-form-row">
+                <div className="emergency-apt-form-group">
+                  <label>
+                    <i className="bi bi-calendar-event"></i>
+                    Date <span className="required">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={emergencyBookingForm.date}
+                    onChange={(e) => handleEmergencyBookingFormChange('date', e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    max={new Date(Date.now() + 86400000).toISOString().split('T')[0]} // Tomorrow
+                    required
+                    className="emergency-apt-input"
+                  />
+                  <small className="emergency-apt-hint">Emergency: Today or tomorrow only</small>
+                </div>
+                
+                <div className="emergency-apt-form-group">
+                  <label>
+                    <i className="bi bi-clock"></i>
+                    Time <span className="required">*</span>
+                  </label>
+                  <input
+                    type="time"
+                    value={emergencyBookingForm.time}
+                    onChange={(e) => handleEmergencyBookingFormChange('time', e.target.value)}
+                    required
+                    className="emergency-apt-input"
+                  />
+                </div>
+              </div>
+              
+              <div className="emergency-apt-form-group">
+                <label>
+                  <i className="bi bi-exclamation-octagon"></i>
+                  Emergency Category <span className="required">*</span>
+                </label>
+                <select
+                  value={emergencyBookingForm.reasonCategory}
+                  onChange={(e) => handleEmergencyBookingFormChange('reasonCategory', e.target.value)}
+                  required
+                  className="emergency-apt-select"
+                >
+                  <option value="">Select emergency category</option>
+                  <option value="Severe Pain">Severe Pain</option>
+                  <option value="High Fever (>39°C)">High Fever (&gt;39°C)</option>
+                  <option value="Injury/Accident">Injury/Accident</option>
+                  <option value="Breathing Difficulty">Breathing Difficulty</option>
+                  <option value="Severe Allergic Reaction">Severe Allergic Reaction</option>
+                  <option value="Other Critical">Other Critical Condition</option>
+                </select>
+              </div>
+              
+              <div className="emergency-apt-form-group">
+                <label>
+                  <i className="bi bi-file-text"></i>
+                  Emergency Reason Details <span className="required">*</span>
+                </label>
+                <textarea
+                  value={emergencyBookingForm.reasonDetails}
+                  onChange={(e) => handleEmergencyBookingFormChange('reasonDetails', e.target.value)}
+                  placeholder="Please describe your emergency situation in detail..."
+                  required
+                  rows="4"
+                  className="emergency-apt-textarea"
+                  minLength="20"
+                ></textarea>
+                <small className="emergency-apt-hint">Minimum 20 characters required</small>
+              </div>
+              
+              <div className="emergency-apt-form-group">
+                <label>
+                  <i className="bi bi-clipboard-pulse"></i>
+                  Additional Symptoms (Optional)
+                </label>
+                <textarea
+                  value={emergencyBookingForm.symptoms}
+                  onChange={(e) => handleEmergencyBookingFormChange('symptoms', e.target.value)}
+                  placeholder="Any other symptoms you're experiencing..."
+                  rows="3"
+                  className="emergency-apt-textarea"
+                ></textarea>
+              </div>
+              
+              {emergencyUsageData && (
+                <div className="emergency-apt-usage-info">
+                  <p>
+                    <strong>Your Emergency Usage:</strong> {emergencyUsageData.usage.emergencyCount30Days} of {emergencyUsageData.usage.monthlyLimit} used this month
+                  </p>
+                </div>
+              )}
+              
+              <div className="emergency-apt-booking-actions">
+                <button 
+                  type="button"
+                  className="emergency-apt-btn-cancel"
+                  onClick={handleEmergencyBookingCancel}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="emergency-apt-btn-submit"
+                  disabled={isLoading}
+                >
+                  <i className="bi bi-send-fill"></i>
+                  {isLoading ? 'Submitting...' : 'Book Emergency Appointment'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -5,6 +5,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
+    "init-db": "node scripts/init-production-db.js",
     "clear-appointments": "node scripts/clear-all-appointments.js",
     "quick-clear": "node scripts/quick-clear-appointments.js",
     "add-sample-appointments": "node scripts/add-sample-appointments.js",

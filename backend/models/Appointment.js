@@ -68,6 +68,29 @@ const Appointment = sequelize.define('Appointment', {
     allowNull: false,
     defaultValue: 'Scheduled'
   },
+  isEmergency: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+    allowNull: false,
+    comment: 'Flag indicating if this is an emergency appointment'
+  },
+  emergencyReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Detailed reason for emergency appointment'
+  },
+  emergencyReasonCategory: {
+    type: DataTypes.ENUM(
+      'Severe Pain',
+      'High Fever (>39°C)',
+      'Injury/Accident',
+      'Breathing Difficulty',
+      'Severe Allergic Reaction',
+      'Other Critical'
+    ),
+    allowNull: true,
+    comment: 'Category of emergency reason'
+  },
   priority: {
     type: DataTypes.ENUM('Low', 'Normal', 'High', 'Emergency'),
     allowNull: false,

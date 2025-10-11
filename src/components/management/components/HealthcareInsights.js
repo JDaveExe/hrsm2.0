@@ -17,7 +17,7 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
   const [diagnosisData, setDiagnosisData] = useState([]);
   const [prescriptionData, setPrescriptionData] = useState([]);
   const [vaccineData, setVaccineData] = useState([]);
-  const [barangayVisitsData, setBarangayVisitsData] = useState([]);
+  const [purokVisitsData, setPurokVisitsData] = useState([]);
   const [showDetailModal, setShowDetailModal] = useState(null);
   
   // Dual-mode grouping state (age or gender)
@@ -27,7 +27,7 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
   const [diagnosisSortBy, setDiagnosisSortBy] = useState('total');
   const [prescriptionSortBy, setPrescriptionSortBy] = useState('total');
   const [vaccineSortBy, setVaccineSortBy] = useState('total');
-  const [barangaySortBy, setBarangaySortBy] = useState('total');
+  const [purokSortBy, setPurokSortBy] = useState('total');
 
   // Dynamic sorting options based on grouping mode
   const getSortingOptions = (mode) => {
@@ -113,11 +113,11 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
         }));
         setVaccineData(transformedVaccineData);
 
-        // Fetch barangay visits data using api service
-        console.log('🏘️ Fetching barangay visits data...');
-        const barangayResponse = await api.get('/api/checkups/analytics/barangay-visits');
-        console.log('✅ Barangay data received:', barangayResponse.data);
-        setBarangayVisitsData(barangayResponse.data || []);
+        // Fetch purok visits data using api service
+        console.log('🏘️ Fetching purok visits data...');
+        const purokResponse = await api.get('/api/checkups/analytics/purok-visits');
+        console.log('✅ Purok data received:', purokResponse.data);
+        setPurokVisitsData(purokResponse.data || []);
 
         console.log('🎉 All healthcare data loaded successfully!');
 
@@ -161,13 +161,13 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
           ]);
         }
 
-        setBarangayVisitsData([
-          { barangay: 'Maybunga', visits: 234 },
-          { barangay: 'Rosario', visits: 189 },
-          { barangay: 'Santa Ana', visits: 156 },
-          { barangay: 'San Miguel', visits: 98 },
-          { barangay: 'Caniogan', visits: 87 },
-          { barangay: 'Kapitolyo', visits: 76 }
+        setPurokVisitsData([
+          { purok: 'Maybunga', visits: 234 },
+          { purok: 'Rosario', visits: 189 },
+          { purok: 'Santa Ana', visits: 156 },
+          { purok: 'San Miguel', visits: 98 },
+          { purok: 'Caniogan', visits: 87 },
+          { purok: 'Kapitolyo', visits: 76 }
         ]);
         }
       } finally {
@@ -185,7 +185,7 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
     setDiagnosisSortBy('total');
     setPrescriptionSortBy('total');
     setVaccineSortBy('total');
-    setBarangaySortBy('total');
+    setPurokSortBy('total');
   };
 
   // Helper function to create custom reports from charts
@@ -242,17 +242,17 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
           category: 'Healthcare Analytics',
           description: `Analysis of most used vaccines grouped by ${groupMode}`
         },
-        'barangay-chart': {
-          id: 'custom-barangay-analysis',
-          name: 'Barangay Visits Analysis',
+        'purok-chart': {
+          id: 'custom-purok-analysis',
+          name: 'Purok Visits Analysis',
           category: 'Geographic Analytics',
-          description: 'Analysis of patient visits by barangay'
+          description: 'Analysis of patient visits by purok'
         },
-        'barangayChart': {
-          id: 'custom-barangay-analysis',
-          name: 'Barangay Visits Analysis',
+        'purokChart': {
+          id: 'custom-purok-analysis',
+          name: 'Purok Visits Analysis',
           category: 'Geographic Analytics',
-          description: 'Analysis of patient visits by barangay'
+          description: 'Analysis of patient visits by purok'
         }
       };
 
@@ -275,16 +275,16 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
           main: (chartType === 'diagnosisChart' || chartType === 'diagnosis-chart') ? diagnosisData :
                 (chartType === 'prescriptionChart' || chartType === 'prescription-chart') ? prescriptionData :
                 (chartType === 'vaccineChart' || chartType === 'vaccine-chart') ? vaccineData :
-                barangayVisitsData,
+                purokVisitsData,
           dataType: (chartType === 'diagnosisChart' || chartType === 'diagnosis-chart') ? 'diagnosis' :
                    (chartType === 'prescriptionChart' || chartType === 'prescription-chart') ? 'prescription' :
                    (chartType === 'vaccineChart' || chartType === 'vaccine-chart') ? 'vaccine' :
-                   'barangay',
+                   'purok',
           groupMode: groupMode,
           totalRecords: (chartType === 'diagnosisChart' || chartType === 'diagnosis-chart') ? diagnosisData.length :
                        (chartType === 'prescriptionChart' || chartType === 'prescription-chart') ? prescriptionData.length :
                        (chartType === 'vaccineChart' || chartType === 'vaccine-chart') ? vaccineData.length :
-                       barangayVisitsData.length,
+                       purokVisitsData.length,
           generated: new Date().toISOString()
         },
         createdAt: new Date().toISOString(),
@@ -720,22 +720,22 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
     };
   }, [vaccineData, vaccineSortBy, groupMode]);
 
-  // Process barangay visits data based on sorting
-  const processedBarangayData = useMemo(() => {
-    if (!barangayVisitsData?.length) return { labels: [], datasets: [] };
+  // Process purok visits data based on sorting
+  const processedPurokData = useMemo(() => {
+    if (!purokVisitsData?.length) return { labels: [], datasets: [] };
 
-    let sortedData = [...barangayVisitsData];
+    let sortedData = [...purokVisitsData];
     
-    switch (barangaySortBy) {
-      case 'barangay':
-        sortedData.sort((a, b) => a.barangay.localeCompare(b.barangay));
+    switch (purokSortBy) {
+      case 'purok':
+        sortedData.sort((a, b) => a.purok.localeCompare(b.purok));
         break;
       default: // 'total'
         sortedData.sort((a, b) => b.visits - a.visits);
     }
 
     return {
-      labels: sortedData.map(item => item.barangay),
+      labels: sortedData.map(item => item.purok),
       datasets: [
         {
           label: 'Completed Checkups',
@@ -746,7 +746,7 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
         }
       ]
     };
-  }, [barangayVisitsData, barangaySortBy]);
+  }, [purokVisitsData, purokSortBy]);
 
   // Chart options without zoom functionality
   const chartOptions = {
@@ -1019,31 +1019,31 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
           </Card>
         </Col>
 
-        {/* Patient Visits by Barangay Chart */}
+        {/* Patient Visits by Purok Chart */}
         <Col lg={6}>
           <Card className="border-0 shadow-sm h-100">
             <Card.Header className="bg-light border-0">
               <div className="d-flex justify-content-between align-items-center">
                 <div>
-                  <h5 className="mb-0">Patient Visits by Barangay</h5>
+                  <h5 className="mb-0">Patient Visits by Purok</h5>
                   <small className="text-muted">Completed checkups only</small>
                 </div>
                 <div className="d-flex gap-2 align-items-center">
                   <Button 
                     variant="outline-primary" 
                     size="sm"
-                    onClick={() => setShowDetailModal('barangayChart')}
+                    onClick={() => setShowDetailModal('purokChart')}
                     className="d-flex align-items-center"
                   >
                     <i className="bi bi-fullscreen me-1"></i>
                     Zoom
                   </Button>
                   <SortingDropdown
-                    currentSort={barangaySortBy}
-                    onSortChange={setBarangaySortBy}
+                    currentSort={purokSortBy}
+                    onSortChange={setPurokSortBy}
                     options={[
                       { value: 'total', label: 'Most Visits', icon: 'bi-bar-chart' },
-                      { value: 'barangay', label: 'Barangay Name (A-Z)', icon: 'bi-sort-alpha-down' }
+                      { value: 'purok', label: 'Purok Name (A-Z)', icon: 'bi-sort-alpha-down' }
                     ]}
                     variant="primary"
                   />
@@ -1052,7 +1052,7 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
             </Card.Header>
             <Card.Body>
               <div style={{ height: '350px' }}>
-                <Bar data={processedBarangayData} options={chartOptions} />
+                <Bar data={processedPurokData} options={chartOptions} />
               </div>
             </Card.Body>
           </Card>
@@ -1085,15 +1085,15 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
                 <Col md={3} className="text-center">
                   <div className="metric-card">
                     <i className="bi bi-geo-alt text-info display-6"></i>
-                    <h4 className="mt-2">{barangayVisitsData.reduce((sum, item) => sum + item.visits, 0)}</h4>
+                    <h4 className="mt-2">{purokVisitsData.reduce((sum, item) => sum + item.visits, 0)}</h4>
                     <small className="text-muted">Total Visits</small>
                   </div>
                 </Col>
                 <Col md={3} className="text-center">
                   <div className="metric-card">
                     <i className="bi bi-people text-warning display-6"></i>
-                    <h4 className="mt-2">{barangayVisitsData.length}</h4>
-                    <small className="text-muted">Barangays Served</small>
+                    <h4 className="mt-2">{purokVisitsData.length}</h4>
+                    <small className="text-muted">Puroks Served</small>
                   </div>
                 </Col>
               </Row>
@@ -1172,8 +1172,8 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
                 }
               }} />
             )}
-            {showDetailModal === 'barangayChart' && (
-              <Bar data={processedBarangayData} options={{
+            {showDetailModal === 'purokChart' && (
+              <Bar data={processedPurokData} options={{
                 ...chartOptions,
                 plugins: {
                   ...chartOptions.plugins,
@@ -1326,19 +1326,19 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
                       </Table>
                     )}
 
-                    {showDetailModal === 'barangayChart' && (
+                    {showDetailModal === 'purokChart' && (
                       <Table striped bordered hover responsive>
                         <thead>
                           <tr>
-                            <th>Barangay</th>
+                            <th>Purok</th>
                             <th>Total Visits</th>
                             <th>Status</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {barangayVisitsData.map((item, index) => (
+                          {purokVisitsData.map((item, index) => (
                             <tr key={index}>
-                              <td className="fw-bold">{item.barangay}</td>
+                              <td className="fw-bold">{item.purok}</td>
                               <td>
                                 <Badge bg="warning" className="px-2 py-1">
                                   {item.visits}
@@ -1431,23 +1431,23 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
                     </div>
                   )}
 
-                  {showDetailModal === 'barangayChart' && (
+                  {showDetailModal === 'purokChart' && (
                     <div className="d-flex flex-column gap-3">
                       <div className="text-center p-3 border-bottom">
                         <div className="display-6 text-warning fw-bold">
-                          {barangayVisitsData.reduce((sum, item) => sum + item.visits, 0)}
+                          {purokVisitsData.reduce((sum, item) => sum + item.visits, 0)}
                         </div>
                         <div className="text-muted">Total Visits</div>
                       </div>
                       <div className="text-center p-3 border-bottom">
-                        <div className="h4 text-info fw-bold">{barangayVisitsData.length}</div>
-                        <div className="text-muted">Barangays Served</div>
+                        <div className="h4 text-info fw-bold">{purokVisitsData.length}</div>
+                        <div className="text-muted">Puroks Served</div>
                       </div>
                       <div className="text-center p-3">
                         <div className="h4 text-success fw-bold">
-                          {barangayVisitsData.length > 0 ? Math.round(barangayVisitsData.reduce((sum, item) => sum + item.visits, 0) / barangayVisitsData.length) : 0}
+                          {purokVisitsData.length > 0 ? Math.round(purokVisitsData.reduce((sum, item) => sum + item.visits, 0) / purokVisitsData.length) : 0}
                         </div>
-                        <div className="text-muted">Avg per Barangay</div>
+                        <div className="text-muted">Avg per Purok</div>
                       </div>
                     </div>
                   )}
@@ -1473,11 +1473,11 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
                         const chartData = chartType === 'diagnosisChart' ? processedDiagnosisData :
                                         chartType === 'prescriptionChart' ? processedPrescriptionData :
                                         chartType === 'vaccineChart' ? processedVaccineData :
-                                        processedBarangayData;
+                                        processedPurokData;
                         const chartName = chartType === 'diagnosisChart' ? 'Diagnosis Analysis' :
                                         chartType === 'prescriptionChart' ? 'Prescription Analysis' :
                                         chartType === 'vaccineChart' ? 'Vaccine Analysis' :
-                                        'Barangay Visits Analysis';
+                                        'Purok Visits Analysis';
                         
                         createCustomReport(chartType, chartName, chartData, onNavigateToReports);
                       }}
@@ -1494,7 +1494,7 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
                         const csvData = showDetailModal === 'diagnosisChart' ? diagnosisData :
                                       showDetailModal === 'prescriptionChart' ? prescriptionData :
                                       showDetailModal === 'vaccineChart' ? vaccineData :
-                                      barangayVisitsData;
+                                      purokVisitsData;
                         console.log('Exporting chart data:', csvData);
                         alert('Export feature coming soon!');
                       }}

@@ -807,17 +807,25 @@ const AppointmentManager = () => {
   };
 
   const hasAppointment = (date) => {
-    // Check if there are any appointments on this specific date
+    // Check if there are any active (non-cancelled) appointments on this specific date
     if (!date || !appointments || appointments.length === 0) return false;
     
     try {
-      const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+      // Use local date string to avoid timezone issues
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`; // YYYY-MM-DD format in local time
+      
       return appointments.some(apt => {
         if (!apt || !apt.appointmentDate) return false;
+        
+        // Exclude cancelled appointments from calendar display
+        if (apt.status === 'Cancelled' || apt.status === 'cancelled') return false;
+        
         try {
-          const aptDate = new Date(apt.appointmentDate);
-          if (isNaN(aptDate.getTime())) return false; // Invalid date check
-          const aptDateStr = aptDate.toISOString().split('T')[0];
+          // Compare directly with appointment date string (no timezone conversion)
+          const aptDateStr = apt.appointmentDate.split('T')[0]; // Handle both 'YYYY-MM-DD' and 'YYYY-MM-DDTHH:mm:ss'
           return aptDateStr === dateStr;
         } catch (error) {
           console.warn('Invalid appointment date:', apt.appointmentDate);
@@ -831,17 +839,25 @@ const AppointmentManager = () => {
   };
 
   const getAppointmentsForDate = (date) => {
-    // Get all appointments for a specific date
+    // Get all active (non-cancelled) appointments for a specific date
     if (!date || !appointments || appointments.length === 0) return [];
     
     try {
-      const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD format
+      // Use local date string to avoid timezone issues
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const dateStr = `${year}-${month}-${day}`; // YYYY-MM-DD format in local time
+      
       return appointments.filter(apt => {
         if (!apt || !apt.appointmentDate) return false;
+        
+        // Exclude cancelled appointments from calendar display
+        if (apt.status === 'Cancelled' || apt.status === 'cancelled') return false;
+        
         try {
-          const aptDate = new Date(apt.appointmentDate);
-          if (isNaN(aptDate.getTime())) return false; // Invalid date check
-          const aptDateStr = aptDate.toISOString().split('T')[0];
+          // Compare directly with appointment date string (no timezone conversion)
+          const aptDateStr = apt.appointmentDate.split('T')[0]; // Handle both 'YYYY-MM-DD' and 'YYYY-MM-DDTHH:mm:ss'
           return aptDateStr === dateStr;
         } catch (error) {
           console.warn('Invalid appointment date:', apt.appointmentDate);
@@ -1092,14 +1108,28 @@ const AppointmentManager = () => {
               </h4>
               <div className="schedule-cards-grid">
                 {getPaginatedAppointments().map(appointment => (
-                  <div key={appointment.id} className={`schedule-card ${appointment.status.toLowerCase().replace(' ', '-')}`}>
+                  <div key={appointment.id} className={`schedule-card ${appointment.status.toLowerCase().replace(' ', '-')} ${appointment.isEmergency ? 'emergency-apt-card' : ''}`}>
+                    {appointment.isEmergency && (
+                      <div className="emergency-apt-badge-corner">
+                        <i className="bi bi-exclamation-triangle-fill"></i>
+                        EMERGENCY
+                      </div>
+                    )}
                     <div className="card-time">
                       <span className="time">{appointment.time}</span>
                       <span className="duration">{appointment.duration}</span>
                     </div>
                     <div className="card-content">
                       <div className="patient-name">{getPatientName(appointment)}</div>
-                      <div className="appointment-type">{appointment.type}</div>
+                      <div className="appointment-type">
+                        {appointment.type}
+                        {appointment.isEmergency && (
+                          <span className="emergency-apt-inline-badge">
+                            <i className="bi bi-lightning-fill"></i>
+                            Emergency
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="card-status">
                       <span className={`status-indicator`} style={{ backgroundColor: getStatusColor(appointment.status) }}>
@@ -1353,7 +1383,21 @@ const AppointmentManager = () => {
                                     {(() => {
                                       try {
                                         const appointmentType = appointment.type || 'Consultation';
-                                        return typeof appointmentType === 'string' ? appointmentType : 'Consultation';
+                                        const typeDisplay = typeof appointmentType === 'string' ? appointmentType : 'Consultation';
+                                        
+                                        if (appointment.isEmergency) {
+                                          return (
+                                            <div className="emergency-apt-table-cell">
+                                              <span className="emergency-apt-table-badge">
+                                                <i className="bi bi-lightning-fill"></i>
+                                                EMERGENCY
+                                              </span>
+                                              {typeDisplay}
+                                            </div>
+                                          );
+                                        }
+                                        
+                                        return typeDisplay;
                                       } catch (error) {
                                         console.warn('Appointment type rendering error:', error);
                                         return 'Consultation';

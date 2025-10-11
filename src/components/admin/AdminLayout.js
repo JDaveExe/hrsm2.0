@@ -37,6 +37,10 @@ const AdminLayout = () => {
   const [pendingNotifications, setPendingNotifications] = useState([]);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
 
+  // Emergency appointments state
+  const [emergencyAppointments, setEmergencyAppointments] = useState([]);
+  const [dismissedEmergencies, setDismissedEmergencies] = useState([]);
+
   // Update time every second
   useEffect(() => {
     const interval = setInterval(() => {
@@ -100,6 +104,52 @@ const AdminLayout = () => {
     // Poll for new notifications every 30 seconds
     const interval = setInterval(loadNotifications, 30000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Load emergency appointments
+  useEffect(() => {
+    const loadEmergencyAppointments = async () => {
+      try {
+        const response = await fetch('/api/appointments?isEmergency=true&status=Scheduled', {
+          headers: {
+            'Content-Type': 'application/json',
+            'x-auth-token': 'temp-admin-token'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const appointments = data.appointments || data;
+          
+          // Filter out dismissed emergencies
+          const dismissed = JSON.parse(localStorage.getItem('dismissed_emergencies') || '[]');
+          const activeEmergencies = appointments.filter(apt => 
+            apt.isEmergency && !dismissed.includes(apt.id)
+          );
+          
+          setEmergencyAppointments(activeEmergencies);
+          setDismissedEmergencies(dismissed);
+        }
+      } catch (error) {
+        console.error('Error loading emergency appointments:', error);
+      }
+    };
+
+    loadEmergencyAppointments();
+    
+    // Poll for new emergency appointments every 30 seconds
+    const interval = setInterval(loadEmergencyAppointments, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Handle dismissing emergency alert
+  const handleDismissEmergency = useCallback((appointmentId) => {
+    setDismissedEmergencies(prev => {
+      const updated = [...prev, appointmentId];
+      localStorage.setItem('dismissed_emergencies', JSON.stringify(updated));
+      return updated;
+    });
+    setEmergencyAppointments(prev => prev.filter(apt => apt.id !== appointmentId));
   }, []);
 
   // Handle notification acceptance
@@ -284,6 +334,40 @@ const AdminLayout = () => {
               </div>
             </div>
           </div>
+
+          {/* Emergency Appointments Banner */}
+          {emergencyAppointments.length > 0 && (
+            <div className="emergency-apt-banner-container">
+              {emergencyAppointments.map(appointment => (
+                <div key={appointment.id} className="emergency-apt-banner">
+                  <div className="emergency-apt-banner-icon">
+                    <i className="bi bi-exclamation-triangle-fill"></i>
+                  </div>
+                  <div className="emergency-apt-banner-content">
+                    <div className="emergency-apt-banner-title">
+                      🚨 Emergency Appointment Alert
+                    </div>
+                    <div className="emergency-apt-banner-details">
+                      <strong>Patient:</strong> {appointment.patient?.firstName || 'Unknown'} {appointment.patient?.lastName || 'Patient'}
+                      <span className="emergency-apt-banner-separator">|</span>
+                      <strong>Category:</strong> {appointment.emergencyReasonCategory || 'Not specified'}
+                      <span className="emergency-apt-banner-separator">|</span>
+                      <strong>Date:</strong> {new Date(appointment.appointmentDate).toLocaleDateString()} at {appointment.appointmentTime}
+                      <span className="emergency-apt-banner-separator">|</span>
+                      <strong>Reason:</strong> {appointment.emergencyReason || 'No details provided'}
+                    </div>
+                  </div>
+                  <button 
+                    className="emergency-apt-banner-dismiss"
+                    onClick={() => handleDismissEmergency(appointment.id)}
+                    title="Dismiss this alert"
+                  >
+                    <i className="bi bi-x-lg"></i>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Content Header with actions */}
           <div className="content-header">

@@ -1673,10 +1673,10 @@ router.get('/analytics/prescriptions', async (req, res) => {
   }
 });
 
-// Get barangay visits analytics data
-router.get('/analytics/barangay-visits', async (req, res) => {
+// Get purok visits analytics data
+router.get('/analytics/purok-visits', async (req, res) => {
   try {
-    console.log('Fetching barangay visits analytics data...');
+    console.log('Fetching purok visits analytics data...');
     
     const checkInSessions = await CheckInSession.findAll({
       where: {
@@ -1686,7 +1686,7 @@ router.get('/analytics/barangay-visits', async (req, res) => {
         {
           model: Patient,
           as: 'Patient',
-          attributes: ['barangay', 'address'],
+          attributes: ['purok', 'address'],
           required: false
         }
       ],
@@ -1695,61 +1695,61 @@ router.get('/analytics/barangay-visits', async (req, res) => {
 
     console.log(`Found ${checkInSessions.length} completed checkups`);
 
-    // Process barangay visits data
-    const barangayMap = {};
+    // Process purok visits data
+    const purokMap = {};
     
     checkInSessions.forEach(session => {
-      // Try to get barangay from patient data
-      let barangay = session.Patient?.barangay;
+      // Try to get purok from patient data
+      let purok = session.Patient?.purok;
       
-      // If no barangay in patient data, try to extract from address
-      if (!barangay && session.Patient?.address) {
+      // If no purok in patient data, try to extract from address
+      if (!purok && session.Patient?.address) {
         const address = session.Patient.address.toLowerCase();
-        // Common barangays in Pasig
-        const commonBarangays = [
+        // Common puroks in Pasig
+        const commonPuroks = [
           'maybunga', 'rosario', 'santa ana', 'san miguel', 'caniogan', 
           'kapitolyo', 'pinagbuhatan', 'bagong ilog', 'bgy. rosario',
           'bgy. maybunga', 'bgy. santa ana', 'bgy. san miguel'
         ];
         
-        for (const bgry of commonBarangays) {
-          if (address.includes(bgry)) {
-            barangay = bgry.replace('bgy. ', '').replace(/\b\w/g, l => l.toUpperCase());
+        for (const prk of commonPuroks) {
+          if (address.includes(prk)) {
+            purok = prk.replace('bgy. ', '').replace(/\b\w/g, l => l.toUpperCase());
             break;
           }
         }
       }
       
-      // Default to 'Unknown' if no barangay found
-      if (!barangay) {
-        barangay = 'Unknown';
+      // Default to 'Unknown' if no purok found
+      if (!purok) {
+        purok = 'Unknown';
       }
       
-      // Clean up barangay name
-      barangay = barangay.charAt(0).toUpperCase() + barangay.slice(1).toLowerCase();
+      // Clean up purok name
+      purok = purok.charAt(0).toUpperCase() + purok.slice(1).toLowerCase();
       
-      if (!barangayMap[barangay]) {
-        barangayMap[barangay] = {
-          barangay: barangay,
+      if (!purokMap[purok]) {
+        purokMap[purok] = {
+          purok: purok,
           visits: 0
         };
       }
       
-      barangayMap[barangay].visits++;
+      purokMap[purok].visits++;
     });
 
     // Convert to array and sort by visit count
-    const barangayData = Object.values(barangayMap)
+    const purokData = Object.values(purokMap)
       .sort((a, b) => b.visits - a.visits)
-      .filter(item => item.barangay !== 'Unknown' || item.visits > 5); // Filter out unknown unless significant
+      .filter(item => item.purok !== 'Unknown' || item.visits > 5); // Filter out unknown unless significant
 
-    console.log(`Processed ${barangayData.length} barangays`);
-    res.json(barangayData);
+    console.log(`Processed ${purokData.length} puroks`);
+    res.json(purokData);
     
   } catch (error) {
-    console.error('Error fetching barangay visits analytics:', error);
+    console.error('Error fetching purok visits analytics:', error);
     res.status(500).json({ 
-      error: 'Failed to fetch barangay visits analytics',
+      error: 'Failed to fetch purok visits analytics',
       message: error.message 
     });
   }

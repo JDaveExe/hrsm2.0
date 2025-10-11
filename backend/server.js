@@ -33,16 +33,17 @@ const initializeServer = async () => {
     // Initialize database protection
     await dbProtection.initializeDatabase();
     
-    // Skip Sequelize sync - use manual initialization endpoint instead
-    // await sequelize.sync({ alter: true });
-    console.log('Database connected - manual initialization available at /api/init/init-database');
+    // In production, check if tables exist, if not, guide user to initialize
+    const isProduction = process.env.NODE_ENV === 'production';
     
-    // Skip default user creation - handled by manual initialization
-    // const User = require('./models/User');
-    // await User.createDefaultUsers();
-    
-    // Note: Using manual database initialization endpoint instead of auto-sync
-    console.log(`Database connection established successfully!`);
+    if (isProduction) {
+      console.log('✅ Production mode: Database connected');
+      console.log('📋 If tables are not initialized, run: npm run init-db');
+      console.log('   Or use the API endpoint: POST /api/init/init-database');
+    } else {
+      // Development: Skip Sequelize sync - use manual initialization
+      console.log('Database connected - manual initialization available at /api/init/init-database');
+    }
     
     // Show security info
     const fallbackEnabled = process.env.ENABLE_FALLBACK_ACCOUNTS === 'true';
@@ -57,7 +58,8 @@ const initializeServer = async () => {
       console.log('ℹ️  Fallback accounts disabled. Use database accounts to login.');
     }
   } catch (error) {
-    console.error('Server initialization failed:', error);
+    console.error('❌ Server initialization failed:', error);
+    console.error('🔧 Check your database connection settings');
     process.exit(1);
   }
 };

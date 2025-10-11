@@ -31,7 +31,9 @@
     "react-window": "^1.8.11",
     "react-window-infinite-loader": "^1.0.10",
     "sequelize": "^6.37.7",
-    "web-vitals": "^2.1.4"
+    "serve": "^14.2.5",
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "cross-env NODE_OPTIONS=\"--max-old-space-size=8192\" react-app-rewired start",

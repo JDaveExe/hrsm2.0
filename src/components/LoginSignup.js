@@ -49,7 +49,7 @@ const LoginSignup = () => {
     phoneNumber: '',
     houseNo: '',
     street: '',
-    barangay: '',
+    purok: '',
     city: 'Pasig',
     region: 'Metro Manila',
     philHealthNumber: '',
@@ -66,6 +66,21 @@ const LoginSignup = () => {
   const [showQrCode, setShowQrCode] = useState(false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
   const [userQrValue, setUserQrValue] = useState("");
+  
+  // Field-specific validation errors
+  const [fieldErrors, setFieldErrors] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phoneNumber: '',
+    password: '',
+    repeatPassword: '',
+    dateOfBirth: '',
+    gender: '',
+    civilStatus: '',
+    street: '',
+    purok: ''
+  });
 
   // ===== REGISTRATION DATA (Copied from AuthPage.js) =====
   const suffixOptions = ['', 'Jr.', 'Sr.', 'II', 'III', 'IV', 'V'];
@@ -74,7 +89,7 @@ const LoginSignup = () => {
     'E. Rodriguez Jr. Avenue (C-5)', 'Marcos Highway', 'Julia Vargas Avenue',
     'F. Legaspi Bridge', 'San Guillermo Street', 'Dr. Sixto Antonio Avenue'
   ];
-  const streetToBarangay = {
+  const streetToPurok = {
     'Amang Rodriguez Avenue': ['Manggahan', 'Rosario', 'Dela Paz'],
     'C. Raymundo Avenue': ['Caniogan', 'Pineda', 'Rosario'],
     'Ortigas Avenue': ['San Antonio', 'Ugong', 'Kapitolyo'],
@@ -108,6 +123,155 @@ const LoginSignup = () => {
   useEffect(() => {
     setRegPasswordStrength(checkPasswordStrength(formData.password));
   }, [formData.password]);
+
+  // ===== FIELD VALIDATION FUNCTIONS =====
+  const validateField = (fieldName, value) => {
+    let error = '';
+    
+    switch (fieldName) {
+      case 'firstName':
+        if (!value || value.trim() === '') {
+          error = 'First name is required';
+        }
+        break;
+        
+      case 'lastName':
+        if (!value || value.trim() === '') {
+          error = 'Last name is required';
+        }
+        break;
+        
+      case 'email':
+        const cleanEmail = value && value.trim() && 
+                          value.trim().toLowerCase() !== 'n/a' && 
+                          value.trim().toLowerCase() !== 'na' ? 
+                          value.trim() : '';
+        const cleanPhoneNumber = formData.phoneNumber && formData.phoneNumber.trim() && 
+                                formData.phoneNumber.trim().toLowerCase() !== 'n/a' && 
+                                formData.phoneNumber.trim().toLowerCase() !== 'na' ? 
+                                formData.phoneNumber.trim() : '';
+        
+        if (!cleanEmail && !cleanPhoneNumber) {
+          error = 'Either email or phone number is required';
+        } else if (cleanEmail && !isValidEmail(cleanEmail)) {
+          error = 'Please enter a valid email address';
+        }
+        break;
+        
+      case 'phoneNumber':
+        const phoneClean = value && value.trim() && 
+                          value.trim().toLowerCase() !== 'n/a' && 
+                          value.trim().toLowerCase() !== 'na' ? 
+                          value.trim() : '';
+        const emailClean = formData.email && formData.email.trim() && 
+                          formData.email.trim().toLowerCase() !== 'n/a' && 
+                          formData.email.trim().toLowerCase() !== 'na' ? 
+                          formData.email.trim() : '';
+        
+        if (!phoneClean && !emailClean) {
+          error = 'Either phone number or email is required';
+        } else if (phoneClean && !/^09\d{9}$/.test(phoneClean)) {
+          error = 'Phone must be 11 digits starting with 09';
+        }
+        break;
+        
+      case 'password':
+        if (!value || value.trim() === '') {
+          error = 'Password is required';
+        } else if (value.length < 6) {
+          error = 'Password must be at least 6 characters';
+        }
+        break;
+        
+      case 'repeatPassword':
+        if (!value || value.trim() === '') {
+          error = 'Please confirm your password';
+        } else if (value !== formData.password) {
+          error = 'Passwords do not match';
+        }
+        break;
+        
+      case 'dateOfBirth':
+        if (!value) {
+          error = 'Date of birth is required';
+        }
+        break;
+        
+      case 'gender':
+        if (!value || value.trim() === '') {
+          error = 'Please select your gender';
+        }
+        break;
+        
+      case 'civilStatus':
+        if (!value || value.trim() === '') {
+          error = 'Please select your civil status';
+        }
+        break;
+        
+      case 'street':
+        if (!value || value.trim() === '') {
+          error = 'Street is required';
+        }
+        break;
+        
+      case 'purok':
+        if (!value || value.trim() === '') {
+          error = 'Purok is required';
+        }
+        break;
+        
+      default:
+        break;
+    }
+    
+    return error;
+  };
+  
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+  
+  const validateAllFields = () => {
+    const errors = {};
+    let isValid = true;
+    
+    // Validate required fields
+    const fieldsToValidate = [
+      'firstName', 'lastName', 'email', 'phoneNumber', 
+      'password', 'repeatPassword', 'dateOfBirth', 
+      'gender', 'civilStatus', 'street', 'purok'
+    ];
+    
+    fieldsToValidate.forEach(field => {
+      const value = field === 'dateOfBirth' ? formData.dateOfBirth : formData[field];
+      const error = validateField(field, value);
+      if (error) {
+        errors[field] = error;
+        isValid = false;
+      }
+    });
+    
+    setFieldErrors(errors);
+    return isValid;
+  };
+  
+  const handleFieldBlur = (fieldName) => {
+    const value = fieldName === 'dateOfBirth' ? formData.dateOfBirth : formData[fieldName];
+    const error = validateField(fieldName, value);
+    setFieldErrors(prev => ({
+      ...prev,
+      [fieldName]: error
+    }));
+  };
+  
+  const clearFieldError = (fieldName) => {
+    setFieldErrors(prev => ({
+      ...prev,
+      [fieldName]: ''
+    }));
+  };
 
   // Auto-login based on port (DISABLED - now handled in App.js to prevent redirect loops)
   // useEffect(() => {
@@ -349,9 +513,9 @@ const LoginSignup = () => {
   };
 
   // ===== REGISTRATION FUNCTIONS (Placeholders - Copied from AuthPage.js) =====
-  const getAvailableBarangays = () => {
-    if (formData.street && streetToBarangay[formData.street]) {
-      return streetToBarangay[formData.street];
+  const getAvailablePuroks = () => {
+    if (formData.street && streetToPurok[formData.street]) {
+      return streetToPurok[formData.street];
     }
     return [];
   };
@@ -359,6 +523,11 @@ const LoginSignup = () => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     let newValue = value;
+    
+    // Clear field error when user starts typing
+    if (fieldErrors[name]) {
+      clearFieldError(name);
+    }
     
     // Auto-capitalize first, middle, last name fields
     if (["firstName", "middleName", "lastName"].includes(name)) {
@@ -390,7 +559,7 @@ const LoginSignup = () => {
       setFormData((prev) => ({
         ...prev,
         street: newValue,
-        barangay: '' // Reset barangay when street changes
+        purok: '' // Reset purok when street changes
       }));
     } else {
       setFormData((prev) => ({
@@ -401,6 +570,11 @@ const LoginSignup = () => {
   };
   
   const handleDateChange = (date) => {
+    // Clear field error when user selects a date
+    if (fieldErrors.dateOfBirth) {
+      clearFieldError('dateOfBirth');
+    }
+    
     const today = new Date();
     let computedAge = '';
     if (date) {
@@ -429,6 +603,20 @@ const LoginSignup = () => {
     setRegistrationError("");
     setRegistrationMessage('');
     setIsLoading(true);
+
+    // Validate all fields first
+    const isValid = validateAllFields();
+    
+    if (!isValid) {
+      // Get all error messages
+      const errorMessages = Object.entries(fieldErrors)
+        .filter(([_, error]) => error !== '')
+        .map(([field, error]) => error);
+      
+      setRegistrationError(`Please fix the following errors: ${errorMessages.join(', ')}`);
+      setIsLoading(false);
+      return;
+    }
 
     // Clean and validate email and phone number
     const cleanEmail = formData.email && formData.email.trim() && 
@@ -495,7 +683,7 @@ const LoginSignup = () => {
           suffix: formData.suffix,
           email: formData.email,
           phoneNumber: formData.phoneNumber,
-          address: `${formData.houseNo ? formData.houseNo + ', ' : ''}${formData.street ? formData.street + ', ' : ''}${formData.barangay ? formData.barangay + ', ' : ''}${formData.city}, ${formData.region}`,
+          address: `${formData.houseNo ? formData.houseNo + ', ' : ''}${formData.street ? formData.street + ', ' : ''}${formData.purok ? formData.purok + ', ' : ''}${formData.city}, ${formData.region}`,
           dateOfBirth: formData.dateOfBirth,
           age: formData.age,
           gender: formData.gender,
@@ -532,7 +720,7 @@ const LoginSignup = () => {
           phoneNumber: '',
           houseNo: '',
           street: '',
-          barangay: '',
+          purok: '',
           city: 'Pasig',
           region: 'Metro Manila',
           philHealthNumber: '',
@@ -713,10 +901,64 @@ const LoginSignup = () => {
             <Card.Header as="h5" className="my-2">Personal Information</Card.Header>
             <Card.Body>
               <Row className="mb-3">
-                <Col md={3}><Form.Group><Form.Label>First Name</Form.Label><Form.Control type="text" name="firstName" value={formData.firstName} onChange={handleChange} required /></Form.Group></Col>
-                <Col md={3}><Form.Group><Form.Label>Middle Name</Form.Label><Form.Control type="text" name="middleName" value={formData.middleName} onChange={handleChange} /></Form.Group></Col>
-                <Col md={3}><Form.Group><Form.Label>Last Name</Form.Label><Form.Control type="text" name="lastName" value={formData.lastName} onChange={handleChange} required /></Form.Group></Col>
-                <Col md={3}><Form.Group><Form.Label>Suffix</Form.Label><Form.Select name="suffix" value={formData.suffix} onChange={handleChange}><option value="">Select</option>{suffixOptions.map(s => <option key={s} value={s}>{s || 'None'}</option>)}</Form.Select></Form.Group></Col>
+                <Col md={3}>
+                  <Form.Group>
+                    <Form.Label>First Name <span className="text-danger">*</span></Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      name="firstName" 
+                      value={formData.firstName} 
+                      onChange={handleChange}
+                      onBlur={() => handleFieldBlur('firstName')}
+                      onFocus={() => clearFieldError('firstName')}
+                      isInvalid={!!fieldErrors.firstName}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {fieldErrors.firstName}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+                <Col md={3}>
+                  <Form.Group>
+                    <Form.Label>Middle Name</Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      name="middleName" 
+                      value={formData.middleName} 
+                      onChange={handleChange} 
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={3}>
+                  <Form.Group>
+                    <Form.Label>Last Name <span className="text-danger">*</span></Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      name="lastName" 
+                      value={formData.lastName} 
+                      onChange={handleChange}
+                      onBlur={() => handleFieldBlur('lastName')}
+                      onFocus={() => clearFieldError('lastName')}
+                      isInvalid={!!fieldErrors.lastName}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {fieldErrors.lastName}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+                <Col md={3}>
+                  <Form.Group>
+                    <Form.Label>Suffix</Form.Label>
+                    <Form.Select 
+                      name="suffix" 
+                      value={formData.suffix} 
+                      onChange={handleChange}
+                    >
+                      <option value="">Select</option>
+                      {suffixOptions.map(s => <option key={s} value={s}>{s || 'None'}</option>)}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
               </Row>
             </Card.Body>
           </Card>
@@ -725,35 +967,91 @@ const LoginSignup = () => {
             <Card.Header as="h5" className="my-2">Account Credentials</Card.Header>
             <Card.Body>
               <Row className="mb-3">
-                <Col md={6}><Form.Group><Form.Label>Email</Form.Label><Form.Control type="email" name="email" value={formData.email} onChange={handleChange} placeholder="example@email.com or N/A" /></Form.Group></Col>
                 <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Phone Number</Form.Label>
+                    <Form.Label>Email <span className="text-danger">*</span></Form.Label>
+                    <Form.Control 
+                      type="email" 
+                      name="email" 
+                      value={formData.email} 
+                      onChange={handleChange}
+                      onBlur={() => handleFieldBlur('email')}
+                      onFocus={() => clearFieldError('email')}
+                      placeholder="example@email.com or N/A"
+                      isInvalid={!!fieldErrors.email}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {fieldErrors.email}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Phone Number <span className="text-danger">*</span></Form.Label>
                     <Form.Control 
                       type="tel" 
                       name="phoneNumber" 
                       value={formData.phoneNumber} 
-                      onChange={handleChange} 
+                      onChange={handleChange}
+                      onBlur={() => handleFieldBlur('phoneNumber')}
+                      onFocus={() => clearFieldError('phoneNumber')}
                       placeholder="09XXXXXXXXX or N/A" 
-                      pattern="^09\d{9}$" 
                       maxLength="11"
-                      title="Must be a valid PH mobile number starting with 09 (11 digits total)"
+                      isInvalid={!!fieldErrors.phoneNumber}
                     />
-                    <Form.Text className="text-muted">
-                      Format: 09XXXXXXXXX (11 digits total) or type "N/A"
-                    </Form.Text>
+                    <Form.Control.Feedback type="invalid">
+                      {fieldErrors.phoneNumber}
+                    </Form.Control.Feedback>
+                    {!fieldErrors.phoneNumber && (
+                      <Form.Text className="text-muted">
+                        Format: 09XXXXXXXXX (11 digits total) or type "N/A"
+                      </Form.Text>
+                    )}
                   </Form.Group>
                 </Col>
               </Row>
-              <Form.Text className="text-muted d-block mb-2">
-                Please provide either an email or a phone number. You may type "N/A" if not available.
+              <Form.Text className="text-muted d-block mb-3">
+                <span className="text-danger">*</span> Please provide either an email or a phone number. You may type "N/A" if not available.
               </Form.Text>
               <Row className="mb-3">
                 <Col md={6}>
-                    <Form.Group className="position-relative"><Form.Label>Password</Form.Label><Form.Control type={showRegPassword ? 'text' : 'password'} name="password" value={formData.password} onChange={handleChange} required /><span className="password-toggle" onClick={toggleRegPasswordVisibility}>{showRegPassword ? <i className="bi bi-eye-slash"></i> : <i className="bi bi-eye"></i>}</span></Form.Group>
-                    <PasswordStrengthIndicator strength={regPasswordStrength} />
+                  <Form.Group className="position-relative">
+                    <Form.Label>Password <span className="text-danger">*</span></Form.Label>
+                    <Form.Control 
+                      type={showRegPassword ? 'text' : 'password'} 
+                      name="password" 
+                      value={formData.password} 
+                      onChange={handleChange}
+                      onBlur={() => handleFieldBlur('password')}
+                      onFocus={() => clearFieldError('password')}
+                      isInvalid={!!fieldErrors.password}
+                    />
+                    <span className="password-toggle" onClick={toggleRegPasswordVisibility}>
+                      {showRegPassword ? <i className="bi bi-eye-slash"></i> : <i className="bi bi-eye"></i>}
+                    </span>
+                    <Form.Control.Feedback type="invalid">
+                      {fieldErrors.password}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                  <PasswordStrengthIndicator strength={regPasswordStrength} />
                 </Col>
-                <Col md={6}><Form.Group><Form.Label>Repeat Password</Form.Label><Form.Control type={showRegPassword ? 'text' : 'password'} name="repeatPassword" value={formData.repeatPassword} onChange={handleChange} required /></Form.Group></Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Repeat Password <span className="text-danger">*</span></Form.Label>
+                    <Form.Control 
+                      type={showRegPassword ? 'text' : 'password'} 
+                      name="repeatPassword" 
+                      value={formData.repeatPassword} 
+                      onChange={handleChange}
+                      onBlur={() => handleFieldBlur('repeatPassword')}
+                      onFocus={() => clearFieldError('repeatPassword')}
+                      isInvalid={!!fieldErrors.repeatPassword}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {fieldErrors.repeatPassword}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
               </Row>
             </Card.Body>
           </Card>
@@ -762,11 +1060,78 @@ const LoginSignup = () => {
             <Card.Header as="h5" className="my-2">Address</Card.Header>
             <Card.Body>
               <Row className="mb-3">
-                <Col md={2}><Form.Group><Form.Label>House No.</Form.Label><Form.Control type="text" name="houseNo" value={formData.houseNo} onChange={handleChange} /></Form.Group></Col>
-                <Col md={3}><Form.Group><Form.Label>Street</Form.Label><Form.Select name="street" value={formData.street} onChange={handleChange} required><option value="">Select Street</option>{pasigStreets.map(s => <option key={s} value={s}>{s}</option>)}</Form.Select></Form.Group></Col>
-                <Col md={3}><Form.Group><Form.Label>Barangay</Form.Label><Form.Select name="barangay" value={formData.barangay} onChange={handleChange} disabled={!formData.street} required><option value="">Select Barangay</option>{getAvailableBarangays().map(b => <option key={b} value={b}>{b}</option>)}</Form.Select></Form.Group></Col>
-                <Col md={2}><Form.Group><Form.Label>City</Form.Label><Form.Control type="text" name="city" value={formData.city} readOnly /></Form.Group></Col>
-                <Col md={2}><Form.Group><Form.Label>Region</Form.Label><Form.Control type="text" name="region" value={formData.region} readOnly /></Form.Group></Col>
+                <Col md={2}>
+                  <Form.Group>
+                    <Form.Label>House No.</Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      name="houseNo" 
+                      value={formData.houseNo} 
+                      onChange={handleChange} 
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={3}>
+                  <Form.Group>
+                    <Form.Label>Street <span className="text-danger">*</span></Form.Label>
+                    <Form.Select 
+                      name="street" 
+                      value={formData.street} 
+                      onChange={handleChange}
+                      onBlur={() => handleFieldBlur('street')}
+                      onFocus={() => clearFieldError('street')}
+                      isInvalid={!!fieldErrors.street}
+                    >
+                      <option value="">Select Street</option>
+                      {pasigStreets.map(s => <option key={s} value={s}>{s}</option>)}
+                    </Form.Select>
+                    <Form.Control.Feedback type="invalid">
+                      {fieldErrors.street}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+                <Col md={3}>
+                  <Form.Group>
+                    <Form.Label>Purok <span className="text-danger">*</span></Form.Label>
+                    <Form.Select 
+                      name="purok" 
+                      value={formData.purok} 
+                      onChange={handleChange}
+                      onBlur={() => handleFieldBlur('purok')}
+                      onFocus={() => clearFieldError('purok')}
+                      disabled={!formData.street}
+                      isInvalid={!!fieldErrors.purok}
+                    >
+                      <option value="">Select Purok</option>
+                      {getAvailablePuroks().map(p => <option key={p} value={p}>{p}</option>)}
+                    </Form.Select>
+                    <Form.Control.Feedback type="invalid">
+                      {fieldErrors.purok}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+                <Col md={2}>
+                  <Form.Group>
+                    <Form.Label>City</Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      name="city" 
+                      value={formData.city} 
+                      readOnly 
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={2}>
+                  <Form.Group>
+                    <Form.Label>Region</Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      name="region" 
+                      value={formData.region} 
+                      readOnly 
+                    />
+                  </Form.Group>
+                </Col>
               </Row>
             </Card.Body>
           </Card>
@@ -775,10 +1140,83 @@ const LoginSignup = () => {
             <Card.Header as="h5" className="my-2">Other Details</Card.Header>
             <Card.Body>
               <Row className="mb-3">
-                <Col md={4}><Form.Group><Form.Label>Date of Birth</Form.Label><DatePicker selected={formData.dateOfBirth} onChange={handleDateChange} dateFormat="MM/dd/yyyy" className="form-control" maxDate={new Date()} showYearDropdown scrollableYearDropdown yearDropdownItemNumber={100} placeholderText="MM/DD/YYYY" required /></Form.Group></Col>
-                <Col md={2}><Form.Group><Form.Label>Age</Form.Label><Form.Control type="text" name="age" value={formData.age} readOnly /></Form.Group></Col>
-                <Col md={3}><Form.Group><Form.Label>Gender</Form.Label><Form.Select name="gender" value={formData.gender} onChange={handleChange} required><option value="">Select Gender</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></Form.Select></Form.Group></Col>
-                <Col md={3}><Form.Group><Form.Label>Civil Status</Form.Label><Form.Select name="civilStatus" value={formData.civilStatus} onChange={handleChange} required><option value="">Select Status</option><option value="Single">Single</option><option value="Married">Married</option><option value="Divorced">Divorced</option><option value="Widowed">Widowed</option></Form.Select></Form.Group></Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Date of Birth <span className="text-danger">*</span></Form.Label>
+                    <DatePicker 
+                      selected={formData.dateOfBirth} 
+                      onChange={handleDateChange} 
+                      dateFormat="MM/dd/yyyy" 
+                      className={`form-control ${fieldErrors.dateOfBirth ? 'is-invalid' : ''}`}
+                      maxDate={new Date()} 
+                      showYearDropdown 
+                      scrollableYearDropdown 
+                      yearDropdownItemNumber={100} 
+                      placeholderText="MM/DD/YYYY"
+                      onBlur={() => handleFieldBlur('dateOfBirth')}
+                      onFocus={() => clearFieldError('dateOfBirth')}
+                    />
+                    {fieldErrors.dateOfBirth && (
+                      <div className="invalid-feedback d-block">
+                        {fieldErrors.dateOfBirth}
+                      </div>
+                    )}
+                  </Form.Group>
+                </Col>
+                <Col md={2}>
+                  <Form.Group>
+                    <Form.Label>Age</Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      name="age" 
+                      value={formData.age} 
+                      readOnly 
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={3}>
+                  <Form.Group>
+                    <Form.Label>Gender <span className="text-danger">*</span></Form.Label>
+                    <Form.Select 
+                      name="gender" 
+                      value={formData.gender} 
+                      onChange={handleChange}
+                      onBlur={() => handleFieldBlur('gender')}
+                      onFocus={() => clearFieldError('gender')}
+                      isInvalid={!!fieldErrors.gender}
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                    </Form.Select>
+                    <Form.Control.Feedback type="invalid">
+                      {fieldErrors.gender}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+                <Col md={3}>
+                  <Form.Group>
+                    <Form.Label>Civil Status <span className="text-danger">*</span></Form.Label>
+                    <Form.Select 
+                      name="civilStatus" 
+                      value={formData.civilStatus} 
+                      onChange={handleChange}
+                      onBlur={() => handleFieldBlur('civilStatus')}
+                      onFocus={() => clearFieldError('civilStatus')}
+                      isInvalid={!!fieldErrors.civilStatus}
+                    >
+                      <option value="">Select Status</option>
+                      <option value="Single">Single</option>
+                      <option value="Married">Married</option>
+                      <option value="Divorced">Divorced</option>
+                      <option value="Widowed">Widowed</option>
+                    </Form.Select>
+                    <Form.Control.Feedback type="invalid">
+                      {fieldErrors.civilStatus}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
               </Row>
               <Row className="mb-3 align-items-center">
                 <Col md={8}>

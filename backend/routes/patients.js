@@ -73,7 +73,7 @@ router.post(
       const patientData = { ...req.body };
       
       // Convert empty strings and "N/A" to null for optional fields (email only, contact number is required)
-      const fieldsToClean = ['email', 'philHealthNumber', 'middleName', 'suffix', 'civilStatus', 'houseNo', 'street', 'barangay', 'city', 'region'];
+      const fieldsToClean = ['email', 'philHealthNumber', 'middleName', 'suffix', 'civilStatus', 'houseNo', 'street', 'purok', 'city', 'region'];
       
       fieldsToClean.forEach(field => {
         if (patientData[field] === '' || 
@@ -243,7 +243,7 @@ router.get('/', auth, async (req, res) => {
         formattedAddress: [
           patient.houseNo,
           patient.street,
-          patient.barangay,
+          patient.purok,
           patient.city,
           patient.region
         ].filter(Boolean).join(', ') || patient.address
@@ -378,13 +378,13 @@ router.get('/me/profile', auth, async (req, res) => {
       // Address Information
       houseNo: patientWithAssociations.houseNo || 'N/A',
       street: patientWithAssociations.street || 'N/A',
-      barangay: patientWithAssociations.barangay || 'N/A',
+      purok: patientWithAssociations.purok || 'N/A',
       city: patientWithAssociations.city || 'N/A',
       region: patientWithAssociations.region || 'N/A',
       formattedAddress: [
         patientWithAssociations.houseNo,
         patientWithAssociations.street,
-        patientWithAssociations.barangay,
+        patientWithAssociations.purok,
         patientWithAssociations.city,
         patientWithAssociations.region
       ].filter(val => val && val !== 'N/A').join(', ') || 'N/A',
@@ -473,7 +473,7 @@ router.put('/me/profile', auth, async (req, res) => {
       password,
       houseNo,
       street,
-      barangay,
+      purok,
       city,
       philHealthNumber,
       bloodType,
@@ -509,7 +509,7 @@ router.put('/me/profile', auth, async (req, res) => {
     if (contactNumber !== undefined) updateData.contactNumber = cleanValue(contactNumber);
     if (houseNo !== undefined) updateData.houseNo = cleanValue(houseNo);
     if (street !== undefined) updateData.street = cleanValue(street);
-    if (barangay !== undefined) updateData.barangay = cleanValue(barangay);
+    if (purok !== undefined) updateData.purok = cleanValue(purok);
     if (city !== undefined) updateData.city = cleanValue(city);
     if (philHealthNumber !== undefined) updateData.philHealthNumber = cleanValue(philHealthNumber);
     if (bloodType !== undefined) updateData.bloodType = cleanValue(bloodType);
@@ -614,9 +614,9 @@ router.put('/me/profile', auth, async (req, res) => {
       contactNumber: formatDisplayValue(updatedPatient.contactNumber),
       houseNo: formatDisplayValue(updatedPatient.houseNo),
       street: formatDisplayValue(updatedPatient.street),
-      barangay: formatDisplayValue(updatedPatient.barangay),
+      purok: formatDisplayValue(updatedPatient.purok),
       city: formatDisplayValue(updatedPatient.city),
-      address: `${updatedPatient.houseNo ? updatedPatient.houseNo + ' ' : ''}${updatedPatient.street ? updatedPatient.street + ', ' : ''}${updatedPatient.barangay ? updatedPatient.barangay + ', ' : ''}${updatedPatient.city || 'Metro Manila'}`,
+      address: `${updatedPatient.houseNo ? updatedPatient.houseNo + ' ' : ''}${updatedPatient.street ? updatedPatient.street + ', ' : ''}${updatedPatient.purok ? updatedPatient.purok + ', ' : ''}${updatedPatient.city || 'Metro Manila'}`,
       philHealthNumber: formatDisplayValue(updatedPatient.philHealthNumber),
       bloodType: formatDisplayValue(updatedPatient.bloodType),
       medicalConditions: formatDisplayValue(updatedPatient.medicalConditions),
@@ -681,14 +681,14 @@ router.get('/:id', auth, async (req, res) => {
       detailedAddress: {
         houseNo: patient.houseNo || '',
         street: patient.street || '',
-        barangay: patient.barangay || '',
+        purok: patient.purok || '',
         city: patient.city || '',
         region: patient.region || ''
       },
       formattedAddress: [
         patient.houseNo,
         patient.street,
-        patient.barangay,
+        patient.purok,
         patient.city,
         patient.region
       ].filter(Boolean).join(', ') || patient.address,
@@ -779,21 +779,86 @@ router.put('/:id', auth, async (req, res) => {
 // @desc    Delete a patient
 // @access  Private
 router.delete('/:id', auth, async (req, res) => {
+  const transaction = await Patient.sequelize.transaction();
+  
   try {
     const patient = await Patient.findByPk(req.params.id);
 
     if (!patient) {
+      await transaction.rollback();
       return res.status(404).json({ msg: 'Patient not found' });
     }
 
     // Log the patient removal action before deletion
     await AuditLogger.logPatientRemoval(req, patient);
 
-    await patient.destroy();
-    res.json({ msg: 'Patient removed' });
+    const patientId = patient.id;
+    const userId = patient.userId;
+
+    console.log(`🗑️  Deleting patient ${patient.firstName} ${patient.lastName} (ID: ${patientId})`);
+
+    // Step 1: Delete related records in order (to avoid foreign key constraints)
+    const { CheckInSession, Appointment, VitalSigns, Vaccination } = require('../models');
+
+    // Delete check-in sessions
+    const checkInCount = await CheckInSession.destroy({
+      where: { patientId },
+      transaction
+    });
+    console.log(`   ✅ Deleted ${checkInCount} check-in session(s)`);
+
+    // Delete appointments
+    const appointmentCount = await Appointment.destroy({
+      where: { patientId },
+      transaction
+    });
+    console.log(`   ✅ Deleted ${appointmentCount} appointment(s)`);
+
+    // Delete vital signs
+    const vitalSignsCount = await VitalSigns.destroy({
+      where: { patientId },
+      transaction
+    });
+    console.log(`   ✅ Deleted ${vitalSignsCount} vital sign(s)`);
+
+    // Delete vaccinations
+    const vaccinationCount = await Vaccination.destroy({
+      where: { patientId },
+      transaction
+    });
+    console.log(`   ✅ Deleted ${vaccinationCount} vaccination(s)`);
+
+    // Step 2: Delete the patient record
+    await patient.destroy({ transaction });
+    console.log(`   ✅ Deleted patient record`);
+
+    // Step 3: Delete associated user account (if exists and is a patient role)
+    if (userId) {
+      const userDeleted = await User.destroy({
+        where: {
+          id: userId,
+          role: 'patient' // Safety check: only delete if role is patient
+        },
+        transaction
+      });
+      if (userDeleted > 0) {
+        console.log(`   ✅ Deleted associated user account (ID: ${userId})`);
+      }
+    }
+
+    // Commit the transaction
+    await transaction.commit();
+    
+    console.log(`✅ Patient deletion complete`);
+    res.json({ msg: 'Patient removed successfully' });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    // Rollback transaction on error
+    await transaction.rollback();
+    console.error('❌ Error deleting patient:', err.message);
+    res.status(500).json({ 
+      msg: 'Error deleting patient', 
+      error: err.message 
+    });
   }
 });
 

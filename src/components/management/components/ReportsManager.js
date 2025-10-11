@@ -6,6 +6,9 @@ import inventoryService from '../../../services/inventoryService';
 import { dashboardService } from '../../../services/dashboardService';
 import doctorReportsService from '../../../services/doctorReportsService';
 import LoadingManagementBar from '../LoadingManagementBar';
+import { useAuth } from '../../../context/AuthContext';
+import sealMainImage from '../../../images/sealmain.png';
+import sealGovImage from '../../../images/sealgov.png';
 import '../styles/ReportsManager.css';
 
 // Error boundary for crash loop protection
@@ -49,6 +52,9 @@ ChartJS.register(
 );
 
 const ReportsManager = ({ isDarkMode }) => {
+  // Get user info from AuthContext
+  const { user } = useAuth();
+  
   // Helper function to deserialize reports with proper Date objects
   const deserializeReports = useCallback((reportsData) => {
     if (!reportsData) return {};
@@ -1118,149 +1124,494 @@ const ReportsManager = ({ isDarkMode }) => {
 
       const chartImageUrl = chartContainer.toDataURL();
       
+      // Generate automated summary based on chart data
+      const generateSummary = () => {
+        if (!zoomedReport.rawData) return 'No data available for automated summary.';
+        
+        const data = zoomedReport.rawData;
+        let summary = '';
+        
+        // Get total records
+        const totalRecords = data.totalRecords || 0;
+        
+        // Generate summary based on report type
+        switch(zoomedReport.type.id) {
+          case 'patient-demographics':
+            summary = `This report shows the demographic distribution of ${totalRecords} patients. `;
+            if (data.genderBreakdown) {
+              const male = data.genderBreakdown.male || 0;
+              const female = data.genderBreakdown.female || 0;
+              summary += `The gender distribution consists of ${male} male patients (${((male/totalRecords)*100).toFixed(1)}%) and ${female} female patients (${((female/totalRecords)*100).toFixed(1)}%). `;
+            }
+            summary += 'This demographic data helps in understanding patient population characteristics for better healthcare planning.';
+            break;
+            
+          case 'patient-registration':
+            summary = `This report displays the daily checkup trends showing healthcare utilization patterns. `;
+            summary += `A total of ${totalRecords} checkups were recorded during the reporting period. `;
+            summary += 'The trend analysis helps identify peak healthcare demand periods and optimize resource allocation.';
+            break;
+            
+          case 'patient-frequency':
+            summary = `This report presents the age distribution across ${totalRecords} patient records. `;
+            summary += 'Understanding age demographics is crucial for age-specific health program planning and preventive care strategies.';
+            break;
+            
+          case 'doctor-workload':
+            summary = `This report analyzes doctor workload distribution across ${totalRecords} completed checkups. `;
+            summary += 'Workload analysis helps ensure balanced task distribution among healthcare providers and identify staffing needs.';
+            break;
+            
+          case 'doctor-volume':
+            summary = `This report tracks doctor patient volume trends over time, covering ${totalRecords} patient encounters. `;
+            summary += 'Volume trend analysis assists in capacity planning and identifying patterns in healthcare delivery.';
+            break;
+            
+          case 'prescription-usage':
+            summary = `This report shows prescription usage patterns with ${totalRecords} medication records analyzed. `;
+            summary += 'Understanding prescription trends supports inventory management and formulary optimization.';
+            break;
+            
+          case 'vaccine-distribution':
+            summary = `This report displays vaccine distribution analytics across ${totalRecords} vaccination records. `;
+            summary += 'Vaccination trend analysis is essential for immunization program monitoring and disease prevention planning.';
+            break;
+            
+          case 'custom-diagnosis-analysis':
+            summary = `This custom report analyzes diagnosed diseases across ${totalRecords} diagnosis records with demographic breakdown. `;
+            summary += 'Disease pattern analysis helps identify health priorities and guide targeted intervention programs.';
+            break;
+            
+          case 'custom-prescription-analysis':
+            summary = `This custom report examines prescription patterns across ${totalRecords} medication records with demographic segmentation. `;
+            summary += 'Medication usage analysis supports evidence-based prescribing practices and drug utilization review.';
+            break;
+            
+          case 'custom-vaccine-analysis':
+            summary = `This custom report evaluates vaccination patterns across ${totalRecords} immunization records with demographic details. `;
+            summary += 'Comprehensive vaccine coverage analysis ensures equitable access to immunization services.';
+            break;
+            
+          case 'custom-barangay-analysis':
+            summary = `This custom report maps patient visits by geographic location across ${totalRecords} visit records. `;
+            summary += 'Geographic distribution analysis aids in community health planning and service accessibility assessment.';
+            break;
+            
+          default:
+            summary = `This report provides analytical insights based on ${totalRecords} records. `;
+            summary += 'The data visualization helps healthcare administrators make informed decisions for improving service delivery.';
+        }
+        
+        return summary;
+      };
+      
+      const automatedSummary = generateSummary();
+      const currentUser = user ? `${user.firstName} ${user.lastName}` : 'Management User';
+      const currentUserRole = user?.role || 'Management';
+      
       printWindow.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
           <title>${zoomedReport.type.name} - Report</title>
           <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            
             body { 
               font-family: Arial, sans-serif; 
-              margin: 20px; 
+              margin: 0;
+              padding: 20mm;
               color: #333;
+              line-height: 1.6;
             }
+            
+            /* Government Header - Matching Homepage Style */
+            .government-header {
+              text-align: center;
+              padding: 20px 0;
+              border-bottom: 4px solid #28a745;
+              margin-bottom: 30px;
+              background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            }
+            
+            .government-header-content {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              max-width: 900px;
+              margin: 0 auto;
+              padding: 0 20px;
+            }
+            
+            .government-seal, .barangay-seal {
+              width: 80px;
+              height: 80px;
+              object-fit: contain;
+            }
+            
+            .government-text {
+              flex: 1;
+              text-align: center;
+              padding: 0 20px;
+            }
+            
+            .government-title {
+              font-size: 28px;
+              font-weight: bold;
+              color: #1a472a;
+              margin-bottom: 5px;
+              letter-spacing: 1px;
+            }
+            
+            .government-subtitle {
+              font-size: 20px;
+              font-weight: 600;
+              color: #28a745;
+              margin-bottom: 5px;
+            }
+            
+            .government-tagline {
+              font-size: 13px;
+              color: #666;
+              font-style: italic;
+            }
+            
+            /* Report Header */
             .report-header { 
               text-align: center; 
-              margin-bottom: 30px; 
-              border-bottom: 2px solid #28a745;
+              margin-bottom: 30px;
               padding-bottom: 20px;
+              border-bottom: 2px solid #dee2e6;
             }
+            
             .report-header h1 { 
               color: #28a745; 
-              margin: 0;
-              font-size: 28px;
+              margin: 10px 0;
+              font-size: 26px;
             }
-            .report-header p { 
+            
+            .report-header .report-subtitle { 
               color: #666; 
               margin: 5px 0;
-              font-size: 16px;
+              font-size: 15px;
             }
-            .chart-section { 
-              text-align: center; 
-              margin: 30px 0;
+            
+            .report-header .report-date {
+              color: #888;
+              font-size: 13px;
+              margin-top: 10px;
             }
-            .chart-section img { 
-              max-width: 100%; 
-              height: auto;
-              border: 1px solid #ddd;
-              border-radius: 8px;
-              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            }
-            .details-section {
-              margin-top: 30px;
+            
+            /* Automated Summary Section */
+            .summary-section {
               background: #f8f9fa;
               padding: 20px;
               border-radius: 8px;
               border-left: 4px solid #28a745;
+              margin-bottom: 30px;
             }
-            .details-section h3 {
+            
+            .summary-section h3 {
               color: #28a745;
-              margin-top: 0;
+              margin-bottom: 15px;
+              font-size: 18px;
             }
-            .detail-item {
-              margin: 10px 0;
+            
+            .summary-section p {
+              color: #495057;
+              line-height: 1.8;
+              text-align: justify;
               font-size: 14px;
             }
+            
+            /* Chart Section */
+            .chart-section { 
+              text-align: center; 
+              margin: 30px 0;
+              page-break-inside: avoid;
+            }
+            
+            .chart-section h3 {
+              color: #28a745;
+              margin-bottom: 15px;
+              font-size: 18px;
+            }
+            
+            .chart-section img { 
+              max-width: 100%; 
+              height: auto;
+              border: 2px solid #dee2e6;
+              border-radius: 8px;
+              box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+              padding: 10px;
+              background: white;
+            }
+            
+            /* Details Section */
+            .details-section {
+              margin-top: 30px;
+              background: #fff;
+              padding: 20px;
+              border: 1px solid #dee2e6;
+              border-radius: 8px;
+              page-break-inside: avoid;
+            }
+            
+            .details-section h3 {
+              color: #28a745;
+              margin-bottom: 15px;
+              font-size: 18px;
+              border-bottom: 2px solid #28a745;
+              padding-bottom: 8px;
+            }
+            
+            .detail-item {
+              margin: 12px 0;
+              font-size: 14px;
+              padding: 8px 0;
+            }
+            
             .detail-label {
               font-weight: bold;
-              color: #555;
+              color: #495057;
+              display: inline-block;
+              min-width: 120px;
             }
+            
+            .detail-value {
+              color: #666;
+            }
+            
+            /* Data Summary Grid */
             ${zoomedReport.rawData ? `
             .data-summary {
               margin-top: 20px;
-              background: white;
-              padding: 15px;
-              border-radius: 6px;
-              border: 1px solid #ddd;
+              background: #f8f9fa;
+              padding: 20px;
+              border-radius: 8px;
+              border: 1px solid #dee2e6;
+              page-break-inside: avoid;
             }
+            
             .data-summary h4 {
               color: #28a745;
               margin-top: 0;
               margin-bottom: 15px;
+              font-size: 16px;
             }
+            
             .summary-grid {
               display: grid;
               grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
               gap: 15px;
             }
+            
             .summary-item {
               text-align: center;
-              padding: 10px;
-              background: #f8f9fa;
-              border-radius: 4px;
+              padding: 15px;
+              background: white;
+              border-radius: 6px;
+              border: 1px solid #dee2e6;
             }
+            
             .summary-item .value {
-              font-size: 18px;
+              font-size: 20px;
               font-weight: bold;
               color: #28a745;
+              display: block;
+              margin-bottom: 5px;
             }
+            
             .summary-item .label {
               font-size: 12px;
               color: #666;
               text-transform: uppercase;
-              margin-top: 5px;
+              letter-spacing: 0.5px;
             }
             ` : ''}
+            
+            /* Signature Section */
+            .signature-section {
+              margin-top: 50px;
+              padding-top: 30px;
+              border-top: 2px solid #dee2e6;
+              page-break-inside: avoid;
+            }
+            
+            .signature-row {
+              display: flex;
+              justify-content: space-between;
+              margin-top: 20px;
+              gap: 40px;
+            }
+            
+            .signature-box {
+              flex: 1;
+              text-align: center;
+            }
+            
+            .signature-label {
+              font-size: 13px;
+              color: #666;
+              font-weight: bold;
+              margin-bottom: 8px;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            }
+            
+            .signature-line {
+              border-bottom: 2px solid #333;
+              margin: 40px 20px 8px 20px;
+              min-height: 60px;
+            }
+            
+            .signature-name {
+              font-size: 15px;
+              font-weight: bold;
+              color: #333;
+              margin-top: 8px;
+            }
+            
+            .signature-role {
+              font-size: 13px;
+              color: #666;
+              font-style: italic;
+            }
+            
+            .signature-date {
+              font-size: 12px;
+              color: #888;
+              margin-top: 5px;
+            }
+            
+            /* Print Optimizations */
             @media print {
-              body { margin: 0; }
+              body { 
+                margin: 0;
+                padding: 15mm;
+              }
+              
+              .government-header {
+                page-break-after: avoid;
+              }
+              
+              .chart-section {
+                page-break-before: avoid;
+                page-break-after: avoid;
+              }
+              
+              .signature-section {
+                page-break-before: avoid;
+              }
+            }
+            
+            @page {
+              size: A4;
+              margin: 15mm;
             }
           </style>
         </head>
         <body>
-          <div class="report-header">
-            <h1>${zoomedReport.type.name}</h1>
-            <p>${zoomedReport.type.description}</p>
-            <p>Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+          <!-- Government Header -->
+          <div class="government-header">
+            <div class="government-header-content">
+              <div class="government-seal-container">
+                <img src="${sealGovImage}" alt="Government Seal" class="government-seal" />
+              </div>
+              <div class="government-text">
+                <h1 class="government-title">BARANGAY MAYBUNGA</h1>
+                <h2 class="government-subtitle">HEALTHCARE MANAGEMENT SYSTEM</h2>
+                <p class="government-tagline">Digital Health Services for the Community</p>
+              </div>
+              <div class="barangay-seal-container">
+                <img src="${sealMainImage}" alt="Barangay Maybunga Seal" class="barangay-seal" />
+              </div>
+            </div>
           </div>
           
+          <!-- Report Header -->
+          <div class="report-header">
+            <h1>${zoomedReport.type.name}</h1>
+            <p class="report-subtitle">${zoomedReport.type.description}</p>
+            <p class="report-date">Generated on: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}</p>
+          </div>
+          
+          <!-- Automated Summary Section -->
+          <div class="summary-section">
+            <h3>📊 Executive Summary</h3>
+            <p>${automatedSummary}</p>
+          </div>
+          
+          <!-- Chart Section -->
           <div class="chart-section">
+            <h3>Data Visualization</h3>
             <img src="${chartImageUrl}" alt="${zoomedReport.type.name} Chart" />
           </div>
           
+          <!-- Details Section -->
           <div class="details-section">
             <h3>Report Details</h3>
             <div class="detail-item">
-              <span class="detail-label">Report Type:</span> ${zoomedReport.type.name}
+              <span class="detail-label">Report Type:</span>
+              <span class="detail-value">${zoomedReport.type.name}</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">Category:</span> ${zoomedReport.type.category || 'N/A'}
+              <span class="detail-label">Category:</span>
+              <span class="detail-value">${zoomedReport.type.category || 'N/A'}</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">Chart Type:</span> ${chartTypes.find(c => c.id === zoomedReport.chartType)?.name || 'N/A'}
+              <span class="detail-label">Chart Type:</span>
+              <span class="detail-value">${chartTypes.find(c => c.id === zoomedReport.chartType)?.name || 'N/A'}</span>
             </div>
             <div class="detail-item">
-              <span class="detail-label">Created:</span> ${zoomedReport.createdAt.toLocaleString()}
+              <span class="detail-label">Report Created:</span>
+              <span class="detail-value">${zoomedReport.createdAt.toLocaleString('en-US', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })}</span>
             </div>
             
             ${zoomedReport.rawData ? `
             <div class="data-summary">
-              <h4>Data Summary</h4>
+              <h4>Statistical Overview</h4>
               <div class="summary-grid">
                 <div class="summary-item">
-                  <div class="value">${zoomedReport.rawData.totalRecords || 0}</div>
-                  <div class="label">Total Records</div>
+                  <span class="value">${zoomedReport.rawData.totalRecords || 0}</span>
+                  <span class="label">Total Records</span>
                 </div>
                 <div class="summary-item">
-                  <div class="value">${zoomedReport.rawData.groupMode || 'N/A'}</div>
-                  <div class="label">Group Mode</div>
+                  <span class="value">${zoomedReport.rawData.groupMode || 'N/A'}</span>
+                  <span class="label">Group Mode</span>
                 </div>
                 <div class="summary-item">
-                  <div class="value">${zoomedReport.rawData.dataType || 'N/A'}</div>
-                  <div class="label">Data Type</div>
+                  <span class="value">${zoomedReport.rawData.dataType || 'N/A'}</span>
+                  <span class="label">Data Type</span>
                 </div>
               </div>
             </div>
             ` : ''}
+          </div>
+          
+          <!-- Signature Section -->
+          <div class="signature-section">
+            <div class="signature-row">
+              <div class="signature-box">
+                <div class="signature-label">Created By</div>
+                <div class="signature-line"></div>
+                <div class="signature-name">${currentUser}</div>
+                <div class="signature-role">${currentUserRole}</div>
+                <div class="signature-date">${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+              </div>
+              
+              <div class="signature-box">
+                <div class="signature-label">Approved By</div>
+                <div class="signature-line"></div>
+                <div class="signature-name">_______________________</div>
+                <div class="signature-role">Authorized Signature</div>
+                <div class="signature-date">Date: __________________</div>
+              </div>
+            </div>
           </div>
         </body>
         </html>
@@ -1268,12 +1619,12 @@ const ReportsManager = ({ isDarkMode }) => {
       
       printWindow.document.close();
       
-      // Wait for image to load then print
+      // Wait for images and content to load then print
       setTimeout(() => {
         printWindow.focus();
         printWindow.print();
         printWindow.close();
-      }, 500);
+      }, 1000);
       
       console.log('Print dialog opened successfully');
       

@@ -3379,3 +3379,192 @@ select:disabled option {
   border-radius: 8px;
   border: 1px solid #dee2e6;
 }
+
+/* ================================================
+   EMERGENCY APPOINTMENT BADGE STYLES
+   All styles use emergency-apt-* prefix
+   ================================================ */
+
+/* Emergency card styling */
+.schedule-card.emergency-apt-card {
+  border: 3px solid #dc3545;
+  box-shadow: 0 4px 16px rgba(220, 53, 69, 0.3);
+  position: relative;
+  overflow: visible;
+}
+
+.schedule-card.emergency-apt-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ff6b6b 0%, #dc3545 50%, #ff6b6b 100%);
+  background-size: 200% 100%;
+  animation: emergency-shimmer 2s linear infinite;
+}
+
+@keyframes emergency-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Emergency corner badge */
+.emergency-apt-badge-corner {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 100%);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 0 8px 0 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
+  z-index: 2;
+  animation: emergency-badge-pulse 2s infinite;
+}
+
+@keyframes emergency-badge-pulse {
+  0%, 100% {
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.4);
+  }
+  50% {
+    box-shadow: 0 2px 12px rgba(220, 53, 69, 0.7);
+  }
+}
+
+.emergency-apt-badge-corner i {
+  font-size: 13px;
+  animation: emergency-icon-blink 1.5s infinite;
+}
+
+@keyframes emergency-icon-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Emergency inline badge (in appointment type) */
+.emergency-apt-inline-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 100%);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  margin-left: 8px;
+  vertical-align: middle;
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+}
+
+.emergency-apt-inline-badge i {
+  font-size: 11px;
+  animation: emergency-icon-sparkle 1s infinite;
+}
+
+@keyframes emergency-icon-sparkle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  25% {
+    transform: scale(1.2) rotate(-10deg);
+  }
+  75% {
+    transform: scale(1.2) rotate(10deg);
+  }
+}
+
+/* Emergency table cell styling */
+.emergency-apt-table-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.emergency-apt-table-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #ff6b6b 0%, #dc3545 100%);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+  animation: emergency-table-pulse 2s infinite;
+}
+
+@keyframes emergency-table-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.emergency-apt-table-badge i {
+  font-size: 11px;
+}
+
+/* Emergency row highlighting */
+tr:has(.emergency-apt-table-cell) {
+  background-color: rgba(255, 107, 107, 0.05);
+  border-left: 4px solid #dc3545;
+}
+
+tr:has(.emergency-apt-table-cell):hover {
+  background-color: rgba(255, 107, 107, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .emergency-apt-badge-corner {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+  
+  .emergency-apt-inline-badge {
+    font-size: 9px;
+    padding: 2px 6px;
+  }
+  
+  .emergency-apt-table-badge {
+    font-size: 9px;
+    padding: 3px 8px;
+  }
+}
+
+@media (max-width: 768px) {
+  .emergency-apt-badge-corner {
+    top: 0;
+    right: 0;
+    border-radius: 0 0 0 8px;
+  }
+  
+  .emergency-apt-table-cell {
+    flex-direction: row;
+    gap: 8px;
+  }
+}
+

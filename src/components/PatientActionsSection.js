@@ -93,7 +93,7 @@ const PatientActionsSection = ({ selectedPatient }) => {
       </div>
       <div style={{padding: '20px'}}>
         <div className="row g-3">
-          <div className="col-md-4">
+          <div className="col-md-6">
             <div 
               className="h-100 d-flex align-items-center p-3"
               style={{
@@ -127,7 +127,7 @@ const PatientActionsSection = ({ selectedPatient }) => {
             </div>
           </div>
           
-          <div className="col-md-4">
+          <div className="col-md-6">
             <div 
               className="h-100 d-flex align-items-center p-3"
               style={{
@@ -161,7 +161,7 @@ const PatientActionsSection = ({ selectedPatient }) => {
             </div>
           </div>
           
-          <div className="col-md-4">
+          <div className="col-md-6">
             <div 
               className="h-100 d-flex align-items-center p-3"
               style={{
@@ -195,7 +195,7 @@ const PatientActionsSection = ({ selectedPatient }) => {
             </div>
           </div>
           
-          <div className="col-md-4">
+          <div className="col-md-6">
             <div 
               className="h-100 d-flex align-items-center p-3"
               style={{
@@ -229,39 +229,8 @@ const PatientActionsSection = ({ selectedPatient }) => {
             </div>
           </div>
           
-          <div className="col-md-4">
-            <div 
-              className="h-100 d-flex align-items-center p-3"
-              style={{
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border-secondary)',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onClick={() => handleReferralForm()}
-              onMouseEnter={(e) => {
-                e.target.style.borderColor = 'var(--warning)';
-                e.target.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.borderColor = 'var(--border-secondary)';
-                e.target.style.transform = 'translateY(0)';
-              }}
-            >
-              <div className="me-3">
-                <i className="bi bi-file-medical-fill" style={{fontSize: '1.5rem', color: 'var(--warning)'}}></i>
-              </div>
-              <div>
-                <div style={{color: 'var(--text-primary)', fontWeight: 600, fontSize: '0.9rem'}}>
-                  Laboratory Referral
-                </div>
-                <small style={{color: 'var(--text-secondary)'}}>
-                  Generate referral slip
-                </small>
-              </div>
-            </div>
-          </div>
+          {/* Laboratory Referral Button - Temporarily removed for update */}
+          {/* Will be re-enabled after referral system update */}
           
           {/* SMS Button - Temporarily hidden until Twilio is configured */}
           {/* Uncomment when ready to use real SMS functionality */}

@@ -897,7 +897,7 @@ router.get('/checkup-trends/:period', async (req, res) => {
               COUNT(*) as completedCheckups
             FROM vaccinations 
             WHERE administeredAt >= DATE_SUB(CURDATE(), INTERVAL 5 YEAR)
-            GROUP BY YEAR(administeredDate)
+            GROUP BY YEAR(administeredAt)
           ) as combined
           GROUP BY combined.year
           ORDER BY combined.year

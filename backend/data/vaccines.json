@@ -58,7 +58,7 @@
     "manufacturer": "Serum Institute",
     "category": "Routine Childhood",
     "batchNumber": "PV003-2024",
-    "dosesInStock": 149,
+    "dosesInStock": 148,
     "minimumStock": 30,
     "unitCost": 45,
     "expiryDate": "2027-12-31",
@@ -73,33 +73,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Shake well before use",
-    "updatedAt": "2025-09-29T05:00:35.643Z"
-  },
-  {
-    "id": 4,
-    "name": "Oral Polio Vaccine (OPV)",
-    "description": "Given at 6, 10, and 14 weeks, with boosters at 9 months and 4–6 years",
-    "manufacturer": "Bio Farma",
-    "category": "Routine Childhood",
-    "batchNumber": "OPV004-2024",
-    "dosesInStock": 399,
-    "minimumStock": 100,
-    "unitCost": 5,
-    "expiryDate": "2025-09-30",
-    "storageTemp": "-15 to -25°C",
-    "administrationRoute": "Oral",
-    "ageGroups": [
-      "Infant",
-      "Child"
-    ],
-    "dosageSchedule": "6, 10, 14 weeks, 9 months, 4-6 years",
-    "sideEffects": "Rare: vaccine-associated paralytic polio",
-    "contraindications": "Immunodeficiency, acute illness",
-    "status": "Available",
-    "isActive": true,
-    "notes": "Store frozen, use immediately after thawing",
-    "updatedAt": "2025-10-06T07:18:04.068Z",
-    "unitsInStock": 399
+    "updatedAt": "2025-10-07T03:44:18.439Z"
   },
   {
     "id": 5,
@@ -346,31 +320,6 @@
     "status": "Available",
     "isActive": true,
     "notes": "Preferred over Td for one dose"
-  },
-  {
-    "id": 15,
-    "name": "Varicella (Chickenpox) Vaccine",
-    "description": "Prevents chickenpox, typically given at 12-15 months",
-    "manufacturer": "Merck",
-    "category": "Additional Routine",
-    "batchNumber": "VAR015-2024",
-    "dosesInStock": 84,
-    "minimumStock": 20,
-    "unitCost": 80,
-    "expiryDate": "2025-10-30",
-    "storageTemp": "-15°C or colder",
-    "administrationRoute": "Subcutaneous",
-    "ageGroups": [
-      "Toddler",
-      "Child"
-    ],
-    "dosageSchedule": "12-15 months, 4-6 years",
-    "sideEffects": "Mild rash, fever",
-    "contraindications": "Pregnancy, immunodeficiency",
-    "status": "Available",
-    "isActive": true,
-    "notes": "Live vaccine, store frozen",
-    "updatedAt": "2025-09-17T00:03:48.176Z"
   },
   {
     "id": 16,

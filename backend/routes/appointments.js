@@ -682,6 +682,99 @@ router.get('/limits', auth, async (req, res) => {
   }
 });
 
+// @route   GET api/appointments/emergency-usage/:patientId
+// @desc    Check emergency appointment usage for a patient (2 per month, 14-day cooldown)
+// @access  Private
+router.get('/emergency-usage/:patientId', auth, async (req, res) => {
+  try {
+    const { patientId } = req.params;
+    const now = new Date();
+    
+    // Calculate date 30 days ago (monthly limit)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(now.getDate() - 30);
+    
+    // Calculate date 14 days ago (cooldown period)
+    const fourteenDaysAgo = new Date();
+    fourteenDaysAgo.setDate(now.getDate() - 14);
+    
+    // Get emergency appointments in last 30 days
+    const emergencyAppointmentsLast30Days = await Appointment.findAll({
+      where: {
+        patientId: patientId,
+        isEmergency: true,
+        createdAt: {
+          [Op.gte]: thirtyDaysAgo
+        }
+      },
+      order: [['createdAt', 'DESC']],
+      attributes: ['id', 'appointmentDate', 'appointmentTime', 'status', 'createdAt', 'emergencyReasonCategory']
+    });
+    
+    // Get most recent emergency appointment
+    const lastEmergencyAppointment = emergencyAppointmentsLast30Days.length > 0 
+      ? emergencyAppointmentsLast30Days[0] 
+      : null;
+    
+    // Check if within cooldown period
+    const isWithinCooldown = lastEmergencyAppointment && 
+      new Date(lastEmergencyAppointment.createdAt) > fourteenDaysAgo;
+    
+    // Check if monthly limit reached (2 per month)
+    const monthlyLimitReached = emergencyAppointmentsLast30Days.length >= 2;
+    
+    // Calculate days until cooldown ends
+    let daysUntilCooldownEnds = 0;
+    if (isWithinCooldown && lastEmergencyAppointment) {
+      const lastEmergencyDate = new Date(lastEmergencyAppointment.createdAt);
+      const cooldownEndDate = new Date(lastEmergencyDate);
+      cooldownEndDate.setDate(cooldownEndDate.getDate() + 14);
+      daysUntilCooldownEnds = Math.ceil((cooldownEndDate - now) / (1000 * 60 * 60 * 24));
+    }
+    
+    // Calculate when monthly limit resets
+    let daysUntilMonthlyReset = 0;
+    if (monthlyLimitReached && emergencyAppointmentsLast30Days.length > 0) {
+      const oldestEmergency = emergencyAppointmentsLast30Days[emergencyAppointmentsLast30Days.length - 1];
+      const resetDate = new Date(oldestEmergency.createdAt);
+      resetDate.setDate(resetDate.getDate() + 30);
+      daysUntilMonthlyReset = Math.ceil((resetDate - now) / (1000 * 60 * 60 * 24));
+    }
+    
+    const response = {
+      canRequestEmergency: !isWithinCooldown && !monthlyLimitReached,
+      usage: {
+        emergencyCount30Days: emergencyAppointmentsLast30Days.length,
+        monthlyLimit: 2,
+        remainingThisMonth: Math.max(0, 2 - emergencyAppointmentsLast30Days.length)
+      },
+      cooldown: {
+        isWithinCooldown: isWithinCooldown,
+        cooldownPeriodDays: 14,
+        daysUntilCooldownEnds: daysUntilCooldownEnds,
+        lastEmergencyDate: lastEmergencyAppointment ? lastEmergencyAppointment.createdAt : null
+      },
+      limits: {
+        monthlyLimitReached: monthlyLimitReached,
+        daysUntilMonthlyReset: daysUntilMonthlyReset
+      },
+      recentEmergencies: emergencyAppointmentsLast30Days.map(apt => ({
+        id: apt.id,
+        date: apt.appointmentDate,
+        time: apt.appointmentTime,
+        status: apt.status,
+        reason: apt.emergencyReasonCategory,
+        bookedAt: apt.createdAt
+      }))
+    };
+    
+    res.json(response);
+  } catch (err) {
+    console.error('Error checking emergency usage:', err.message);
+    res.status(500).json({ msg: 'Server Error', error: err.message });
+  }
+});
+
 // @route   POST api/appointments/requests/:id/approve
 // @desc    Approve appointment request (Admin action)
 // @access  Private
@@ -882,7 +975,7 @@ router.post('/', [
     body('appointmentTime', 'Appointment time is required').matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
     body('type', 'Appointment type is required').isIn([
       'Consultation', 'Follow-up', 'Check-up', 'Vaccination', 
-      'Out-Patient', 'Emergency', 'Lab Test'
+      'Out-Patient', 'Emergency', 'Lab Test', 'Emergency Consultation'
     ]),
     body('duration', 'Duration must be a positive number').optional().isInt({ min: 1 }),
     body('priority', 'Priority must be valid').optional().isIn(['Low', 'Normal', 'High', 'Emergency'])
@@ -904,13 +997,91 @@ router.post('/', [
       priority = 'Normal',
       notes,
       symptoms,
-      vitalSignsRequired = true
+      vitalSignsRequired = true,
+      isEmergency = false,
+      emergencyReason,
+      emergencyReasonCategory
     } = req.body;
 
     // Check if patient exists
     const patient = await Patient.findByPk(patientId);
     if (!patient) {
       return res.status(404).json({ msg: 'Patient not found' });
+    }
+
+    // Validate emergency appointment fields
+    if (isEmergency) {
+      if (!emergencyReason || !emergencyReasonCategory) {
+        return res.status(400).json({ 
+          msg: 'Emergency reason required',
+          error: 'Emergency appointments must include both emergencyReason and emergencyReasonCategory'
+        });
+      }
+      
+      const validCategories = [
+        'Severe Pain', 
+        'High Fever (>39°C)', 
+        'Injury/Accident', 
+        'Breathing Difficulty', 
+        'Severe Allergic Reaction', 
+        'Other Critical'
+      ];
+      
+      if (!validCategories.includes(emergencyReasonCategory)) {
+        return res.status(400).json({ 
+          msg: 'Invalid emergency category',
+          error: 'Please select a valid emergency reason category'
+        });
+      }
+      
+      // Check emergency usage limits (2 per 30 days, 14-day cooldown)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const fourteenDaysAgo = new Date();
+      fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+      
+      const emergencyAppointmentsLast30Days = await Appointment.count({
+        where: {
+          patientId,
+          isEmergency: true,
+          createdAt: {
+            [Op.gte]: thirtyDaysAgo
+          }
+        }
+      });
+      
+      if (emergencyAppointmentsLast30Days >= 2) {
+        return res.status(400).json({ 
+          msg: 'Emergency limit reached',
+          error: 'You have reached the maximum of 2 emergency appointments per 30 days. Please wait or book a regular appointment.',
+          errorCode: 'EMERGENCY_MONTHLY_LIMIT'
+        });
+      }
+      
+      const lastEmergencyAppointment = await Appointment.findOne({
+        where: {
+          patientId,
+          isEmergency: true,
+          createdAt: {
+            [Op.gte]: fourteenDaysAgo
+          }
+        },
+        order: [['createdAt', 'DESC']]
+      });
+      
+      if (lastEmergencyAppointment) {
+        const daysSinceLastEmergency = Math.ceil((new Date() - new Date(lastEmergencyAppointment.createdAt)) / (1000 * 60 * 60 * 24));
+        return res.status(400).json({ 
+          msg: 'Emergency cooldown active',
+          error: `You must wait ${14 - daysSinceLastEmergency} more days before requesting another emergency appointment.`,
+          errorCode: 'EMERGENCY_COOLDOWN'
+        });
+      }
+      
+      // Emergency appointments override type and priority
+      req.body.type = 'Emergency Consultation';
+      req.body.priority = 'Emergency';
     }
 
     // Check if doctor exists (if provided)
@@ -1052,13 +1223,16 @@ router.post('/', [
       appointmentDate,
       appointmentTime,
       duration,
-      type,
-      priority,
+      type: isEmergency ? 'Emergency Consultation' : type,
+      priority: isEmergency ? 'Emergency' : priority,
       notes,
       symptoms,
       vitalSignsRequired,
       status: 'Scheduled', // All appointments go directly to scheduled status
-      createdBy: req.user.id
+      createdBy: req.user.id,
+      isEmergency,
+      emergencyReason: isEmergency ? emergencyReason : null,
+      emergencyReasonCategory: isEmergency ? emergencyReasonCategory : null
     });
 
     // Fetch the created appointment with associations
@@ -1114,12 +1288,92 @@ router.post('/', [
       // Don't fail the whole request if notification creation fails
     }
 
+    // Create admin notification for emergency appointments
+    if (isEmergency) {
+      try {
+        const emergencyNotificationMessage = `🚨 EMERGENCY APPOINTMENT: ${patient.firstName} ${patient.lastName} has booked an emergency appointment for ${emergencyReasonCategory} on ${appointmentDate} at ${appointmentTime}.`;
+        
+        // Get all admin users
+        const admins = await User.findAll({
+          where: { 
+            role: 'admin',
+            isActive: true 
+          },
+          attributes: ['id', 'firstName']
+        });
+        
+        console.log(`🔐 Found ${admins.length} admin user(s) for emergency notification`);
+        
+        // Create notification for each admin
+        for (const admin of admins) {
+          try {
+            await sequelize.query(
+              `INSERT INTO notifications (patient_id, title, message, type, appointment_data, status) 
+               VALUES (?, ?, ?, ?, ?, ?)`,
+              { 
+                replacements: [
+                  patientId, // Keep patient ID as the subject of the notification
+                  '🚨 Emergency Appointment Alert', 
+                  emergencyNotificationMessage, 
+                  'emergency_appointment',
+                  JSON.stringify({
+                    appointmentId: appointment.id,
+                    patientId: patientId,
+                    patientName: `${patient.firstName} ${patient.lastName}`,
+                    adminId: admin.id, // Store which admin should see this
+                    date: appointmentDate,
+                    time: appointmentTime,
+                    category: emergencyReasonCategory,
+                    reason: emergencyReason
+                  }),
+                  'pending'
+                ]
+              }
+            );
+            console.log(`✅ Emergency notification created for admin ${admin.firstName} (ID: ${admin.id})`);
+          } catch (adminNotifError) {
+            console.error(`❌ Error creating notification for admin ${admin.id}:`, adminNotifError.message);
+          }
+        }
+        
+        console.log(`🚨 Emergency appointment notification process completed for ${admins.length} admin(s)`);
+      } catch (emergencyNotificationError) {
+        console.error('Error in emergency notification process:', emergencyNotificationError.message);
+        // Don't fail the whole request if notification creation fails
+      }
+    }
+
     res.status(201).json({
       msg: 'Appointment created successfully',
       appointment: newAppointment
     });
   } catch (err) {
-    console.error('Error creating appointment:', err.message);
+    console.error('❌ Error creating appointment:', err.message);
+    console.error('❌ Error stack:', err.stack);
+    console.error('❌ Error details:', {
+      name: err.name,
+      message: err.message,
+      errors: err.errors // Sequelize validation errors
+    });
+    
+    // Check if it's a Sequelize validation error
+    if (err.name === 'SequelizeValidationError') {
+      return res.status(400).json({ 
+        msg: 'Validation Error', 
+        error: err.errors.map(e => e.message).join(', '),
+        details: err.errors
+      });
+    }
+    
+    // Check if it's a Sequelize database error
+    if (err.name === 'SequelizeDatabaseError') {
+      return res.status(400).json({ 
+        msg: 'Database Error', 
+        error: err.message,
+        sql: err.sql
+      });
+    }
+    
     res.status(500).json({ msg: 'Server Error', error: err.message });
   }
 });

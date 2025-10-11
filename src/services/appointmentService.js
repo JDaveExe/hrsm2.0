@@ -1,5 +1,5 @@
 // API service for appointment management
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api';
 
 class AppointmentService {
   constructor() {
@@ -353,6 +353,21 @@ class AppointmentService {
       return this.handleResponse(response);
     } catch (error) {
       console.error('Error marking appointment as completed:', error);
+      throw error;
+    }
+  }
+
+  // Check emergency appointment usage limits
+  async checkEmergencyUsage(patientId) {
+    try {
+      const response = await fetch(`${this.baseURL}/emergency-usage/${patientId}`, {
+        method: 'GET',
+        headers: this.getAuthHeaders()
+      });
+
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error('Error checking emergency usage:', error);
       throw error;
     }
   }

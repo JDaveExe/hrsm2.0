@@ -13,7 +13,7 @@ const testData = {
 console.log('Original data:', testData);
 
 // Convert empty strings and "N/A" to null for optional fields
-const fieldsToClean = ['email', 'contactNumber', 'philHealthNumber', 'middleName', 'suffix', 'civilStatus', 'houseNo', 'street', 'barangay', 'city', 'region'];
+const fieldsToClean = ['email', 'contactNumber', 'philHealthNumber', 'middleName', 'suffix', 'civilStatus', 'houseNo', 'street', 'purok', 'city', 'region'];
 
 fieldsToClean.forEach(field => {
   if (testData[field] === '' || 

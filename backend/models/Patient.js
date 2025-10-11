@@ -112,7 +112,7 @@ const Patient = sequelize.define('Patient', {
     type: DataTypes.STRING,
     allowNull: true,
   },
-  barangay: {
+  purok: {
     type: DataTypes.STRING,
     allowNull: true,
   },

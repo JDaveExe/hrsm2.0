@@ -9,8 +9,8 @@ import PatientActionsSection from '../../PatientActionsSection';
 import '../styles/PatientManagement.css';
 import '../styles/PatientDatabaseModals.css';
 
-// Street to Barangay mapping for Pasig City
-const streetToBarangay = {
+// Street to Purok mapping for Pasig City
+const streetToPurok = {
   'Amang Rodriguez Avenue': ['Manggahan', 'Rosario', 'Dela Paz'],
   'C. Raymundo Avenue': ['Caniogan', 'Pineda', 'Rosario'],
   'Ortigas Avenue': ['San Antonio', 'Ugong', 'Kapitolyo'],
@@ -141,7 +141,7 @@ const PatientManagement = memo(() => {
     email: '',
     houseNo: '',
     street: '',
-    barangay: '',
+    purok: '',
     city: 'Pasig City',
     region: 'Metro Manila',
     postalCode: '1600',
@@ -247,9 +247,9 @@ const PatientManagement = memo(() => {
         }
       }
       
-      // Reset barangay when street changes
+      // Reset purok when street changes
       if (field === 'street') {
-        newData.barangay = '';
+        newData.purok = '';
       }
       
       return newData;
@@ -300,9 +300,9 @@ const PatientManagement = memo(() => {
     return patientsData.filter(patient => patient.familyId === familyId);
   }, [patientsData]);
 
-  const getAvailableBarangays = useCallback((street) => {
-    if (street && streetToBarangay[street]) {
-      return streetToBarangay[street];
+  const getAvailablePuroks = useCallback((street) => {
+    if (street && streetToPurok[street]) {
+      return streetToPurok[street];
     }
     return [];
   }, []);
@@ -931,9 +931,9 @@ const PatientManagement = memo(() => {
         }
       }
       
-      // Reset barangay when street changes
+      // Reset purok when street changes
       if (field === 'street') {
-        newData.barangay = '';
+        newData.purok = '';
       }
       
       return newData;
@@ -1024,7 +1024,7 @@ const PatientManagement = memo(() => {
       email: '',
       houseNo: '',
       street: '',
-      barangay: '',
+      purok: '',
       city: 'Pasig City',
       region: 'Metro Manila',
       postalCode: '1600',
@@ -1067,7 +1067,7 @@ const PatientManagement = memo(() => {
         { field: 'civilStatus', message: 'Civil Status is required' },
         { field: 'contactNumber', message: 'Contact Number is required' },
         { field: 'street', message: 'Street is required' },
-        { field: 'barangay', message: 'Barangay is required' }
+        { field: 'purok', message: 'Purok is required' }
       ];
 
       // Check for missing required fields
@@ -1855,16 +1855,16 @@ const PatientManagement = memo(() => {
                   </Col>
                   <Col md={3}>
                     <Form.Group>
-                      <Form.Label>Barangay <span className="text-danger">*</span></Form.Label>
+                      <Form.Label>Purok <span className="text-danger">*</span></Form.Label>
                       <Form.Select
-                        value={patientFormData.barangay}
-                        onChange={(e) => handlePatientFormChange('barangay', e.target.value)}
+                        value={patientFormData.purok}
+                        onChange={(e) => handlePatientFormChange('purok', e.target.value)}
                         disabled={!patientFormData.street}
                         required
                       >
-                        <option value="">Select Barangay</option>
-                        {getAvailableBarangays(patientFormData.street).map(barangay => (
-                          <option key={barangay} value={barangay}>{barangay}</option>
+                        <option value="">Select Purok</option>
+                        {getAvailablePuroks(patientFormData.street).map(purok => (
+                          <option key={purok} value={purok}>{purok}</option>
                         ))}
                       </Form.Select>
                       {!patientFormData.street && (

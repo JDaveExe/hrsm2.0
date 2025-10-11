@@ -79,7 +79,7 @@ router.post(
       password, 
       houseNo,
       street,
-      barangay,
+      purok,
       city,
       region,
       philHealthNumber,
@@ -179,7 +179,7 @@ router.post(
         email: cleanEmail, // Add email to Patient table (for display purposes)
         houseNo,
         street,
-        barangay,
+        purok,
         city,
         region,
         philHealthNumber: cleanPhilHealth, // Use null instead of empty string
