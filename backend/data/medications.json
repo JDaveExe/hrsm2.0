@@ -634,7 +634,7 @@
     "strength": "10mg",
     "manufacturer": "Pfizer",
     "batchNumber": "AML024-2024",
-    "unitsInStock": 494,
+    "unitsInStock": 493,
     "minimumStock": 100,
     "unitCost": 5,
     "sellingPrice": 8,
@@ -651,7 +651,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Maximum strength calcium channel blocker",
-    "updatedAt": "2025-10-09T10:33:01.615Z"
+    "updatedAt": "2025-10-13T06:54:51.770Z"
   },
   {
     "id": 25,

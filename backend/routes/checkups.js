@@ -1673,78 +1673,68 @@ router.get('/analytics/prescriptions', async (req, res) => {
   }
 });
 
-// Get purok visits analytics data
+// Get purok visits analytics data - showing streets grouped by purok
+// Includes BOTH completed checkups AND vaccinations
 router.get('/analytics/purok-visits', async (req, res) => {
   try {
-    console.log('Fetching purok visits analytics data...');
+    console.log('Fetching purok visits analytics data (streets grouped by purok) - including checkups AND vaccinations...');
     
-    const checkInSessions = await CheckInSession.findAll({
-      where: {
-        status: 'completed'
-      },
-      include: [
-        {
-          model: Patient,
-          as: 'Patient',
-          attributes: ['purok', 'address'],
-          required: false
-        }
-      ],
-      attributes: ['id', 'createdAt']
-    });
-
-    console.log(`Found ${checkInSessions.length} completed checkups`);
-
-    // Process purok visits data
-    const purokMap = {};
-    
-    checkInSessions.forEach(session => {
-      // Try to get purok from patient data
-      let purok = session.Patient?.purok;
-      
-      // If no purok in patient data, try to extract from address
-      if (!purok && session.Patient?.address) {
-        const address = session.Patient.address.toLowerCase();
-        // Common puroks in Pasig
-        const commonPuroks = [
-          'maybunga', 'rosario', 'santa ana', 'san miguel', 'caniogan', 
-          'kapitolyo', 'pinagbuhatan', 'bagong ilog', 'bgy. rosario',
-          'bgy. maybunga', 'bgy. santa ana', 'bgy. san miguel'
-        ];
+    // Use raw SQL query to combine checkups and vaccinations like admin dashboard
+    const [results] = await db.query(`
+      SELECT 
+        p.purok,
+        p.street,
+        COUNT(*) as visits
+      FROM (
+        SELECT DISTINCT
+          cis.id as visitId,
+          cis.patientId,
+          'checkup' as visitType
+        FROM check_in_sessions cis
+        WHERE cis.status = 'completed'
         
-        for (const prk of commonPuroks) {
-          if (address.includes(prk)) {
-            purok = prk.replace('bgy. ', '').replace(/\b\w/g, l => l.toUpperCase());
-            break;
-          }
-        }
+        UNION ALL
+        
+        SELECT DISTINCT
+          v.id as visitId,
+          v.patientId,
+          'vaccination' as visitType
+        FROM vaccinations v
+        WHERE v.administeredAt IS NOT NULL
+      ) as combined_visits
+      INNER JOIN patients p ON combined_visits.patientId = p.id
+      WHERE p.purok IS NOT NULL 
+        AND p.purok != ''
+        AND p.street IS NOT NULL 
+        AND p.street != ''
+      GROUP BY p.purok, p.street
+      ORDER BY p.purok, visits DESC
+    `);
+
+    console.log(`Found ${results.length} purok-street combinations with visits (checkups + vaccinations)`);
+
+    // Convert to desired format
+    const streetData = results.map(row => ({
+      purok: row.purok,
+      street: row.street,
+      visits: parseInt(row.visits, 10)
+    }));
+    
+    // Calculate summary by purok
+    const purokSummary = {};
+    streetData.forEach(item => {
+      if (!purokSummary[item.purok]) {
+        purokSummary[item.purok] = 0;
       }
-      
-      // Default to 'Unknown' if no purok found
-      if (!purok) {
-        purok = 'Unknown';
-      }
-      
-      // Clean up purok name
-      purok = purok.charAt(0).toUpperCase() + purok.slice(1).toLowerCase();
-      
-      if (!purokMap[purok]) {
-        purokMap[purok] = {
-          purok: purok,
-          visits: 0
-        };
-      }
-      
-      purokMap[purok].visits++;
+      purokSummary[item.purok] += item.visits;
     });
 
-    // Convert to array and sort by visit count
-    const purokData = Object.values(purokMap)
-      .sort((a, b) => b.visits - a.visits)
-      .filter(item => item.purok !== 'Unknown' || item.visits > 5); // Filter out unknown unless significant
-
-    console.log(`Processed ${purokData.length} puroks`);
-    res.json(purokData);
+    console.log('Purok summary:', purokSummary);
+    
+    res.json({
+      streetData: streetData,
+      purokSummary: purokSummary
+    });
     
   } catch (error) {
     console.error('Error fetching purok visits analytics:', error);

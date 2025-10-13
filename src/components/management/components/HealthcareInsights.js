@@ -6,6 +6,7 @@ import LoadingManagementBar from '../LoadingManagementBar';
 import { dashboardService } from '../../../services/dashboardService';
 import inventoryService from '../../../services/inventoryService';
 import api from '../../../services/axiosConfig';
+import { PUROKS } from '../../../constants/addressConstants';
 
 // Register Chart.js components without zoom plugin
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend, ArcElement);
@@ -17,7 +18,8 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
   const [diagnosisData, setDiagnosisData] = useState([]);
   const [prescriptionData, setPrescriptionData] = useState([]);
   const [vaccineData, setVaccineData] = useState([]);
-  const [purokVisitsData, setPurokVisitsData] = useState([]);
+  const [purokStreetsData, setPurokStreetsData] = useState([]); // Changed from purokVisitsData
+  const [purokSummary, setPurokSummary] = useState({}); // Summary of visits by purok
   const [showDetailModal, setShowDetailModal] = useState(null);
   
   // Dual-mode grouping state (age or gender)
@@ -27,7 +29,8 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
   const [diagnosisSortBy, setDiagnosisSortBy] = useState('total');
   const [prescriptionSortBy, setPrescriptionSortBy] = useState('total');
   const [vaccineSortBy, setVaccineSortBy] = useState('total');
-  const [purokSortBy, setPurokSortBy] = useState('total');
+  const [purokFilter, setPurokFilter] = useState('all'); // Filter by purok: 'all', 'Purok 1', 'Purok 2', etc.
+  const [purokSortBy, setPurokSortBy] = useState('total'); // Sort streets by total visits or alphabetically
 
   // Dynamic sorting options based on grouping mode
   const getSortingOptions = (mode) => {
@@ -114,10 +117,11 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
         setVaccineData(transformedVaccineData);
 
         // Fetch purok visits data using api service
-        console.log('🏘️ Fetching purok visits data...');
+        console.log('🏘️ Fetching purok street visits data...');
         const purokResponse = await api.get('/api/checkups/analytics/purok-visits');
         console.log('✅ Purok data received:', purokResponse.data);
-        setPurokVisitsData(purokResponse.data || []);
+        setPurokStreetsData(purokResponse.data?.streetData || []);
+        setPurokSummary(purokResponse.data?.purokSummary || {});
 
         console.log('🎉 All healthcare data loaded successfully!');
 
@@ -161,14 +165,8 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
           ]);
         }
 
-        setPurokVisitsData([
-          { purok: 'Maybunga', visits: 234 },
-          { purok: 'Rosario', visits: 189 },
-          { purok: 'Santa Ana', visits: 156 },
-          { purok: 'San Miguel', visits: 98 },
-          { purok: 'Caniogan', visits: 87 },
-          { purok: 'Kapitolyo', visits: 76 }
-        ]);
+        // DO NOT use sample data for purok streets - let it remain empty if no real data
+        // The graph will show "No data available" which is correct for a fresh system
         }
       } finally {
         setLoading(false);
@@ -186,6 +184,93 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
     setPrescriptionSortBy('total');
     setVaccineSortBy('total');
     setPurokSortBy('total');
+  };
+
+  // Helper function to export chart data as CSV
+  const exportToCSV = (chartType) => {
+    try {
+      let csvContent = '';
+      let fileName = '';
+      const timestamp = new Date().toLocaleString('en-US', { 
+        year: 'numeric', 
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      }).replace(/[/:,]/g, '-');
+
+      switch (chartType) {
+        case 'diagnosisChart':
+          fileName = `diagnosis-analysis-${timestamp}.csv`;
+          csvContent = 'Disease,Total Count,0-17 years,18-30 years,31-50 years,51+ years,Male,Female,Other\n';
+          diagnosisData.forEach(item => {
+            csvContent += `"${item.disease}",${item.total},`;
+            csvContent += `${item.ageGroups['0-17'] || 0},${item.ageGroups['18-30'] || 0},`;
+            csvContent += `${item.ageGroups['31-50'] || 0},${item.ageGroups['51+'] || 0},`;
+            csvContent += `${item.genderGroups?.Male || 0},${item.genderGroups?.Female || 0},`;
+            csvContent += `${item.genderGroups?.Other || 0}\n`;
+          });
+          break;
+
+        case 'prescriptionChart':
+          fileName = `prescription-analysis-${timestamp}.csv`;
+          csvContent = 'Medication,Total Count,0-17 years,18-30 years,31-50 years,51+ years,Male,Female,Other\n';
+          prescriptionData.forEach(item => {
+            csvContent += `"${item.name}",${item.total},`;
+            csvContent += `${item.ageGroups['0-17'] || 0},${item.ageGroups['18-30'] || 0},`;
+            csvContent += `${item.ageGroups['31-50'] || 0},${item.ageGroups['51+'] || 0},`;
+            csvContent += `${item.genderGroups?.Male || 0},${item.genderGroups?.Female || 0},`;
+            csvContent += `${item.genderGroups?.Other || 0}\n`;
+          });
+          break;
+
+        case 'vaccineChart':
+          fileName = `vaccine-analysis-${timestamp}.csv`;
+          csvContent = 'Vaccine,Total Count,0-17 years,18-30 years,31-50 years,51+ years,Male,Female,Other\n';
+          vaccineData.forEach(item => {
+            csvContent += `"${item.name}",${item.total},`;
+            csvContent += `${item.ageGroups['0-17'] || 0},${item.ageGroups['18-30'] || 0},`;
+            csvContent += `${item.ageGroups['31-50'] || 0},${item.ageGroups['51+'] || 0},`;
+            csvContent += `${item.genderGroups?.Male || 0},${item.genderGroups?.Female || 0},`;
+            csvContent += `${item.genderGroups?.Other || 0}\n`;
+          });
+          break;
+
+        case 'purokChart':
+          fileName = `patient-visits-by-street-${timestamp}.csv`;
+          csvContent = 'Purok,Street,Total Visits,Activity Level\n';
+          purokStreetsData
+            .filter(item => purokFilter === 'all' || item.purok === purokFilter)
+            .forEach(item => {
+              const activityLevel = item.visits > 30 ? 'High Activity' : 
+                                   item.visits > 10 ? 'Moderate Activity' : 
+                                   'Low Activity';
+              csvContent += `"${item.purok}","${item.street}",${item.visits},"${activityLevel}"\n`;
+            });
+          break;
+
+        default:
+          throw new Error('Unknown chart type');
+      }
+
+      // Create blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      console.log(`✅ Successfully exported ${fileName}`);
+      alert(`✅ Data exported successfully as ${fileName}`);
+    } catch (error) {
+      console.error('❌ Error exporting data:', error);
+      alert('❌ Failed to export data. Please try again.');
+    }
   };
 
   // Helper function to create custom reports from charts
@@ -275,7 +360,7 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
           main: (chartType === 'diagnosisChart' || chartType === 'diagnosis-chart') ? diagnosisData :
                 (chartType === 'prescriptionChart' || chartType === 'prescription-chart') ? prescriptionData :
                 (chartType === 'vaccineChart' || chartType === 'vaccine-chart') ? vaccineData :
-                purokVisitsData,
+                purokStreetsData,
           dataType: (chartType === 'diagnosisChart' || chartType === 'diagnosis-chart') ? 'diagnosis' :
                    (chartType === 'prescriptionChart' || chartType === 'prescription-chart') ? 'prescription' :
                    (chartType === 'vaccineChart' || chartType === 'vaccine-chart') ? 'vaccine' :
@@ -284,7 +369,7 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
           totalRecords: (chartType === 'diagnosisChart' || chartType === 'diagnosis-chart') ? diagnosisData.length :
                        (chartType === 'prescriptionChart' || chartType === 'prescription-chart') ? prescriptionData.length :
                        (chartType === 'vaccineChart' || chartType === 'vaccine-chart') ? vaccineData.length :
-                       purokVisitsData.length,
+                       purokStreetsData.length,
           generated: new Date().toISOString()
         },
         createdAt: new Date().toISOString(),
@@ -720,33 +805,55 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
     };
   }, [vaccineData, vaccineSortBy, groupMode]);
 
-  // Process purok visits data based on sorting
+  // Process purok street visits data based on sorting and filtering
   const processedPurokData = useMemo(() => {
-    if (!purokVisitsData?.length) return { labels: [], datasets: [] };
+    if (!purokStreetsData?.length) return { labels: [], datasets: [] };
 
-    let sortedData = [...purokVisitsData];
+    // Filter by purok if not 'all'
+    let filteredData = purokFilter === 'all' 
+      ? purokStreetsData 
+      : purokStreetsData.filter(item => item.purok === purokFilter);
     
+    // Sort data
+    let sortedData = [...filteredData];
     switch (purokSortBy) {
-      case 'purok':
-        sortedData.sort((a, b) => a.purok.localeCompare(b.purok));
+      case 'street':
+        sortedData.sort((a, b) => a.street.localeCompare(b.street));
         break;
       default: // 'total'
         sortedData.sort((a, b) => b.visits - a.visits);
     }
 
     return {
-      labels: sortedData.map(item => item.purok),
+      labels: sortedData.map(item => item.street),
       datasets: [
         {
           label: 'Completed Checkups',
           data: sortedData.map(item => item.visits),
-          backgroundColor: chartColors.success,
-          borderColor: chartColors.success,
+          backgroundColor: sortedData.map(item => {
+            // Color code by purok
+            switch(item.purok) {
+              case 'Purok 1': return 'rgba(54, 162, 235, 0.6)';
+              case 'Purok 2': return 'rgba(75, 192, 192, 0.6)';
+              case 'Purok 3': return 'rgba(255, 206, 86, 0.6)';
+              case 'Purok 4': return 'rgba(153, 102, 255, 0.6)';
+              default: return 'rgba(201, 203, 207, 0.6)';
+            }
+          }),
+          borderColor: sortedData.map(item => {
+            switch(item.purok) {
+              case 'Purok 1': return 'rgba(54, 162, 235, 1)';
+              case 'Purok 2': return 'rgba(75, 192, 192, 1)';
+              case 'Purok 3': return 'rgba(255, 206, 86, 1)';
+              case 'Purok 4': return 'rgba(153, 102, 255, 1)';
+              default: return 'rgba(201, 203, 207, 1)';
+            }
+          }),
           borderWidth: 1
         }
       ]
     };
-  }, [purokVisitsData, purokSortBy]);
+  }, [purokStreetsData, purokSortBy, purokFilter]);
 
   // Chart options without zoom functionality
   const chartOptions = {
@@ -1025,8 +1132,8 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
             <Card.Header className="bg-light border-0">
               <div className="d-flex justify-content-between align-items-center">
                 <div>
-                  <h5 className="mb-0">Patient Visits by Purok</h5>
-                  <small className="text-muted">Completed checkups only</small>
+                  <h5 className="mb-0">Patient Visits by Street</h5>
+                  <small className="text-muted">Completed checkups & vaccinations • Grouped by Purok</small>
                 </div>
                 <div className="d-flex gap-2 align-items-center">
                   <Button 
@@ -1038,12 +1145,45 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
                     <i className="bi bi-fullscreen me-1"></i>
                     Zoom
                   </Button>
+                  {/* Purok Filter Dropdown */}
+                  <Dropdown>
+                    <Dropdown.Toggle 
+                      variant="outline-success" 
+                      size="sm"
+                      className="d-flex align-items-center"
+                      style={{ minWidth: '120px' }}
+                    >
+                      <i className="bi bi-funnel me-1"></i>
+                      {purokFilter === 'all' ? 'All Puroks' : purokFilter}
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu>
+                      <Dropdown.Item 
+                        active={purokFilter === 'all'}
+                        onClick={() => setPurokFilter('all')}
+                      >
+                        <i className="bi bi-globe me-2"></i>
+                        All Puroks
+                      </Dropdown.Item>
+                      <Dropdown.Divider />
+                      {PUROKS.map(purok => (
+                        <Dropdown.Item 
+                          key={purok}
+                          active={purokFilter === purok}
+                          onClick={() => setPurokFilter(purok)}
+                        >
+                          <i className="bi bi-geo-alt me-2"></i>
+                          {purok} ({purokSummary[purok] || 0} visits)
+                        </Dropdown.Item>
+                      ))}
+                    </Dropdown.Menu>
+                  </Dropdown>
+                  {/* Sort Dropdown */}
                   <SortingDropdown
                     currentSort={purokSortBy}
                     onSortChange={setPurokSortBy}
                     options={[
                       { value: 'total', label: 'Most Visits', icon: 'bi-bar-chart' },
-                      { value: 'purok', label: 'Purok Name (A-Z)', icon: 'bi-sort-alpha-down' }
+                      { value: 'street', label: 'Street Name (A-Z)', icon: 'bi-sort-alpha-down' }
                     ]}
                     variant="primary"
                   />
@@ -1085,14 +1225,14 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
                 <Col md={3} className="text-center">
                   <div className="metric-card">
                     <i className="bi bi-geo-alt text-info display-6"></i>
-                    <h4 className="mt-2">{purokVisitsData.reduce((sum, item) => sum + item.visits, 0)}</h4>
+                    <h4 className="mt-2">{purokStreetsData.reduce((sum, item) => sum + item.visits, 0)}</h4>
                     <small className="text-muted">Total Visits</small>
                   </div>
                 </Col>
                 <Col md={3} className="text-center">
                   <div className="metric-card">
                     <i className="bi bi-people text-warning display-6"></i>
-                    <h4 className="mt-2">{purokVisitsData.length}</h4>
+                    <h4 className="mt-2">{Object.keys(purokSummary).length}</h4>
                     <small className="text-muted">Puroks Served</small>
                   </div>
                 </Col>
@@ -1331,22 +1471,38 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
                         <thead>
                           <tr>
                             <th>Purok</th>
+                            <th>Street</th>
                             <th>Total Visits</th>
                             <th>Status</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {purokVisitsData.map((item, index) => (
+                          {purokStreetsData
+                            .filter(item => purokFilter === 'all' || item.purok === purokFilter)
+                            .map((item, index) => (
                             <tr key={index}>
-                              <td className="fw-bold">{item.purok}</td>
                               <td>
-                                <Badge bg="warning" className="px-2 py-1">
+                                <Badge 
+                                  bg={
+                                    item.purok === 'Purok 1' ? 'primary' :
+                                    item.purok === 'Purok 2' ? 'info' :
+                                    item.purok === 'Purok 3' ? 'warning' :
+                                    'secondary'
+                                  }
+                                  className="px-2 py-1"
+                                >
+                                  {item.purok}
+                                </Badge>
+                              </td>
+                              <td className="fw-bold">{item.street}</td>
+                              <td>
+                                <Badge bg="success" className="px-2 py-1">
                                   {item.visits}
                                 </Badge>
                               </td>
                               <td>
-                                <Badge bg={item.visits > 50 ? 'success' : item.visits > 20 ? 'warning' : 'secondary'}>
-                                  {item.visits > 50 ? 'High Activity' : item.visits > 20 ? 'Moderate Activity' : 'Low Activity'}
+                                <Badge bg={item.visits > 30 ? 'success' : item.visits > 10 ? 'warning' : 'secondary'}>
+                                  {item.visits > 30 ? 'High Activity' : item.visits > 10 ? 'Moderate Activity' : 'Low Activity'}
                                 </Badge>
                               </td>
                             </tr>
@@ -1435,19 +1591,32 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
                     <div className="d-flex flex-column gap-3">
                       <div className="text-center p-3 border-bottom">
                         <div className="display-6 text-warning fw-bold">
-                          {purokVisitsData.reduce((sum, item) => sum + item.visits, 0)}
+                          {purokStreetsData
+                            .filter(item => purokFilter === 'all' || item.purok === purokFilter)
+                            .reduce((sum, item) => sum + item.visits, 0)}
                         </div>
-                        <div className="text-muted">Total Visits</div>
+                        <div className="text-muted">
+                          {purokFilter === 'all' ? 'Total Visits (All Puroks)' : `Total Visits (${purokFilter})`}
+                        </div>
                       </div>
                       <div className="text-center p-3 border-bottom">
-                        <div className="h4 text-info fw-bold">{purokVisitsData.length}</div>
-                        <div className="text-muted">Puroks Served</div>
+                        <div className="h4 text-info fw-bold">
+                          {purokStreetsData.filter(item => purokFilter === 'all' || item.purok === purokFilter).length}
+                        </div>
+                        <div className="text-muted">Streets Served</div>
                       </div>
                       <div className="text-center p-3">
                         <div className="h4 text-success fw-bold">
-                          {purokVisitsData.length > 0 ? Math.round(purokVisitsData.reduce((sum, item) => sum + item.visits, 0) / purokVisitsData.length) : 0}
+                          {purokStreetsData.filter(item => purokFilter === 'all' || item.purok === purokFilter).length > 0 
+                            ? Math.round(
+                                purokStreetsData
+                                  .filter(item => purokFilter === 'all' || item.purok === purokFilter)
+                                  .reduce((sum, item) => sum + item.visits, 0) / 
+                                purokStreetsData.filter(item => purokFilter === 'all' || item.purok === purokFilter).length
+                              ) 
+                            : 0}
                         </div>
-                        <div className="text-muted">Avg per Purok</div>
+                        <div className="text-muted">Avg per Street</div>
                       </div>
                     </div>
                   )}
@@ -1489,15 +1658,7 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
                       variant="outline-primary" 
                       size="sm"
                       className="d-flex align-items-center justify-content-center"
-                      onClick={() => {
-                        // Export chart data to CSV
-                        const csvData = showDetailModal === 'diagnosisChart' ? diagnosisData :
-                                      showDetailModal === 'prescriptionChart' ? prescriptionData :
-                                      showDetailModal === 'vaccineChart' ? vaccineData :
-                                      purokVisitsData;
-                        console.log('Exporting chart data:', csvData);
-                        alert('Export feature coming soon!');
-                      }}
+                      onClick={() => exportToCSV(showDetailModal)}
                     >
                       <i className="bi bi-download me-2"></i>
                       Export Data

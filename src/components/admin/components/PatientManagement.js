@@ -6,22 +6,9 @@ import { usePagination } from '../../../hooks/useOptimizedInventory';
 import adminService from '../../../services/adminService';
 import PatientInfoCards from '../../PatientInfoCards';
 import PatientActionsSection from '../../PatientActionsSection';
+import { PUROK_TO_STREET, PUROKS, BARANGAY, CITY, REGION, getStreetsForPurok } from '../../../constants/addressConstants';
 import '../styles/PatientManagement.css';
 import '../styles/PatientDatabaseModals.css';
-
-// Street to Purok mapping for Pasig City
-const streetToPurok = {
-  'Amang Rodriguez Avenue': ['Manggahan', 'Rosario', 'Dela Paz'],
-  'C. Raymundo Avenue': ['Caniogan', 'Pineda', 'Rosario'],
-  'Ortigas Avenue': ['San Antonio', 'Ugong', 'Kapitolyo'],
-  'Shaw Boulevard': ['Kapitolyo', 'Oranbo', 'Bagong Ilog'],
-  'E. Rodriguez Jr. Avenue (C-5)': ['Ugong', 'Bagong Ilog', 'Pinagbuhatan'],
-  'Marcos Highway': ['Maybunga', 'Manggahan', 'Santolan'],
-  'Julia Vargas Avenue': ['San Antonio', 'Oranbo', 'Ugong'],
-  'F. Legaspi Bridge': ['San Joaquin', 'Kalawaan', 'Malinao'],
-  'San Guillermo Street': ['San Jose', 'Pineda', 'Palatiw'],
-  'Dr. Sixto Antonio Avenue': ['Kapasigan', 'Bagong Ilog', 'Caniogan']
-};
 
 const PatientManagement = memo(() => {
   const { 
@@ -140,10 +127,11 @@ const PatientManagement = memo(() => {
     contactNumber: '',
     email: '',
     houseNo: '',
-    street: '',
+    barangay: BARANGAY,
     purok: '',
-    city: 'Pasig City',
-    region: 'Metro Manila',
+    street: '',
+    city: CITY,
+    region: REGION,
     postalCode: '1600',
     philHealthNumber: '',
     bloodType: '',
@@ -247,9 +235,9 @@ const PatientManagement = memo(() => {
         }
       }
       
-      // Reset purok when street changes
-      if (field === 'street') {
-        newData.purok = '';
+      // Reset street when purok changes
+      if (field === 'purok') {
+        newData.street = '';
       }
       
       return newData;
@@ -300,9 +288,9 @@ const PatientManagement = memo(() => {
     return patientsData.filter(patient => patient.familyId === familyId);
   }, [patientsData]);
 
-  const getAvailablePuroks = useCallback((street) => {
-    if (street && streetToPurok[street]) {
-      return streetToPurok[street];
+  const getAvailableStreets = useCallback((purok) => {
+    if (purok) {
+      return getStreetsForPurok(purok);
     }
     return [];
   }, []);
@@ -931,9 +919,9 @@ const PatientManagement = memo(() => {
         }
       }
       
-      // Reset purok when street changes
-      if (field === 'street') {
-        newData.purok = '';
+      // Reset street when purok changes
+      if (field === 'purok') {
+        newData.street = '';
       }
       
       return newData;
@@ -1832,44 +1820,47 @@ const PatientManagement = memo(() => {
                   </Col>
                   <Col md={3}>
                     <Form.Group>
-                      <Form.Label>Street <span className="text-danger">*</span></Form.Label>
-                      <Form.Select
-                        value={patientFormData.street}
-                        onChange={(e) => handlePatientFormChange('street', e.target.value)}
-                        required
-                      >
-                        <option value="">Select Street</option>
-                        <option value="Amang Rodriguez Avenue">Amang Rodriguez Avenue</option>
-                        <option value="C. Raymundo Avenue">C. Raymundo Avenue</option>
-                        <option value="Ortigas Avenue">Ortigas Avenue</option>
-                        <option value="Shaw Boulevard">Shaw Boulevard</option>
-                        <option value="E. Rodriguez Jr. Avenue (C-5)">E. Rodriguez Jr. Avenue (C-5)</option>
-                        <option value="Marcos Highway">Marcos Highway</option>
-                        <option value="Julia Vargas Avenue">Julia Vargas Avenue</option>
-                        <option value="F. Legaspi Bridge">F. Legaspi Bridge</option>
-                        <option value="San Guillermo Street">San Guillermo Street</option>
-                        <option value="Dr. Sixto Antonio Avenue">Dr. Sixto Antonio Avenue</option>
-                        <option value="Other">Other</option>
-                      </Form.Select>
+                      <Form.Label>Barangay</Form.Label>
+                      <Form.Control 
+                        type="text" 
+                        value={BARANGAY} 
+                        readOnly
+                        className="bg-light"
+                      />
                     </Form.Group>
                   </Col>
-                  <Col md={3}>
+                  <Col md={2}>
                     <Form.Group>
                       <Form.Label>Purok <span className="text-danger">*</span></Form.Label>
                       <Form.Select
                         value={patientFormData.purok}
                         onChange={(e) => handlePatientFormChange('purok', e.target.value)}
-                        disabled={!patientFormData.street}
                         required
                       >
                         <option value="">Select Purok</option>
-                        {getAvailablePuroks(patientFormData.street).map(purok => (
+                        {PUROKS.map(purok => (
                           <option key={purok} value={purok}>{purok}</option>
                         ))}
                       </Form.Select>
-                      {!patientFormData.street && (
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Form.Group>
+                      <Form.Label>Street <span className="text-danger">*</span></Form.Label>
+                      <Form.Select
+                        value={patientFormData.street}
+                        onChange={(e) => handlePatientFormChange('street', e.target.value)}
+                        disabled={!patientFormData.purok}
+                        required
+                      >
+                        <option value="">Select Street</option>
+                        {getAvailableStreets(patientFormData.purok).map(street => (
+                          <option key={street} value={street}>{street}</option>
+                        ))}
+                      </Form.Select>
+                      {!patientFormData.purok && (
                         <Form.Text className="text-muted">
-                          Please select a street first
+                          Please select a purok first
                         </Form.Text>
                       )}
                     </Form.Group>
@@ -1879,13 +1870,14 @@ const PatientManagement = memo(() => {
                       <Form.Label>City</Form.Label>
                       <Form.Control 
                         type="text" 
-                        value={patientFormData.city} 
-                        onChange={(e) => handlePatientFormChange('city', e.target.value)}
+                        value={CITY} 
                         readOnly
                         className="bg-light"
                       />
                     </Form.Group>
                   </Col>
+                </Row>
+                <Row>
                   <Col md={2}>
                     <Form.Group>
                       <Form.Label>Postal Code</Form.Label>

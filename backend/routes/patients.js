@@ -242,11 +242,12 @@ router.get('/', auth, async (req, res) => {
         fullName: `${patient.firstName} ${patient.middleName ? patient.middleName + ' ' : ''}${patient.lastName}${patient.suffix ? ' ' + patient.suffix : ''}`,
         formattedAddress: [
           patient.houseNo,
-          patient.street,
+          'Barangay Maybunga',
           patient.purok,
-          patient.city,
-          patient.region
-        ].filter(Boolean).join(', ') || patient.address
+          patient.street,
+          patient.city || 'Pasig City',
+          'Metro Manila'
+        ].filter(Boolean).join(', ')
       };
     });
 
@@ -383,10 +384,11 @@ router.get('/me/profile', auth, async (req, res) => {
       region: patientWithAssociations.region || 'N/A',
       formattedAddress: [
         patientWithAssociations.houseNo,
-        patientWithAssociations.street,
+        'Barangay Maybunga',
         patientWithAssociations.purok,
-        patientWithAssociations.city,
-        patientWithAssociations.region
+        patientWithAssociations.street,
+        patientWithAssociations.city || 'Pasig City',
+        'Metro Manila'
       ].filter(val => val && val !== 'N/A').join(', ') || 'N/A',
       
       // Medical Information
@@ -616,7 +618,7 @@ router.put('/me/profile', auth, async (req, res) => {
       street: formatDisplayValue(updatedPatient.street),
       purok: formatDisplayValue(updatedPatient.purok),
       city: formatDisplayValue(updatedPatient.city),
-      address: `${updatedPatient.houseNo ? updatedPatient.houseNo + ' ' : ''}${updatedPatient.street ? updatedPatient.street + ', ' : ''}${updatedPatient.purok ? updatedPatient.purok + ', ' : ''}${updatedPatient.city || 'Metro Manila'}`,
+      address: `${updatedPatient.houseNo ? updatedPatient.houseNo + ', ' : ''}Barangay Maybunga, ${updatedPatient.purok ? updatedPatient.purok + ', ' : ''}${updatedPatient.street ? updatedPatient.street + ', ' : ''}${updatedPatient.city || 'Pasig City'}, Metro Manila`,
       philHealthNumber: formatDisplayValue(updatedPatient.philHealthNumber),
       bloodType: formatDisplayValue(updatedPatient.bloodType),
       medicalConditions: formatDisplayValue(updatedPatient.medicalConditions),
@@ -687,11 +689,12 @@ router.get('/:id', auth, async (req, res) => {
       },
       formattedAddress: [
         patient.houseNo,
-        patient.street,
+        'Barangay Maybunga',
         patient.purok,
-        patient.city,
-        patient.region
-      ].filter(Boolean).join(', ') || patient.address,
+        patient.street,
+        patient.city || 'Pasig City',
+        'Metro Manila'
+      ].filter(Boolean).join(', '),
       bloodType: patient.bloodType,
       philHealthNumber: patient.philHealthNumber || 'Not provided',
       emergencyContact: patient.emergencyContact,

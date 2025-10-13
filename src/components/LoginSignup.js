@@ -10,6 +10,7 @@ import { Link } from 'react-router-dom'; // Assuming you'll use React Router for
 import { useAuth } from '../context/AuthContext'; // Import the auth context
 import { useData } from '../context/DataContext'; // Import the data context
 import PatientWelcomeModal from './PatientWelcomeModal'; // Import patient welcome modal
+import { PUROK_TO_STREET, PUROKS, BARANGAY, CITY, REGION, getStreetsForPurok } from '../constants/addressConstants';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../styles/LoginSignup.css'; // New CSS file
@@ -48,10 +49,11 @@ const LoginSignup = () => {
     repeatPassword: '',
     phoneNumber: '',
     houseNo: '',
-    street: '',
     purok: '',
-    city: 'Pasig',
-    region: 'Metro Manila',
+    street: '',
+    barangay: BARANGAY,
+    city: CITY,
+    region: REGION,
     philHealthNumber: '',
     membershipStatus: 'Member',
     dateOfBirth: null,
@@ -78,29 +80,12 @@ const LoginSignup = () => {
     dateOfBirth: '',
     gender: '',
     civilStatus: '',
-    street: '',
-    purok: ''
+    purok: '',
+    street: ''
   });
 
-  // ===== REGISTRATION DATA (Copied from AuthPage.js) =====
+  // ===== REGISTRATION DATA (Barangay Maybunga Address System) =====
   const suffixOptions = ['', 'Jr.', 'Sr.', 'II', 'III', 'IV', 'V'];
-  const pasigStreets = [
-    'Amang Rodriguez Avenue', 'C. Raymundo Avenue', 'Ortigas Avenue', 'Shaw Boulevard',
-    'E. Rodriguez Jr. Avenue (C-5)', 'Marcos Highway', 'Julia Vargas Avenue',
-    'F. Legaspi Bridge', 'San Guillermo Street', 'Dr. Sixto Antonio Avenue'
-  ];
-  const streetToPurok = {
-    'Amang Rodriguez Avenue': ['Manggahan', 'Rosario', 'Dela Paz'],
-    'C. Raymundo Avenue': ['Caniogan', 'Pineda', 'Rosario'],
-    'Ortigas Avenue': ['San Antonio', 'Ugong', 'Kapitolyo'],
-    'Shaw Boulevard': ['Kapitolyo', 'Oranbo', 'Bagong Ilog'],
-    'E. Rodriguez Jr. Avenue (C-5)': ['Ugong', 'Bagong Ilog', 'Pinagbuhatan'],
-    'Marcos Highway': ['Maybunga', 'Manggahan', 'Santolan'],
-    'Julia Vargas Avenue': ['San Antonio', 'Oranbo', 'Ugong'],
-    'F. Legaspi Bridge': ['San Joaquin', 'Kalawaan', 'Malinao'],
-    'San Guillermo Street': ['San Jose', 'Pineda', 'Palatiw'],
-    'Dr. Sixto Antonio Avenue': ['Kapasigan', 'Bagong Ilog', 'Caniogan']
-  };
 
   // ===== PASSWORD STRENGTH CHECKER (Copied from AuthPage.js) =====
   const checkPasswordStrength = (password) => {
@@ -209,15 +194,15 @@ const LoginSignup = () => {
         }
         break;
         
-      case 'street':
-        if (!value || value.trim() === '') {
-          error = 'Street is required';
-        }
-        break;
-        
       case 'purok':
         if (!value || value.trim() === '') {
           error = 'Purok is required';
+        }
+        break;
+        
+      case 'street':
+        if (!value || value.trim() === '') {
+          error = 'Street is required';
         }
         break;
         
@@ -241,7 +226,7 @@ const LoginSignup = () => {
     const fieldsToValidate = [
       'firstName', 'lastName', 'email', 'phoneNumber', 
       'password', 'repeatPassword', 'dateOfBirth', 
-      'gender', 'civilStatus', 'street', 'purok'
+      'gender', 'civilStatus', 'purok', 'street'
     ];
     
     fieldsToValidate.forEach(field => {
@@ -512,10 +497,10 @@ const LoginSignup = () => {
     }
   };
 
-  // ===== REGISTRATION FUNCTIONS (Placeholders - Copied from AuthPage.js) =====
-  const getAvailablePuroks = () => {
-    if (formData.street && streetToPurok[formData.street]) {
-      return streetToPurok[formData.street];
+  // ===== REGISTRATION FUNCTIONS =====
+  const getAvailableStreets = () => {
+    if (formData.purok) {
+      return getStreetsForPurok(formData.purok);
     }
     return [];
   };
@@ -555,11 +540,12 @@ const LoginSignup = () => {
       }
     }
     
-    if (name === 'street') {
+    // When purok changes, reset street
+    if (name === 'purok') {
       setFormData((prev) => ({
         ...prev,
-        street: newValue,
-        purok: '' // Reset purok when street changes
+        purok: newValue,
+        street: '' // Reset street when purok changes
       }));
     } else {
       setFormData((prev) => ({
@@ -683,7 +669,7 @@ const LoginSignup = () => {
           suffix: formData.suffix,
           email: formData.email,
           phoneNumber: formData.phoneNumber,
-          address: `${formData.houseNo ? formData.houseNo + ', ' : ''}${formData.street ? formData.street + ', ' : ''}${formData.purok ? formData.purok + ', ' : ''}${formData.city}, ${formData.region}`,
+          address: `${formData.houseNo ? formData.houseNo + ', ' : ''}${BARANGAY}, ${formData.purok ? formData.purok + ', ' : ''}${formData.street ? formData.street + ', ' : ''}${CITY}, ${REGION}`,
           dateOfBirth: formData.dateOfBirth,
           age: formData.age,
           gender: formData.gender,
@@ -1073,24 +1059,15 @@ const LoginSignup = () => {
                 </Col>
                 <Col md={3}>
                   <Form.Group>
-                    <Form.Label>Street <span className="text-danger">*</span></Form.Label>
-                    <Form.Select 
-                      name="street" 
-                      value={formData.street} 
-                      onChange={handleChange}
-                      onBlur={() => handleFieldBlur('street')}
-                      onFocus={() => clearFieldError('street')}
-                      isInvalid={!!fieldErrors.street}
-                    >
-                      <option value="">Select Street</option>
-                      {pasigStreets.map(s => <option key={s} value={s}>{s}</option>)}
-                    </Form.Select>
-                    <Form.Control.Feedback type="invalid">
-                      {fieldErrors.street}
-                    </Form.Control.Feedback>
+                    <Form.Label>Barangay</Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      value={BARANGAY} 
+                      readOnly 
+                    />
                   </Form.Group>
                 </Col>
-                <Col md={3}>
+                <Col md={2}>
                   <Form.Group>
                     <Form.Label>Purok <span className="text-danger">*</span></Form.Label>
                     <Form.Select 
@@ -1099,14 +1076,33 @@ const LoginSignup = () => {
                       onChange={handleChange}
                       onBlur={() => handleFieldBlur('purok')}
                       onFocus={() => clearFieldError('purok')}
-                      disabled={!formData.street}
                       isInvalid={!!fieldErrors.purok}
                     >
                       <option value="">Select Purok</option>
-                      {getAvailablePuroks().map(p => <option key={p} value={p}>{p}</option>)}
+                      {PUROKS.map(p => <option key={p} value={p}>{p}</option>)}
                     </Form.Select>
                     <Form.Control.Feedback type="invalid">
                       {fieldErrors.purok}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+                <Col md={3}>
+                  <Form.Group>
+                    <Form.Label>Street <span className="text-danger">*</span></Form.Label>
+                    <Form.Select 
+                      name="street" 
+                      value={formData.street} 
+                      onChange={handleChange}
+                      onBlur={() => handleFieldBlur('street')}
+                      onFocus={() => clearFieldError('street')}
+                      disabled={!formData.purok}
+                      isInvalid={!!fieldErrors.street}
+                    >
+                      <option value="">Select Street</option>
+                      {getAvailableStreets().map(s => <option key={s} value={s}>{s}</option>)}
+                    </Form.Select>
+                    <Form.Control.Feedback type="invalid">
+                      {fieldErrors.street}
                     </Form.Control.Feedback>
                   </Form.Group>
                 </Col>
@@ -1115,19 +1111,19 @@ const LoginSignup = () => {
                     <Form.Label>City</Form.Label>
                     <Form.Control 
                       type="text" 
-                      name="city" 
-                      value={formData.city} 
+                      value={CITY} 
                       readOnly 
                     />
                   </Form.Group>
                 </Col>
-                <Col md={2}>
+              </Row>
+              <Row className="mb-3">
+                <Col md={3}>
                   <Form.Group>
                     <Form.Label>Region</Form.Label>
                     <Form.Control 
                       type="text" 
-                      name="region" 
-                      value={formData.region} 
+                      value={REGION} 
                       readOnly 
                     />
                   </Form.Group>
