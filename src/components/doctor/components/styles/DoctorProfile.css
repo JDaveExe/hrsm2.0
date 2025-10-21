@@ -1,0 +1,350 @@
+/* DoctorProfile.css - Doctor-specific profile styling with green theme */
+
+.doctor-profile-container {
+  padding: 20px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.doctor-profile-header {
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 3px solid #28a745;
+}
+
+.doctor-profile-header h2 {
+  color: #28a745;
+  font-weight: 600;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.doctor-profile-header h2 i {
+  font-size: 1.8rem;
+}
+
+.doctor-profile-header .text-muted {
+  font-size: 0.95rem;
+  margin-bottom: 0;
+}
+
+/* Profile Cards */
+.doctor-profile-card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.1);
+  transition: box-shadow 0.3s ease;
+  background-color: #ffffff;
+}
+
+.doctor-profile-card:hover {
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
+}
+
+.doctor-profile-card-header {
+  background: linear-gradient(135deg, #28a745 0%, #20893d 100%);
+  color: white;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0 !important;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.doctor-profile-card-header h4 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doctor-profile-card-header i {
+  font-size: 1.3rem;
+}
+
+/* Input Fields */
+.doctor-profile-input {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 8px 12px;
+  transition: all 0.3s ease;
+}
+
+.doctor-profile-input:focus {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.doctor-profile-input:disabled {
+  background-color: #f8f9fa;
+  color: #495057;
+}
+
+/* Edit Actions */
+.doctor-profile-edit-btn,
+.doctor-profile-refresh-btn,
+.doctor-profile-password-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.doctor-profile-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Info Section */
+.doctor-profile-info-section {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #28a745;
+}
+
+.doctor-profile-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.doctor-profile-info-item:last-child {
+  border-bottom: none;
+}
+
+.doctor-profile-info-item .label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.doctor-profile-info-item .value {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.doctor-profile-badge {
+  font-size: 0.85rem;
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+
+/* Password Section */
+.doctor-profile-password-section {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #d4edda;
+  border-radius: 8px;
+  border-left: 4px solid #28a745;
+}
+
+.doctor-profile-password-section h5 {
+  color: #155724;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doctor-profile-password-form {
+  margin-top: 15px;
+}
+
+.doctor-profile-password-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* Activities Section */
+.doctor-profile-activities-loading,
+.doctor-profile-no-activities {
+  text-align: center;
+  padding: 30px;
+  color: #6c757d;
+}
+
+.doctor-profile-no-activities i {
+  font-size: 3rem;
+  color: #dee2e6;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.doctor-profile-activities-list {
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.doctor-profile-activities-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.doctor-profile-activities-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.doctor-profile-activities-list::-webkit-scrollbar-thumb {
+  background: #28a745;
+  border-radius: 10px;
+}
+
+.doctor-profile-activities-list::-webkit-scrollbar-thumb:hover {
+  background: #20893d;
+}
+
+.doctor-profile-activity-item {
+  display: flex;
+  gap: 15px;
+  padding: 15px;
+  margin-bottom: 10px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 3px solid #28a745;
+  transition: all 0.3s ease;
+}
+
+.doctor-profile-activity-item:hover {
+  background-color: #e9ecef;
+  transform: translateX(5px);
+}
+
+.doctor-profile-activity-icon {
+  flex-shrink: 0;
+}
+
+.doctor-profile-activity-content {
+  flex: 1;
+}
+
+.doctor-profile-activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.doctor-profile-activity-action {
+  font-weight: 600;
+  color: #28a745;
+  font-size: 0.9rem;
+}
+
+.doctor-profile-activity-time {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.doctor-profile-activity-description {
+  margin: 0;
+  color: #495057;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.doctor-profile-activity-meta {
+  margin-top: 8px;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.doctor-profile-activity-meta .badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Pagination */
+.doctor-profile-activities-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0 5px;
+  border-top: 1px solid #dee2e6;
+  margin-top: 15px;
+}
+
+.doctor-profile-page-info {
+  font-size: 0.9rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Loading State */
+.doctor-profile-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 15px;
+}
+
+.doctor-profile-loading p {
+  color: #28a745;
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .doctor-profile-container {
+    padding: 15px;
+  }
+
+  .doctor-profile-activity-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .doctor-profile-activities-pagination {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .doctor-profile-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .doctor-profile-card-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .doctor-profile-edit-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .doctor-profile-activity-item {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .doctor-profile-password-actions {
+    flex-direction: column;
+  }
+
+  .doctor-profile-password-actions button {
+    width: 100%;
+  }
+}

@@ -904,6 +904,101 @@ class InventoryService {
       };
     }
   }
+
+  // ==================== MEDICAL SUPPLIES METHODS ====================
+
+  async getAllMedicalSupplies() {
+    try {
+      const response = await this.api.get('/medical-supplies');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching medical supplies:', error);
+      throw error;
+    }
+  }
+
+  async getMedicalSupplyById(id) {
+    try {
+      const response = await this.api.get(`/medical-supplies/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching medical supply:', error);
+      throw error;
+    }
+  }
+
+  async createMedicalSupply(supplyData) {
+    try {
+      const response = await this.api.post('/medical-supplies', supplyData);
+      return response.data;
+    } catch (error) {
+      console.error('Error creating medical supply:', error);
+      throw error;
+    }
+  }
+
+  async updateMedicalSupply(id, supplyData) {
+    try {
+      const response = await this.api.put(`/medical-supplies/${id}`, supplyData);
+      return response.data;
+    } catch (error) {
+      console.error('Error updating medical supply:', error);
+      throw error;
+    }
+  }
+
+  async deleteMedicalSupply(id) {
+    try {
+      const response = await this.api.delete(`/medical-supplies/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error('Error deleting medical supply:', error);
+      throw error;
+    }
+  }
+
+  async addMedicalSupplyStock(id, data) {
+    try {
+      const response = await this.api.post(`/medical-supplies/${id}/add-stock`, data);
+      return response.data;
+    } catch (error) {
+      console.error('Error adding medical supply stock:', error);
+      throw error;
+    }
+  }
+
+  // Daily usage log methods
+  async logDailyUsage(usageData) {
+    try {
+      const response = await this.api.post('/medical-supplies/usage-log', usageData);
+      return response.data;
+    } catch (error) {
+      console.error('Error logging daily usage:', error);
+      throw error;
+    }
+  }
+
+  async getAllUsageLogs() {
+    try {
+      const response = await this.api.get('/medical-supplies/usage-log');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching usage logs:', error);
+      throw error;
+    }
+  }
+
+  async getUsageLogsByDateRange(startDate, endDate) {
+    try {
+      const response = await this.api.get('/medical-supplies/usage-log/range', {
+        params: { startDate, endDate }
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching usage logs by date range:', error);
+      throw error;
+    }
+  }
 }
 
 export default new InventoryService();

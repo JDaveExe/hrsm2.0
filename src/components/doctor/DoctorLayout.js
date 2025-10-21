@@ -8,6 +8,7 @@ import TodaysCheckups from './components/TodaysCheckups';
 import Checkups from './components/Checkups';
 import PatientDatabase from './components/PatientDatabase';
 import DoctorSettings from './components/DoctorSettings';
+import DoctorProfile from './components/DoctorProfile';
 import LoadingSpinnerDoc from './components/LoadingSpinnerDoc';
 import { PerformanceIndicator } from '../../hooks/usePerformanceMonitor';
 import axios from 'axios';
@@ -170,7 +171,7 @@ const DoctorLayout = () => {
           familiesData={familiesData}
         />;
       case 'Settings':
-        return <DoctorSettings {...componentProps} />;
+        return <DoctorProfile {...componentProps} />;
       default:
         return <PatientQueue 
           {...componentProps}

@@ -31,6 +31,10 @@ router.get('/today', async (req, res) => {
       where: {
         checkInTime: {
           [Op.between]: [today, tomorrow]
+        },
+        // Exclude cancelled sessions from today's active list (but keep them in database for historical data)
+        status: {
+          [Op.notIn]: ['cancelled']
         }
       },
       include: [
@@ -323,7 +327,7 @@ router.post('/check-in', auth, async (req, res) => {
           [Op.between]: [today, tomorrow]
         },
         status: {
-          [Op.not]: 'completed'
+          [Op.notIn]: ['completed', 'cancelled'] // Exclude completed AND cancelled sessions
         }
       }
     });
@@ -470,7 +474,7 @@ router.post('/qr-checkin', async (req, res) => {
           [Op.between]: [today, tomorrow]
         },
         status: {
-          [Op.not]: 'completed'
+          [Op.notIn]: ['completed', 'cancelled'] // Exclude completed AND cancelled sessions
         }
       }
     });
@@ -773,6 +777,27 @@ router.put('/:sessionId/status', auth, async (req, res) => {
       });
     }
 
+    // 🔄 UPDATE APPOINTMENT STATUS WHEN CHECKUP IS COMPLETED
+    if (status === 'completed' && session.appointmentId) {
+      try {
+        const appointment = await Appointment.findByPk(session.appointmentId);
+        if (appointment && appointment.status !== 'Completed') {
+          await appointment.update({
+            status: 'Completed',
+            completedAt: new Date(),
+            updatedBy: currentDoctorId,
+            notes: appointment.notes 
+              ? `${appointment.notes}\n\nCheckup completed on ${new Date().toLocaleString()}`
+              : `Checkup completed on ${new Date().toLocaleString()}`
+          });
+          console.log(`✅ Appointment ${session.appointmentId} status updated to 'Completed' (checkup completed)`);
+        }
+      } catch (error) {
+        console.warn('⚠️ Non-critical: Failed to update appointment status:', error.message);
+        // Don't fail the checkup completion if appointment update fails
+      }
+    }
+
     // Get the updated session with full patient information for proper response
     const updatedSession = await CheckInSession.findByPk(sessionId, {
       include: [
@@ -882,25 +907,37 @@ router.delete('/today/:patientId', async (req, res) => {
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Find and delete the check-in session for today
-    const deletedCount = await CheckInSession.destroy({
-      where: {
-        patientId: patientId,
-        checkInTime: {
-          [Op.between]: [today, tomorrow]
+    // IMPORTANT: DO NOT actually delete the record! This preserves historical data for charts/analytics.
+    // Instead, mark the session as 'cancelled' which removes it from today's active list
+    // but keeps the record in the database for historical tracking.
+    const [updatedCount] = await CheckInSession.update(
+      { 
+        status: 'cancelled', // Mark as cancelled to remove from active list
+        completedAt: new Date() // Set completion time to now
+      },
+      {
+        where: {
+          patientId: patientId,
+          checkInTime: {
+            [Op.between]: [today, tomorrow]
+          },
+          // Only update sessions that haven't been cancelled yet
+          status: {
+            [Op.notIn]: ['cancelled', 'completed']
+          }
         }
       }
-    });
+    );
 
-    if (deletedCount === 0) {
+    if (updatedCount === 0) {
       return res.status(404).json({ 
         message: 'Patient not found in today\'s checkups or already removed' 
       });
     }
 
     res.json({ 
-      message: 'Patient successfully removed from today\'s checkups',
-      removedCount: deletedCount 
+      message: 'Patient successfully removed from today\'s checkups (record preserved for historical data)',
+      removedCount: updatedCount 
     });
 
   } catch (error) {
@@ -1106,7 +1143,28 @@ router.put('/force-complete/:sessionId', auth, async (req, res) => {
       completedAt: new Date(),
       notes: (session.notes || '') + `\n[Force completed by ${req.user.role} at ${new Date().toISOString()}]`
     });
-    
+
+    // 🔄 UPDATE APPOINTMENT STATUS WHEN CHECKUP IS FORCE COMPLETED
+    if (session.appointmentId) {
+      try {
+        const appointment = await Appointment.findByPk(session.appointmentId);
+        if (appointment && appointment.status !== 'Completed') {
+          await appointment.update({
+            status: 'Completed',
+            completedAt: new Date(),
+            updatedBy: userId,
+            notes: appointment.notes 
+              ? `${appointment.notes}\n\nForce completed on ${new Date().toLocaleString()}`
+              : `Force completed on ${new Date().toLocaleString()}`
+          });
+          console.log(`✅ Appointment ${session.appointmentId} status updated to 'Completed' (force completed)`);
+        }
+      } catch (error) {
+        console.warn('⚠️ Non-critical: Failed to update appointment status:', error.message);
+        // Don't fail the force completion if appointment update fails
+      }
+    }
+
     // Log force completion action
     const patientInfo = await Patient.findByPk(session.patientId);
     const patientName = patientInfo ? `${patientInfo.firstName} ${patientInfo.lastName}` : 'Unknown Patient';
@@ -1117,10 +1175,8 @@ router.put('/force-complete/:sessionId', auth, async (req, res) => {
       userRole: req.user.role,
       assignedDoctor: session.assignedDoctor
     });
-    
-    console.log(`Checkup ${sessionId} force completed by ${req.user.role} ${userId}`);
-    
-    res.json({
+
+    console.log(`Checkup ${sessionId} force completed by ${req.user.role} ${userId}`);    res.json({
       success: true,
       message: 'Checkup force completed successfully',
       sessionId: session.id,

@@ -1,5 +1,6 @@
 import React, { memo, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { useAuth } from '../../../context/AuthContext';
 import PatientQRModal from './PatientQRModal';
 import '../styles/PatientProfile.css';
 
@@ -10,6 +11,7 @@ const PatientProfile = memo(({
   secureApiCall, 
   onRefresh 
 }) => {
+  const { logout } = useAuth();
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -30,6 +32,10 @@ const PatientProfile = memo(({
     newPassword: '',
     confirmPassword: ''
   });
+  
+  // Auto-logout after password change state
+  const [showLogoutCountdown, setShowLogoutCountdown] = useState(false);
+  const [logoutCountdown, setLogoutCountdown] = useState(5);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -69,6 +75,19 @@ const PatientProfile = memo(({
       setLoading(false);
     }
   }, [user?.patientId, secureApiCall]);
+
+  // Handle countdown timer and auto-logout after password change
+  useEffect(() => {
+    if (showLogoutCountdown && logoutCountdown > 0) {
+      const timer = setTimeout(() => {
+        setLogoutCountdown(prev => prev - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (showLogoutCountdown && logoutCountdown === 0) {
+      // Time's up, logout the user
+      logout();
+    }
+  }, [showLogoutCountdown, logoutCountdown, logout]);
 
   // Handle edit mode toggle
   const handleEditToggle = () => {
@@ -143,6 +162,9 @@ const PatientProfile = memo(({
   // Handle save changes
   const handleSaveChanges = async () => {
     try {
+      // Track if password is being changed
+      const passwordIsBeingChanged = isChangingPassword;
+      
       // Validate password if user is trying to change it
       if (isChangingPassword) {
         if (!passwordData.newPassword || !passwordData.confirmPassword) {
@@ -177,8 +199,15 @@ const PatientProfile = memo(({
         setIsChangingPassword(false);
         setPasswordData({ newPassword: '', confirmPassword: '' });
         setError(null);
-        // Optionally show success message
-        alert('Profile updated successfully!' + (isChangingPassword ? ' Password has been changed.' : ''));
+        
+        // If password was changed, show logout countdown modal
+        if (passwordIsBeingChanged) {
+          setShowLogoutCountdown(true);
+          setLogoutCountdown(5);
+        } else {
+          // Show regular success message for other updates
+          alert('Profile updated successfully!');
+        }
       }
     } catch (err) {
       console.error('Error saving profile:', err);
@@ -775,6 +804,86 @@ const PatientProfile = memo(({
           qrCodeData={qrCodeData}
         />
       </div>
+
+      {/* Logout Countdown Modal - Only shows after password change */}
+      {showLogoutCountdown && (
+        <div className="modal-overlay" style={{ zIndex: 9999 }}>
+          <div className="modal-content" style={{
+            maxWidth: '500px',
+            padding: '2rem',
+            borderRadius: '12px',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+            backgroundColor: '#fff'
+          }}>
+            <div className="modal-header" style={{
+              borderBottom: '2px solid #28a745',
+              paddingBottom: '1rem',
+              marginBottom: '1.5rem'
+            }}>
+              <h3 style={{
+                color: '#28a745',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                margin: 0
+              }}>
+                <i className="bi bi-check-circle-fill"></i>
+                Password Changed Successfully
+              </h3>
+            </div>
+            <div className="modal-body" style={{
+              textAlign: 'center',
+              padding: '1rem 0'
+            }}>
+              <div style={{
+                fontSize: '3rem',
+                marginBottom: '1rem',
+                color: '#007bff'
+              }}>
+                {logoutCountdown}
+              </div>
+              <p style={{
+                fontSize: '1.1rem',
+                color: '#333',
+                marginBottom: '1rem',
+                lineHeight: '1.6'
+              }}>
+                <strong>You will be logged out automatically.</strong>
+                <br />
+                You need to login again using your new password.
+              </p>
+              <div style={{
+                backgroundColor: '#f8f9fa',
+                padding: '1rem',
+                borderRadius: '8px',
+                border: '1px solid #dee2e6'
+              }}>
+                <i className="bi bi-info-circle" style={{ color: '#007bff', marginRight: '0.5rem' }}></i>
+                <small style={{ color: '#666' }}>
+                  Logging out in <strong>{logoutCountdown}</strong> second{logoutCountdown !== 1 ? 's' : ''}...
+                </small>
+              </div>
+            </div>
+            <div className="modal-footer" style={{
+              borderTop: 'none',
+              paddingTop: '1rem',
+              justifyContent: 'center'
+            }}>
+              <button 
+                className="btn btn-primary"
+                onClick={() => logout()}
+                style={{
+                  padding: '0.5rem 2rem',
+                  fontSize: '1rem',
+                  fontWeight: '600'
+                }}
+              >
+                Logout Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 });

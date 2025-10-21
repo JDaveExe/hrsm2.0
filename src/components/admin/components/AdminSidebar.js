@@ -105,6 +105,12 @@ const AdminSidebar = memo(({
               <i className={`bi ${activeDropdown === 'settings' ? 'bi-chevron-down' : 'bi-chevron-right'} dropdown-icon`}></i>
             </Link>
             <ul className={activeDropdown === 'settings' ? 'dropdown-menu show' : 'dropdown-menu'}>
+              <li onClick={() => handleNavigationClick('My Profile')}>
+                <Link to="#">
+                  <i className="bi bi-person-circle"></i>
+                  <span>My Profile</span>
+                </Link>
+              </li>
               <li onClick={() => handleNavigationClick('User Management')}>
                 <Link to="#">
                   <i className="bi bi-people-fill"></i>

@@ -5,6 +5,48 @@
   min-height: 100vh;
 }
 
+/* Remove highlighting on selected elements */
+.prescription-inventory *:focus-visible,
+.prescription-inventory *:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.prescription-inventory .form-control:focus,
+.prescription-inventory .form-select:focus {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Remove any DevTools element selection highlighting */
+.prescription-inventory * {
+  outline: none !important;
+}
+
+/* Medical Supplies specific button styling */
+.medical-supply-add-btn {
+  background-color: #0d6efd !important;
+  border-color: #0d6efd !important;
+  color: white !important;
+  font-weight: 500;
+  z-index: 1;
+  position: relative;
+}
+
+.medical-supply-add-btn:hover {
+  background-color: #0b5ed7 !important;
+  border-color: #0a58ca !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(13, 110, 253, 0.3);
+}
+
+.medical-supply-add-btn:focus,
+.medical-supply-add-btn:active {
+  background-color: #0a58ca !important;
+  border-color: #0a53be !important;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+}
+
 .header-actions {
   display: flex;
   gap: 0.5rem;

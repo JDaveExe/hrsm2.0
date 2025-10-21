@@ -288,8 +288,8 @@ const AuditTrail = ({ user }) => {
                     <option value="admin">Admin</option>
                     <option value="doctor">Doctor</option>
                     <option value="management">Management</option>
-                    <option value="staff">Staff</option>
-                    <option value="patient">Patient</option>
+                    {/* <option value="staff">Staff</option> */}
+                    {/* <option value="patient">Patient</option> */}
                   </Form.Select>
                 </Form.Group>
               </Col>

@@ -215,12 +215,10 @@ const VaccinationModal = ({
     setSearchTerm('');
     setUsersByRole([]);
     
-    // Initialize available roles
+    // Initialize available roles (removed 'staff' and 'management', renamed others)
     setAvailableRoles([
-      { value: 'doctor', label: 'Doctor' },
-      { value: 'admin', label: 'Administrator' },
-      { value: 'management', label: 'Management' },
-      { value: 'staff', label: 'Staff' }
+      { value: 'doctor', label: 'Medical Professional' },
+      { value: 'admin', label: 'Medical Head' }
     ]);
   };
 

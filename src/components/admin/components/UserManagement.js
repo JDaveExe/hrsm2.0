@@ -453,6 +453,12 @@ const UserManagement = memo(() => {
 
       {error && <Alert variant="danger" dismissible onClose={() => setError('')}>{error}</Alert>}
 
+      {/* Info Banner for Profile Updates */}
+      <Alert variant="info" className="mb-3 user-management-info-banner">
+        <i className="bi bi-info-circle me-2"></i>
+        <strong>Note:</strong> Profiles created can be updated its info on their settings.
+      </Alert>
+
       <div className="users-table-container">
         {isLoading ? (
           <div className="text-center p-4">

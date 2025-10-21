@@ -187,6 +187,52 @@ router.get('/', auth, async (req, res) => {
       order: [['appointmentDate', 'ASC'], ['appointmentTime', 'ASC']]
     });
 
+    // 🔄 AUTOMATIC OVERDUE DETECTION & STATUS UPDATE
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = today.toISOString().split('T')[0];
+    const currentTime = new Date();
+    
+    const updatePromises = [];
+    
+    for (const appointment of appointments) {
+      // Check if appointment is overdue and still in Scheduled/Confirmed status
+      const shouldMarkNoShow = (
+        (appointment.status === 'Scheduled' || 
+         appointment.status === 'Confirmed' || 
+         appointment.status === 'scheduled' || 
+         appointment.status === 'confirmed') &&
+        (appointment.appointmentDate < todayStr || 
+         (appointment.appointmentDate === todayStr && appointment.appointmentTime < currentTime.toTimeString().substring(0, 5)))
+      );
+      
+      if (shouldMarkNoShow) {
+        console.log(`⏰ Auto-updating overdue appointment ${appointment.id} to 'No Show' (Date: ${appointment.appointmentDate}, Time: ${appointment.appointmentTime})`);
+        
+        updatePromises.push(
+          appointment.update({
+            status: 'No Show',
+            updatedBy: req.user.id,
+            notes: appointment.notes 
+              ? `${appointment.notes}\n\n[Automatically marked as No Show - appointment time passed on ${new Date().toLocaleString()}]`
+              : `[Automatically marked as No Show - appointment time passed on ${new Date().toLocaleString()}]`
+          }).then(() => {
+            console.log(`✅ Appointment ${appointment.id} auto-updated to 'No Show'`);
+            // Update the in-memory object so it reflects in the response
+            appointment.status = 'No Show';
+          }).catch((error) => {
+            console.warn(`⚠️ Failed to auto-update appointment ${appointment.id}:`, error.message);
+          })
+        );
+      }
+    }
+    
+    // Wait for all updates to complete (non-blocking for response)
+    if (updatePromises.length > 0) {
+      await Promise.all(updatePromises);
+      console.log(`✅ Auto-updated ${updatePromises.length} overdue appointments to 'No Show'`);
+    }
+
     // Filter pending appointments based on query parameters
     let filteredPendingAppointments = [...pendingAppointments];
     

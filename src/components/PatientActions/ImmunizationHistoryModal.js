@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Table } from 'react-bootstrap';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import sealMainImage from '../../images/sealmain.png';
+import sealGovImage from '../../images/sealgov.png';
 import './styles/ActionModals.css';
 
 const ImmunizationHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = false }) => {
@@ -210,11 +214,425 @@ const ImmunizationHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = 
   };
 
   const handleGenerateCard = () => {
-    alert('Immunization card generated successfully!');
+    try {
+      const patientName = getPatientFullName(selectedPatient);
+      const patientAge = getPatientAge(selectedPatient);
+      const patientID = selectedPatient?.patientId || selectedPatient?.id || 'N/A';
+      
+      // Create HTML content for the immunization card
+      const printWindow = window.open('', '_blank');
+      
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Immunization Card - ${patientName}</title>
+          <style>
+            @page {
+              size: A4;
+              margin: 10mm;
+              margin-header: 0mm;
+              margin-footer: 0mm;
+            }
+            
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            
+            body {
+              font-family: Arial, sans-serif;
+              padding: 12mm;
+              background: white;
+              line-height: 1.4;
+              font-size: 10pt;
+            }
+            
+            .government-header {
+              text-align: center;
+              margin-bottom: 12mm;
+              padding-bottom: 5mm;
+              border-bottom: 3px solid #0ea5e9;
+            }
+            
+            .seals {
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              gap: 15px;
+              margin-bottom: 8px;
+            }
+            
+            .seal-img {
+              width: 50px;
+              height: 50px;
+              object-fit: contain;
+            }
+            
+            .header-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #1e40af;
+              margin: 5px 0;
+            }
+            
+            .header-subtitle {
+              font-size: 11px;
+              color: #64748b;
+              margin: 2px 0;
+            }
+            
+            .card-title {
+              text-align: center;
+              font-size: 16px;
+              font-weight: bold;
+              color: #0ea5e9;
+              margin: 15px 0 10px 0;
+              padding: 8px;
+              background: #f0f9ff;
+              border-radius: 5px;
+            }
+            
+            .patient-info {
+              background: #f8fafc;
+              padding: 10px;
+              border-radius: 5px;
+              margin-bottom: 15px;
+              border: 1px solid #e2e8f0;
+            }
+            
+            .info-row {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 10px;
+              margin-bottom: 5px;
+            }
+            
+            .info-label {
+              font-weight: bold;
+              color: #334155;
+              font-size: 9.5pt;
+            }
+            
+            .info-value {
+              color: #475569;
+              font-size: 9.5pt;
+            }
+            
+            .vaccination-table {
+              width: 100%;
+              border-collapse: collapse;
+              margin-top: 10px;
+              font-size: 9pt;
+            }
+            
+            .vaccination-table th {
+              background: #0ea5e9;
+              color: white;
+              padding: 8px 6px;
+              text-align: left;
+              font-weight: 600;
+              font-size: 9pt;
+              border: 1px solid #0284c7;
+            }
+            
+            .vaccination-table td {
+              padding: 6px;
+              border: 1px solid #e2e8f0;
+              font-size: 9pt;
+              line-height: 1.3;
+            }
+            
+            .vaccination-table tr:nth-child(even) {
+              background: #f8fafc;
+            }
+            
+            .section-title {
+              font-weight: bold;
+              color: #1e40af;
+              margin-top: 15px;
+              margin-bottom: 8px;
+              font-size: 11pt;
+              padding-bottom: 3px;
+              border-bottom: 2px solid #0ea5e9;
+            }
+            
+            .footer {
+              margin-top: 20px;
+              padding-top: 10px;
+              border-top: 1px solid #e2e8f0;
+              text-align: center;
+              font-size: 8pt;
+              color: #64748b;
+            }
+            
+            .signature-section {
+              margin-top: 30mm;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 20mm;
+            }
+            
+            .signature-box {
+              text-align: center;
+            }
+            
+            .signature-line {
+              border-top: 1px solid #000;
+              margin-top: 15mm;
+              padding-top: 3px;
+              font-size: 9pt;
+              font-weight: bold;
+            }
+            
+            .signature-label {
+              font-size: 8pt;
+              color: #64748b;
+              margin-top: 2px;
+            }
+            
+            @media print {
+              body {
+                padding: 8mm;
+              }
+              
+              .no-print {
+                display: none;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="government-header">
+            <div class="seals">
+              <img src="${sealGovImage}" alt="Government Seal" class="seal-img" />
+              <div style="text-align: center;">
+                <div class="header-subtitle">Republic of the Philippines</div>
+                <div class="header-title">BARANGAY HEALTH CENTER</div>
+                <div class="header-subtitle">Immunization Program</div>
+              </div>
+              <img src="${sealMainImage}" alt="Main Seal" class="seal-img" />
+            </div>
+          </div>
+          
+          <div class="card-title">
+            IMMUNIZATION CARD
+          </div>
+          
+          <div class="patient-info">
+            <div class="info-row">
+              <div><span class="info-label">Name:</span> <span class="info-value">${patientName}</span></div>
+              <div><span class="info-label">Patient ID:</span> <span class="info-value">PT-${String(patientID).padStart(4, '0')}</span></div>
+            </div>
+            <div class="info-row">
+              <div><span class="info-label">Date of Birth:</span> <span class="info-value">${selectedPatient.dateOfBirth ? new Date(selectedPatient.dateOfBirth).toLocaleDateString() : 'N/A'}</span></div>
+              <div><span class="info-label">Age:</span> <span class="info-value">${patientAge} years old</span></div>
+            </div>
+            <div class="info-row">
+              <div><span class="info-label">Gender:</span> <span class="info-value">${selectedPatient.gender || 'N/A'}</span></div>
+              <div><span class="info-label">Card Generated:</span> <span class="info-value">${new Date().toLocaleDateString()}</span></div>
+            </div>
+          </div>
+          
+          <div class="section-title">Vaccination Records</div>
+          
+          <table class="vaccination-table">
+            <thead>
+              <tr>
+                <th style="width: 30%;">Vaccine Name</th>
+                <th style="width: 15%;">Date Given</th>
+                <th style="width: 12%;">Dose</th>
+                <th style="width: 18%;">Provider</th>
+                <th style="width: 25%;">Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${immunizationHistory.length === 0 ? `
+                <tr>
+                  <td colspan="5" style="text-align: center; padding: 20px; color: #64748b;">
+                    No vaccination records found
+                  </td>
+                </tr>
+              ` : immunizationHistory.map(record => `
+                <tr>
+                  <td><strong>${record.vaccine}</strong></td>
+                  <td>${new Date(record.dateGiven).toLocaleDateString()}</td>
+                  <td>${record.dose}</td>
+                  <td>${record.provider}</td>
+                  <td style="font-size: 8.5pt;">${record.description}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <div class="signature-section">
+            <div class="signature-box">
+              <div class="signature-line">Healthcare Provider</div>
+              <div class="signature-label">Name and Signature</div>
+            </div>
+            <div class="signature-box">
+              <div class="signature-line">Date</div>
+              <div class="signature-label">Last Updated</div>
+            </div>
+          </div>
+          
+          <div class="footer">
+            <p>This is an official immunization record. Keep this card for your records.</p>
+            <p style="margin-top: 5px;">For questions or concerns, please contact the Barangay Health Center.</p>
+            <p style="margin-top: 5px; font-style: italic;">Generated on ${new Date().toLocaleString()}</p>
+          </div>
+          
+          <div class="no-print" style="text-align: center; margin-top: 20px;">
+            <button onclick="window.print()" style="padding: 10px 20px; background: #0ea5e9; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">
+              Print Card
+            </button>
+            <button onclick="window.close()" style="padding: 10px 20px; background: #6c757d; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; margin-left: 10px;">
+              Close
+            </button>
+          </div>
+        </body>
+        </html>
+      `);
+      
+      printWindow.document.close();
+      
+      // Wait a moment for images to load, then trigger print dialog
+      setTimeout(() => {
+        printWindow.focus();
+        printWindow.print();
+      }, 500);
+      
+    } catch (error) {
+      console.error('Error generating immunization card:', error);
+      alert('Failed to generate immunization card. Please try again.');
+    }
   };
 
   const handleExportHistory = () => {
-    alert('Immunization history exported successfully!');
+    try {
+      // Create new PDF document
+      const doc = new jsPDF();
+      
+      const patientName = getPatientFullName(selectedPatient);
+      const patientAge = getPatientAge(selectedPatient);
+      const patientID = selectedPatient?.patientId || selectedPatient?.id || 'N/A';
+      
+      // Add government seals
+      const sealSize = 25;
+      const pageWidth = doc.internal.pageSize.getWidth();
+      
+      // Left seal (government)
+      doc.addImage(sealGovImage, 'PNG', 40, 10, sealSize, sealSize);
+      
+      // Right seal (main)
+      doc.addImage(sealMainImage, 'PNG', pageWidth - 65, 10, sealSize, sealSize);
+      
+      // Add header with health center name
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text('Republic of the Philippines', pageWidth / 2, 15, { align: 'center' });
+      
+      doc.setFontSize(16);
+      doc.setTextColor(14, 165, 233);
+      doc.setFont(undefined, 'bold');
+      doc.text('BARANGAY HEALTH CENTER', pageWidth / 2, 22, { align: 'center' });
+      
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.setFont(undefined, 'normal');
+      doc.text('Immunization Program', pageWidth / 2, 27, { align: 'center' });
+      
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.setFont(undefined, 'bold');
+      doc.text('Immunization History Report', pageWidth / 2, 35, { align: 'center' });
+      
+      // Add horizontal line
+      doc.setDrawColor(14, 165, 233);
+      doc.setLineWidth(0.5);
+      doc.line(20, 40, pageWidth - 20, 40);
+      
+      // Patient Information Section
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(0, 0, 0);
+      doc.text('Patient Information', 20, 50);
+      
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(10);
+      doc.text(`Name: ${patientName}`, 20, 58);
+      doc.text(`Patient ID: PT-${String(patientID).padStart(4, '0')}`, 20, 64);
+      doc.text(`Age: ${patientAge} years old`, 120, 58);
+      doc.text(`Gender: ${selectedPatient?.gender || 'N/A'}`, 120, 64);
+      doc.text(`Date of Birth: ${selectedPatient.dateOfBirth ? new Date(selectedPatient.dateOfBirth).toLocaleDateString() : 'N/A'}`, 20, 70);
+      
+      // Vaccination Statistics
+      const totalVaccines = immunizationHistory.length;
+      const categories = categorizeVaccines(immunizationHistory);
+      const complianceRate = calculateComplianceRate(immunizationHistory, patientAge);
+      
+      doc.setFont(undefined, 'bold');
+      doc.text('Vaccination Summary', 20, 80);
+      doc.setFont(undefined, 'normal');
+      doc.text(`Total Vaccines: ${totalVaccines}`, 20, 88);
+      doc.text(`Routine Childhood: ${categories.routineChildhood}`, 70, 88);
+      doc.text(`COVID-19 Series: ${categories.covidSeries}`, 120, 88);
+      doc.text(`Annual Vaccines: ${categories.annual}`, 170, 88);
+      doc.text(`Compliance Rate: ${complianceRate}%`, 20, 94);
+      doc.text(`Last Vaccination: ${immunizationHistory.length > 0 ? new Date(immunizationHistory[0].dateGiven).toLocaleDateString() : 'N/A'}`, 70, 94);
+      
+      // Immunization History Table
+      doc.setFont(undefined, 'bold');
+      doc.setFontSize(12);
+      doc.text('Vaccination Records', 20, 104);
+      
+      // Prepare table data
+      const tableData = immunizationHistory.map(record => [
+        record.vaccine,
+        new Date(record.dateGiven).toLocaleDateString(),
+        record.dose,
+        record.provider,
+        record.status
+      ]);
+      
+      // Create table using autoTable
+      autoTable(doc, {
+        startY: 108,
+        head: [['Vaccine Name', 'Date Given', 'Dose', 'Provider', 'Status']],
+        body: tableData.length > 0 ? tableData : [['No vaccination records found', '', '', '', '']],
+        theme: 'striped',
+        headStyles: {
+          fillColor: [14, 165, 233],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 10
+        },
+        styles: {
+          fontSize: 9,
+          cellPadding: 4
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
+        },
+        margin: { left: 20, right: 20 }
+      });
+      
+      // Add footer
+      const finalY = doc.lastAutoTable.finalY || 200;
+      doc.setFontSize(8);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Report generated on ${new Date().toLocaleString()}`, pageWidth / 2, finalY + 15, { align: 'center' });
+      doc.text('This is an official immunization record from the Barangay Health Center', pageWidth / 2, finalY + 20, { align: 'center' });
+      
+      // Save the PDF
+      doc.save(`Immunization_History_${patientName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+      
+      console.log('Immunization history PDF exported successfully');
+    } catch (error) {
+      console.error('Error exporting immunization history:', error);
+      alert('Failed to export immunization history. Please try again.');
+    }
   };
 
   return (
@@ -292,23 +710,28 @@ const ImmunizationHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = 
               <div className="row g-2">
                 {(() => {
                   const categories = categorizeVaccines(immunizationHistory);
+                  const patientAge = getPatientAge(selectedPatient);
+                  const showRoutineChildhood = patientAge <= 17; // Only show for patients 17 and under
+                  
                   return (
                     <>
-                      <div className="col-md-3">
-                        <div 
-                          className="text-center p-2"
-                          style={{
-                            background: '#10b981',
-                            color: '#ffffff',
-                            borderRadius: '6px',
-                            fontSize: '0.85rem',
-                            fontWeight: '600'
-                          }}
-                        >
-                          Routine Childhood ({categories.routineChildhood})
+                      {showRoutineChildhood && (
+                        <div className={`col-md-${showRoutineChildhood ? '3' : '4'}`}>
+                          <div 
+                            className="text-center p-2"
+                            style={{
+                              background: '#10b981',
+                              color: '#ffffff',
+                              borderRadius: '6px',
+                              fontSize: '0.85rem',
+                              fontWeight: '600'
+                            }}
+                          >
+                            Routine Childhood ({categories.routineChildhood})
+                          </div>
                         </div>
-                      </div>
-                      <div className="col-md-3">
+                      )}
+                      <div className={`col-md-${showRoutineChildhood ? '3' : '4'}`}>
                         <div 
                           className="text-center p-2"
                           style={{
@@ -322,7 +745,7 @@ const ImmunizationHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = 
                           COVID-19 Series ({categories.covidSeries})
                         </div>
                       </div>
-                      <div className="col-md-3">
+                      <div className={`col-md-${showRoutineChildhood ? '3' : '4'}`}>
                         <div 
                           className="text-center p-2"
                           style={{
@@ -336,7 +759,7 @@ const ImmunizationHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = 
                           Annual Vaccines ({categories.annual})
                         </div>
                       </div>
-                      <div className="col-md-3">
+                      <div className={`col-md-${showRoutineChildhood ? '3' : '4'}`}>
                         <div 
                           className="text-center p-2"
                           style={{

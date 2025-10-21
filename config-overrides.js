@@ -9,17 +9,6 @@ module.exports = function override(config, env) {
     sideEffects: false, // Enable tree shaking
   };
 
-  // Configure dev server to fix allowedHosts issue
-  if (env === 'development') {
-    config.devServer = {
-      ...config.devServer,
-      allowedHosts: 'all', // This fixes the allowedHosts error
-      client: {
-        webSocketURL: 'auto://0.0.0.0:0/ws'
-      }
-    };
-  }
-
   // Only apply additional optimizations in production
   if (env === 'production') {
     // Bundle splitting
@@ -82,4 +71,16 @@ module.exports = function override(config, env) {
   }
 
   return config;
+};
+
+// Configure dev server separately
+module.exports.devServer = function(configFunction) {
+  return function(proxy, allowedHost) {
+    const config = configFunction(proxy, allowedHost);
+    
+    // Fix allowedHosts configuration
+    config.allowedHosts = 'all';
+    
+    return config;
+  };
 };

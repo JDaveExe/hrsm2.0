@@ -27,6 +27,10 @@ const VitalSignsModal = ({
 }) => {
   // Check if the service type is vaccination
   const isVaccinationService = patient?.serviceType === 'vaccination';
+  
+  // State for validation warnings
+  const [validationWarnings, setValidationWarnings] = useState([]);
+  
   // State for vital signs form
   const [vitalSigns, setVitalSigns] = useState({
     temperature: '',
@@ -136,10 +140,160 @@ const VitalSignsModal = ({
   }, []);
 
   // Memoized handlers to prevent unnecessary re-renders
+  const validateVitalSign = useCallback((name, value, unit) => {
+    const numValue = parseFloat(value);
+    if (!value || isNaN(numValue)) return null;
+
+    const warnings = [];
+    
+    switch(name) {
+      case 'temperature':
+        if (unit === 'celsius') {
+          if (numValue < 30 || numValue > 45) {
+            warnings.push(`Temperature ${numValue}°C is outside safe range (30-45°C)`);
+          } else if (numValue < 35 || numValue > 42) {
+            warnings.push(`Temperature ${numValue}°C is unusual. Please verify.`);
+          }
+        } else if (unit === 'fahrenheit') {
+          if (numValue < 86 || numValue > 113) {
+            warnings.push(`Temperature ${numValue}°F is outside safe range (86-113°F)`);
+          } else if (numValue < 95 || numValue > 107.6) {
+            warnings.push(`Temperature ${numValue}°F is unusual. Please verify.`);
+          }
+        }
+        break;
+      
+      case 'heartRate':
+        if (numValue < 30 || numValue > 300) {
+          warnings.push(`Heart rate ${numValue} bpm is outside possible range (30-300 bpm)`);
+        } else if (numValue < 40 || numValue > 200) {
+          warnings.push(`Heart rate ${numValue} bpm is unusual. Please verify.`);
+        }
+        break;
+      
+      case 'systolicBP':
+        if (numValue < 50 || numValue > 300) {
+          warnings.push(`Systolic BP ${numValue} mmHg is outside possible range (50-300 mmHg)`);
+        } else if (numValue < 70 || numValue > 220) {
+          warnings.push(`Systolic BP ${numValue} mmHg is unusual. Please verify.`);
+        }
+        break;
+      
+      case 'diastolicBP':
+        if (numValue < 30 || numValue > 200) {
+          warnings.push(`Diastolic BP ${numValue} mmHg is outside possible range (30-200 mmHg)`);
+        } else if (numValue < 40 || numValue > 150) {
+          warnings.push(`Diastolic BP ${numValue} mmHg is unusual. Please verify.`);
+        }
+        // Check if diastolic is greater than or equal to systolic
+        if (vitalSigns.systolicBP && numValue >= parseFloat(vitalSigns.systolicBP)) {
+          warnings.push(`Diastolic BP cannot be greater than or equal to Systolic BP`);
+        }
+        break;
+      
+      case 'respiratoryRate':
+        if (numValue < 5 || numValue > 100) {
+          warnings.push(`Respiratory rate ${numValue} brpm is outside possible range (5-100 brpm)`);
+        } else if (numValue < 8 || numValue > 40) {
+          warnings.push(`Respiratory rate ${numValue} brpm is unusual. Please verify.`);
+        }
+        break;
+      
+      case 'oxygenSaturation':
+        if (numValue < 50 || numValue > 100) {
+          warnings.push(`Oxygen saturation ${numValue}% is outside possible range (50-100%)`);
+        } else if (numValue < 85) {
+          warnings.push(`Oxygen saturation ${numValue}% is critically low. Please verify.`);
+        }
+        break;
+      
+      case 'weight':
+        if (unit === 'kg') {
+          if (numValue < 0.5 || numValue > 500) {
+            warnings.push(`Weight ${numValue} kg is outside possible range (0.5-500 kg)`);
+          } else if (numValue < 2 || numValue > 300) {
+            warnings.push(`Weight ${numValue} kg is unusual. Please verify.`);
+          }
+        } else if (unit === 'lbs') {
+          if (numValue < 1 || numValue > 1100) {
+            warnings.push(`Weight ${numValue} lbs is outside possible range (1-1100 lbs)`);
+          } else if (numValue < 4 || numValue > 660) {
+            warnings.push(`Weight ${numValue} lbs is unusual. Please verify.`);
+          }
+        }
+        break;
+      
+      case 'height':
+        if (unit === 'cm') {
+          if (numValue < 30 || numValue > 300) {
+            warnings.push(`Height ${numValue} cm is outside possible range (30-300 cm)`);
+          } else if (numValue < 40 || numValue > 250) {
+            warnings.push(`Height ${numValue} cm is unusual. Please verify.`);
+          }
+        }
+        break;
+    }
+    
+    return warnings.length > 0 ? warnings : null;
+  }, [vitalSigns.systolicBP]);
+
   const handleSave = useCallback(() => {
-    // Pass the current state of the form back to the parent
+    // Validate all vital signs before saving
+    const allWarnings = [];
+    
+    if (!isVaccinationService) {
+      // Required fields validation
+      if (!vitalSigns.temperature) allWarnings.push('Temperature is required');
+      if (!vitalSigns.heartRate) allWarnings.push('Heart Rate is required');
+      if (!vitalSigns.systolicBP) allWarnings.push('Systolic Blood Pressure is required');
+      if (!vitalSigns.diastolicBP) allWarnings.push('Diastolic Blood Pressure is required');
+      if (!vitalSigns.respiratoryRate) allWarnings.push('Respiratory Rate is required');
+      if (!vitalSigns.oxygenSaturation) allWarnings.push('Oxygen Saturation is required');
+    }
+    
+    // Validate each field
+    if (vitalSigns.temperature) {
+      const warnings = validateVitalSign('temperature', vitalSigns.temperature, vitalSigns.temperatureUnit);
+      if (warnings) allWarnings.push(...warnings);
+    }
+    if (vitalSigns.heartRate) {
+      const warnings = validateVitalSign('heartRate', vitalSigns.heartRate);
+      if (warnings) allWarnings.push(...warnings);
+    }
+    if (vitalSigns.systolicBP) {
+      const warnings = validateVitalSign('systolicBP', vitalSigns.systolicBP);
+      if (warnings) allWarnings.push(...warnings);
+    }
+    if (vitalSigns.diastolicBP) {
+      const warnings = validateVitalSign('diastolicBP', vitalSigns.diastolicBP);
+      if (warnings) allWarnings.push(...warnings);
+    }
+    if (vitalSigns.respiratoryRate) {
+      const warnings = validateVitalSign('respiratoryRate', vitalSigns.respiratoryRate);
+      if (warnings) allWarnings.push(...warnings);
+    }
+    if (vitalSigns.oxygenSaturation) {
+      const warnings = validateVitalSign('oxygenSaturation', vitalSigns.oxygenSaturation);
+      if (warnings) allWarnings.push(...warnings);
+    }
+    if (vitalSigns.weight) {
+      const warnings = validateVitalSign('weight', vitalSigns.weight, vitalSigns.weightUnit);
+      if (warnings) allWarnings.push(...warnings);
+    }
+    if (vitalSigns.height) {
+      const warnings = validateVitalSign('height', vitalSigns.height, vitalSigns.heightUnit);
+      if (warnings) allWarnings.push(...warnings);
+    }
+    
+    if (allWarnings.length > 0) {
+      setValidationWarnings(allWarnings);
+      return;
+    }
+    
+    // Clear warnings and save
+    setValidationWarnings([]);
     onSave(vitalSigns);
-  }, [onSave, vitalSigns]);
+  }, [onSave, vitalSigns, validateVitalSign, isVaccinationService]);
 
   const handleViewHistory = useCallback(() => {
     if (onViewHistory) {
@@ -154,7 +308,22 @@ const VitalSignsModal = ({
       ...prevState,
       [name]: value
     }));
-  }, []);
+    
+    // Real-time validation for numeric fields
+    if (value && !isVaccinationService) {
+      const unit = name === 'temperature' ? vitalSigns.temperatureUnit 
+                  : name === 'weight' ? vitalSigns.weightUnit
+                  : name === 'height' ? vitalSigns.heightUnit
+                  : null;
+      
+      const warnings = validateVitalSign(name, value, unit);
+      if (warnings) {
+        setValidationWarnings(warnings);
+      } else {
+        setValidationWarnings([]);
+      }
+    }
+  }, [vitalSigns.temperatureUnit, vitalSigns.weightUnit, vitalSigns.heightUnit, validateVitalSign, isVaccinationService]);
 
   // Function to handle unit changes
   const handleUnitChange = useCallback((e) => {
@@ -254,6 +423,22 @@ const VitalSignsModal = ({
             <strong>Read-Only Mode:</strong> You are viewing existing vital signs. Click "Update/Edit" to make changes.
           </Alert>
         )}
+        
+        {/* Validation Warnings */}
+        {validationWarnings.length > 0 && (
+          <Alert variant="warning" dismissible onClose={() => setValidationWarnings([])}>
+            <Alert.Heading>
+              <i className="bi bi-exclamation-triangle-fill me-2"></i>
+              Validation Warnings
+            </Alert.Heading>
+            <ul className="mb-0">
+              {validationWarnings.map((warning, index) => (
+                <li key={index}>{warning}</li>
+              ))}
+            </ul>
+          </Alert>
+        )}
+        
         <Form>
           {/* First Row: Temperature, Heart Rate, Respiratory Rate */}
           <Row className="mb-3">

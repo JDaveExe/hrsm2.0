@@ -71,14 +71,28 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
     return appointmentDateTime > now;
   };
 
+  // Calculate age from date of birth
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return null;
+    const today = new Date();
+    const birthDate = new Date(dateOfBirth);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   // Get the minimum bookable date (2 days ahead, excluding weekends)
   // Patients aged 60+ can book anytime (no 2-day restriction)
   const getMinBookableDate = () => {
     const today = new Date();
     let minDate = new Date(today);
     
-    // Check if patient is 60 or older
-    const isSenior = user?.age && parseInt(user.age) >= 60;
+    // Calculate age from dateOfBirth
+    const age = calculateAge(user?.dateOfBirth);
+    const isSenior = age !== null && age >= 60;
     
     if (isSenior) {
       // Seniors can book starting today
@@ -101,16 +115,28 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
 
   // Check if a date is valid for booking
   // Patients aged 60+ can book anytime (no 2-day restriction)
+  // For same-day booking, check if there's still time left
   const isValidBookingDate = (date) => {
     const today = new Date();
     const selectedDate = new Date(date);
     const daysDiff = Math.ceil((selectedDate - today) / (1000 * 60 * 60 * 24));
     
-    // Check if patient is 60 or older
-    const isSenior = user?.age && parseInt(user.age) >= 60;
+    // Calculate age from dateOfBirth
+    const age = calculateAge(user?.dateOfBirth);
+    const isSenior = age !== null && age >= 60;
     
     if (isSenior) {
       // Seniors can book anytime (today or future), just not on weekends
+      // For today's bookings, ensure there's still time (before 4:00 PM)
+      if (daysDiff === 0) {
+        const currentHour = today.getHours();
+        const currentMinutes = today.getMinutes();
+        const currentTimeInMinutes = currentHour * 60 + currentMinutes;
+        const cutoffTimeInMinutes = 16 * 60; // 4:00 PM cutoff for same-day booking
+        
+        return currentTimeInMinutes < cutoffTimeInMinutes && !isWeekend(date);
+      }
+      
       return daysDiff >= 0 && !isWeekend(date);
     } else {
       // Regular patients: Must be at least 2 days ahead and not a weekend
@@ -118,15 +144,44 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
     }
   };
 
+  // Get minimum time for booking based on selected date
+  // For senior citizens booking today, must be at least 1 hour from now
+  const getMinBookingTime = (selectedDate) => {
+    const age = calculateAge(user?.dateOfBirth);
+    const isSenior = age !== null && age >= 60;
+    
+    if (!isSenior) {
+      return '08:00'; // Regular opening time
+    }
+    
+    const today = new Date();
+    const selectedDay = new Date(selectedDate);
+    const isToday = selectedDay.toDateString() === today.toDateString();
+    
+    if (!isToday) {
+      return '08:00'; // Regular opening time for future dates
+    }
+    
+    // For today, minimum time is 1 hour from now
+    const oneHourFromNow = new Date(today.getTime() + 60 * 60 * 1000);
+    const hours = oneHourFromNow.getHours().toString().padStart(2, '0');
+    const minutes = oneHourFromNow.getMinutes().toString().padStart(2, '0');
+    
+    return `${hours}:${minutes}`;
+  };
+
   // Available service types based on date/time
   const getAvailableServices = (date, time) => {
     if (!date || !time || isWeekend(date)) return [];
     
+    // Service types that match backend validation
+    // Backend accepts: 'Consultation', 'Follow-up', 'Check-up', 'Vaccination', 
+    //                  'Out-Patient', 'Emergency', 'Lab Test', 'Emergency Consultation'
     const allServices = [
-      'General Consultation',
-      'Health Checkup',
-      'Follow-up Visit',
-      'Specialist Consultation',
+      'Consultation',           // Changed from 'General Consultation'
+      'Check-up',              // Changed from 'Health Checkup'
+      'Follow-up',             // Changed from 'Follow-up Visit'
+      'Vaccination',
       'Emergency Consultation'
     ];
     
@@ -261,13 +316,14 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
     }
 
     try {
-      // Simulate checking available services for the selected date/time
-      // In a real application, this would make an API call
+      // Service types that match backend validation
+      // Backend accepts: 'Consultation', 'Follow-up', 'Check-up', 'Vaccination', 
+      //                  'Out-Patient', 'Emergency', 'Lab Test', 'Emergency Consultation'
       const allServices = [
-        'General Consultation',
-        'Vaccination',
-        'Health Screening',
-        'Follow-up'
+        'Consultation',      // Backend-compatible value
+        'Vaccination',       // Backend-compatible value
+        'Check-up',          // Backend-compatible value
+        'Follow-up'          // Backend-compatible value
       ];
 
       // Mock logic: Different services available at different times
@@ -279,7 +335,7 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
       } else if (hour >= 14 && hour < 17) {
         available = allServices.slice(0, 3); // Limited services in afternoon
       } else {
-        available = ['General Consultation']; // Only emergency consultation outside hours
+        available = ['Consultation']; // Only consultation outside hours (backend-compatible)
       }
 
       setAvailableServices(available);
@@ -396,6 +452,12 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
     e.preventDefault();
     if (!user?.patientId) return;
 
+    // Validate required fields
+    if (!bookingForm.date || !bookingForm.time || !bookingForm.serviceType) {
+      setError('Please fill in all required fields: date, time, and service type.');
+      return;
+    }
+
     // Check weekend restriction
     if (bookingForm.date && isWeekend(bookingForm.date)) {
       setError('Appointments are not available on weekends. Please select a weekday.');
@@ -437,18 +499,7 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
     setSuccess('');
 
     try {
-      console.log('🔄 Submitting appointment request...', {
-        patientId: user.patientId,
-        patientName: user.name || `${user.firstName} ${user.lastName}`,
-        appointmentType: bookingForm.serviceType,
-        requestedDate: bookingForm.date,
-        requestedTime: bookingForm.time,
-        symptoms: bookingForm.symptoms,
-        notes: bookingForm.notes
-      });
-
-      // Create appointment directly (no approval needed)
-      const result = await appointmentService.createAppointment({
+      const appointmentData = {
         patientId: user.patientId,
         appointmentDate: bookingForm.date,
         appointmentTime: bookingForm.time,
@@ -457,7 +508,23 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
         symptoms: bookingForm.symptoms,
         notes: bookingForm.notes,
         priority: 'Normal'
+      };
+
+      console.log('🔄 Submitting appointment request...', {
+        patientName: user.name || `${user.firstName} ${user.lastName}`,
+        appointmentData: appointmentData,
+        serviceTypeValue: bookingForm.serviceType,
+        serviceTypeType: typeof bookingForm.serviceType,
+        serviceTypeEmpty: !bookingForm.serviceType || bookingForm.serviceType === ''
       });
+
+      // Validate type field one more time before sending
+      if (!appointmentData.type || appointmentData.type === '') {
+        throw new Error('Service type is required. Please select a service type from the dropdown.');
+      }
+
+      // Create appointment directly (no approval needed)
+      const result = await appointmentService.createAppointment(appointmentData);
 
       console.log('✅ Appointment created successfully:', result);
 
@@ -479,25 +546,42 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
     } catch (err) {
       console.error('Error submitting appointment request:', err);
       
+      // Enhanced error handling with detailed messages
+      let errorMessage = 'Failed to submit appointment request. Please try again.';
+      
+      // Check if error has validation details
+      if (err.details && Array.isArray(err.details)) {
+        const validationErrors = err.details.map(detail => detail.msg).join('. ');
+        errorMessage = `Validation error: ${validationErrors}`;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
       // Handle specific error codes from backend
       const errorData = err.response?.data;
       if (errorData?.errorCode) {
         switch (errorData.errorCode) {
           case 'DAILY_LIMIT_REACHED':
-            setError('This date is fully booked. Please select a different date.');
+            errorMessage = 'This date is fully booked. Please select a different date.';
             break;
           case 'EXACT_TIME_CONFLICT':
-            setError(errorData.error || 'This time slot is already taken. Please choose a different time.');
+            errorMessage = errorData.error || 'This time slot is already taken. Please choose a different time.';
             break;
           case 'BUFFER_TIME_CONFLICT':
-            setError(errorData.error || 'This time is too close to another appointment. Please choose a time at least 30 minutes away.');
+            errorMessage = errorData.error || 'This time is too close to another appointment. Please choose a time at least 30 minutes away.';
+            break;
+          case 'EMERGENCY_MONTHLY_LIMIT':
+          case 'EMERGENCY_COOLDOWN':
+            errorMessage = errorData.error || errorData.msg || 'Emergency appointment limit reached.';
             break;
           default:
-            setError(errorData.error || errorData.msg || 'Failed to book appointment. Please try again.');
+            errorMessage = errorData.error || errorData.msg || errorMessage;
         }
-      } else {
-        setError(errorData?.error || errorData?.msg || 'Failed to submit appointment request. Please try again.');
+      } else if (errorData) {
+        errorMessage = errorData.error || errorData.msg || errorMessage;
       }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -1136,8 +1220,20 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
                 </div>
                 <div className="patient-appointments-legend-item">
                   <i className="bi bi-x-circle patient-appointments-legend-icon"></i>
-                  <span>Unavailable (Sundays & dates within 2 days)</span>
+                  <span>Unavailable (Sundays{calculateAge(user?.dateOfBirth) >= 60 ? '' : ' & dates within 2 days'})</span>
                 </div>
+                {calculateAge(user?.dateOfBirth) >= 60 && (
+                  <>
+                    <div className="patient-appointments-legend-item">
+                      <i className="bi bi-star-fill patient-appointments-legend-icon text-warning"></i>
+                      <span>Senior Citizen: Can book for today (before 4:00 PM)</span>
+                    </div>
+                    <div className="patient-appointments-legend-item">
+                      <i className="bi bi-clock patient-appointments-legend-icon text-info"></i>
+                      <span style={{ fontSize: '0.85em' }}>Same-day appointments: Select time at least 1 hour from now</span>
+                    </div>
+                  </>
+                )}
                 <div className="patient-appointments-legend-item">
                   <div className="patient-appointments-legend-color patient-appointments-available-indicator"></div>
                   <span>Available for booking</span>
@@ -1204,7 +1300,19 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
                       <i className="bi bi-exclamation-triangle"></i>
                       {isWeekend(bookingForm.date) 
                         ? 'Appointments are not available on weekends. Please select a weekday.'
-                        : 'Appointments must be booked at least 2 days in advance. Please select a date starting from ' + new Date(getMinBookableDate()).toLocaleDateString() + '.'}
+                        : calculateAge(user?.dateOfBirth) >= 60
+                          ? (() => {
+                              const now = new Date();
+                              const selectedDate = new Date(bookingForm.date);
+                              const isToday = selectedDate.toDateString() === now.toDateString();
+                              const currentHour = now.getHours();
+                              
+                              if (isToday && currentHour >= 16) {
+                                return 'Same-day booking cutoff time (4:00 PM) has passed. Please select tomorrow or a future date.';
+                              }
+                              return 'As a senior citizen, you can book appointments for any available date. Please select a weekday.';
+                            })()
+                          : 'Appointments must be booked at least 2 days in advance. Please select a date starting from ' + new Date(getMinBookableDate()).toLocaleDateString() + '.'}
                     </div>
                   )}
                 </div>
@@ -1218,8 +1326,27 @@ const PatientAppointments = memo(({ user, currentDateTime, isLoading: parentLoad
                     value={bookingForm.time}
                     onChange={(e) => handleFormChange('time', e.target.value)}
                     required
+                    min={bookingForm.date ? getMinBookingTime(bookingForm.date) : '08:00'}
+                    max="16:00"
                     disabled={bookingForm.date && !isValidBookingDate(bookingForm.date)}
                   />
+                  {bookingForm.date && isValidBookingDate(bookingForm.date) && (() => {
+                    const now = new Date();
+                    const selectedDate = new Date(bookingForm.date);
+                    const isToday = selectedDate.toDateString() === now.toDateString();
+                    const age = calculateAge(user?.dateOfBirth);
+                    const isSenior = age !== null && age >= 60;
+                    
+                    if (isToday && isSenior) {
+                      return (
+                        <div className="form-text text-info">
+                          <i className="bi bi-info-circle"></i>
+                          Same-day booking: Please select a time at least 1 hour from now. Booking closes at 4:00 PM.
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               </div>
               <div className="form-group">

@@ -1,0 +1,380 @@
+/* ManagementProfile.css - Management-specific profile styling with green theme */
+
+.management-profile-container {
+  padding: 20px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.management-profile-header {
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 3px solid #2ecc71;
+}
+
+.management-profile-header h2 {
+  color: #2ecc71;
+  font-weight: 600;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.management-profile-header h2 i {
+  font-size: 1.8rem;
+}
+
+.management-profile-header .text-muted {
+  font-size: 0.95rem;
+  margin-bottom: 0;
+}
+
+/* Profile Cards */
+.management-profile-card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(46, 204, 113, 0.1);
+  transition: box-shadow 0.3s ease;
+  background-color: #ffffff;
+}
+
+.management-profile-card:hover {
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.15);
+}
+
+.management-profile-card-header {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0 !important;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.management-profile-card-header h4 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.management-profile-card-header i {
+  font-size: 1.3rem;
+}
+
+/* Input Fields */
+.management-profile-input {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 8px 12px;
+  transition: all 0.3s ease;
+}
+
+.management-profile-input:focus {
+  border-color: #2ecc71;
+  box-shadow: 0 0 0 0.2rem rgba(46, 204, 113, 0.25);
+}
+
+.management-profile-input:disabled {
+  background-color: #f8f9fa;
+  color: #495057;
+}
+
+/* Edit Actions - Disable hover effects */
+.management-profile-edit-btn,
+.management-profile-refresh-btn,
+.management-profile-password-btn {
+  background: #28a745;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 10px;
+  border-color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Disable hover effects on all buttons */
+.management-profile-edit-btn:hover,
+.management-profile-refresh-btn:hover,
+.management-profile-password-btn:hover,
+.management-profile-edit-actions .btn-dark:hover,
+.management-profile-edit-actions .btn-outline-dark:hover,
+.management-profile-edit-actions .btn-success:hover,
+.management-profile-edit-actions .btn-secondary:hover,
+.management-profile-password-actions .btn-dark:hover,
+.management-profile-password-actions .btn-primary:hover,
+.management-profile-password-actions .btn-secondary:hover {
+  background: inherit !important;
+  color: inherit !important;
+  border-color: inherit !important;
+  box-shadow: none !important;
+  transform: none !important;
+}
+
+/* Override dark button colors to match green theme */
+.management-profile-edit-actions .btn-dark,
+.management-profile-password-actions .btn-dark {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%) !important;
+  border-color: #000 !important;
+  color: #000 !important;
+}
+
+.management-profile-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Info Section */
+.management-profile-info-section {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-bottom: 4px solid #2ecc71;
+}
+
+.management-profile-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.management-profile-info-item:last-child {
+  border-bottom: none;
+}
+
+.management-profile-info-item .label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.management-profile-info-item .value {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.management-profile-badge {
+  font-size: 0.85rem;
+  padding: 5px 10px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, #28a745, #17a2b8);
+}
+/* Password Section */
+.management-profile-password-section {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #e8f5e9;
+  border-radius: 8px;
+  border-bottom: 4px solid #27ae60;
+}
+
+.management-profile-password-section h5 {
+  color: #27ae60;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.management-profile-password-form {
+  margin-top: 15px;
+}
+
+.management-profile-password-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* Activities Section */
+.management-profile-activities-loading,
+.management-profile-no-activities {
+  text-align: center;
+  padding: 30px;
+  color: #6c757d;
+}
+
+.management-profile-no-activities i {
+  font-size: 3rem;
+  color: #dee2e6;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.management-profile-activities-list {
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.management-profile-activities-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.management-profile-activities-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.management-profile-activities-list::-webkit-scrollbar-thumb {
+  background: #2ecc71;
+  border-radius: 10px;
+}
+
+.management-profile-activities-list::-webkit-scrollbar-thumb:hover {
+  background: #27ae60;
+}
+
+.management-profile-activity-item {
+  display: flex;
+  gap: 15px;
+  padding: 15px;
+  margin-bottom: 10px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-bottom: 3px solid #2ecc71;
+  transition: all 0.3s ease;
+}
+
+.management-profile-activity-item:hover {
+  background-color: #e9ecef;
+  transform: translateX(5px);
+}
+
+.management-profile-activity-icon {
+  flex-shrink: 0;
+}
+
+.management-profile-activity-content {
+  flex: 1;
+}
+
+.management-profile-activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.management-profile-activity-action {
+  font-weight: 600;
+  color: #2ecc71;
+  font-size: 0.9rem;
+}
+
+.management-profile-activity-time {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.management-profile-activity-description {
+  margin: 0;
+  color: #495057;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.management-profile-activity-meta {
+  margin-top: 8px;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.management-profile-activity-meta .badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Pagination */
+.management-profile-activities-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0 5px;
+  border-top: 1px solid #dee2e6;
+  margin-top: 15px;
+}
+
+.management-profile-page-info {
+  font-size: 0.9rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Loading State */
+.management-profile-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 15px;
+}
+
+.management-profile-loading p {
+  color: #2ecc71;
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .management-profile-container {
+    padding: 15px;
+  }
+
+  .management-profile-activity-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .management-profile-activities-pagination {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .management-profile-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .management-profile-card-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .management-profile-edit-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .management-profile-activity-item {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .management-profile-password-actions {
+    flex-direction: column;
+  }
+
+  .management-profile-password-actions button {
+    width: 100%;
+  }
+}

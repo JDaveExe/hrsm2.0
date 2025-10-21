@@ -13,6 +13,7 @@ import LoadingSpinner from './components/LoadingSpinner';
 import CheckupManager from './components/CheckupManager';
 import BackupManager from './components/BackupManager';
 import ResetCheckupDataModal from './components/ResetCheckupDataModal';
+import AdminProfile from './components/AdminProfile';
 import { PerformanceIndicator } from '../../hooks/usePerformanceMonitor';
 import './styles/AdminLayout.css';
 import './styles/AdminModals.css';
@@ -237,6 +238,8 @@ const AdminLayout = () => {
         return UserManagement;
       case 'Audit Trail':
         return AuditTrail;
+      case 'My Profile':
+        return AdminProfile;
       case 'Patient Database':
       case 'Patient Management':
         return PatientManagement;

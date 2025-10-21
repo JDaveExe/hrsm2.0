@@ -236,5 +236,39 @@
     "receivedDate": "2025-10-09T09:11:55.391Z",
     "createdAt": "2025-10-09T09:11:55.391Z",
     "updatedAt": "2025-10-09T09:11:55.391Z"
+  },
+  {
+    "id": 15,
+    "medicationId": 2,
+    "batchNumber": "sample100",
+    "quantityReceived": 200,
+    "quantityRemaining": 200,
+    "unitCost": 25,
+    "expiryDate": "2029-10-10",
+    "supplier": "Unilab",
+    "purchaseOrderNumber": null,
+    "storageLocation": "Main Storage",
+    "notes": "",
+    "status": "active",
+    "receivedDate": "2025-10-16T00:11:28.567Z",
+    "createdAt": "2025-10-16T00:11:28.567Z",
+    "updatedAt": "2025-10-16T00:11:28.567Z"
+  },
+  {
+    "id": 16,
+    "medicationId": 6,
+    "batchNumber": "batch1",
+    "quantityReceived": 100,
+    "quantityRemaining": 100,
+    "unitCost": 45,
+    "expiryDate": "2028-10-10",
+    "supplier": "Pfizer",
+    "purchaseOrderNumber": null,
+    "storageLocation": "Main Storage",
+    "notes": "",
+    "status": "active",
+    "receivedDate": "2025-10-16T00:51:24.583Z",
+    "createdAt": "2025-10-16T00:51:24.583Z",
+    "updatedAt": "2025-10-16T00:51:24.583Z"
   }
 ]

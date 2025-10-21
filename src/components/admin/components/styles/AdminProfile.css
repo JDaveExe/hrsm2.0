@@ -1,0 +1,349 @@
+/* AdminProfile.css - Admin-specific profile styling */
+
+.admin-profile-container {
+  padding: 20px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.admin-profile-header {
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 3px solid #007bff;
+}
+
+.admin-profile-header h2 {
+  color: #007bff;
+  font-weight: 600;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-profile-header h2 i {
+  font-size: 1.8rem;
+}
+
+.admin-profile-header .text-muted {
+  font-size: 0.95rem;
+  margin-bottom: 0;
+}
+
+/* Profile Cards */
+.admin-profile-card {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+  transition: box-shadow 0.3s ease;
+  background-color: #ffffff;
+}
+
+.admin-profile-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+}
+
+.admin-profile-card-header {
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0 !important;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.admin-profile-card-header h4 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-profile-card-header i {
+  font-size: 1.3rem;
+}
+
+/* Input Fields */
+.admin-profile-input {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 8px 12px;
+  transition: all 0.3s ease;
+}
+
+.admin-profile-input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.admin-profile-input:disabled {
+  background-color: #f8f9fa;
+  color: #495057;
+}
+
+/* Edit Actions */
+.admin-profile-edit-btn,
+.admin-profile-refresh-btn,
+.admin-profile-password-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.admin-profile-edit-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Info Section */
+.admin-profile-info-section {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-bottom: 4px solid #007bff;
+}
+
+.admin-profile-info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #063c72;
+}
+
+.admin-profile-info-item:last-child {
+  border-bottom: none;
+}
+
+.admin-profile-info-item .label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.admin-profile-info-item .value {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.admin-profile-badge {
+  font-size: 0.85rem;
+  padding: 5px 10px;
+  border-radius: 5px;
+}
+
+/* Password Section */
+.admin-profile-password-section {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #fff8e1;
+  border-radius: 8px;
+  border-left: 4px solid #ffc107;
+}
+
+.admin-profile-password-section h5 {
+  color: #856404;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-profile-password-form {
+  margin-top: 15px;
+}
+
+.admin-profile-password-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+/* Activities Section */
+.admin-profile-activities-loading,
+.admin-profile-no-activities {
+  text-align: center;
+  padding: 30px;
+  color: #6c757d;
+}
+
+.admin-profile-no-activities i {
+  font-size: 3rem;
+  color: #dee2e6;
+  display: block;
+  margin-bottom: 10px;
+}
+
+.admin-profile-activities-list {
+  max-height: 600px;
+  overflow-y: auto;
+  padding-right: 5px;
+}
+
+.admin-profile-activities-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.admin-profile-activities-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.admin-profile-activities-list::-webkit-scrollbar-thumb {
+  background: #007bff;
+  border-radius: 10px;
+}
+
+.admin-profile-activities-list::-webkit-scrollbar-thumb:hover {
+  background: #0056b3;
+}
+
+.admin-profile-activity-item {
+  display: flex;
+  gap: 15px;
+  padding: 15px;
+  margin-bottom: 10px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border-left: 3px solid #007bff;
+  transition: all 0.3s ease;
+}
+
+.admin-profile-activity-item:hover {
+  background-color: #e9ecef;
+  transform: translateX(5px);
+}
+
+.admin-profile-activity-icon {
+  flex-shrink: 0;
+}
+
+.admin-profile-activity-content {
+  flex: 1;
+}
+
+.admin-profile-activity-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.admin-profile-activity-action {
+  font-weight: 600;
+  color: #007bff;
+  font-size: 0.9rem;
+}
+
+.admin-profile-activity-time {
+  font-size: 0.8rem;
+  color: #6c757d;
+}
+
+.admin-profile-activity-description {
+  margin: 0;
+  color: #495057;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.admin-profile-activity-meta {
+  margin-top: 8px;
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.admin-profile-activity-meta .badge {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+/* Pagination */
+.admin-profile-activities-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0 5px;
+  border-top: 1px solid #dee2e6;
+  margin-top: 15px;
+}
+
+.admin-profile-page-info {
+  font-size: 0.9rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+/* Loading State */
+.admin-profile-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 15px;
+}
+
+.admin-profile-loading p {
+  color: #007bff;
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .admin-profile-container {
+    padding: 15px;
+  }
+
+  .admin-profile-activity-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .admin-profile-activities-pagination {
+    flex-direction: column;
+    gap: 10px;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-profile-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .admin-profile-card-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .admin-profile-edit-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .admin-profile-activity-item {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .admin-profile-password-actions {
+    flex-direction: column;
+  }
+
+  .admin-profile-password-actions button {
+    width: 100%;
+  }
+}

@@ -180,7 +180,7 @@
     "manufacturer": "GSK",
     "category": "Additional Routine",
     "batchNumber": "FLU009-2024",
-    "dosesInStock": 400,
+    "dosesInStock": 399,
     "minimumStock": 100,
     "unitCost": 25,
     "expiryDate": "2027-12-31",
@@ -198,7 +198,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Annual reformulation required",
-    "updatedAt": "2025-09-29T05:00:35.757Z"
+    "updatedAt": "2025-10-20T08:06:21.391Z"
   },
   {
     "id": 10,
@@ -231,7 +231,7 @@
     "manufacturer": "Sanofi",
     "category": "Additional Routine",
     "batchNumber": "RAB011-2024",
-    "dosesInStock": 50,
+    "dosesInStock": 49,
     "minimumStock": 10,
     "unitCost": 150,
     "expiryDate": "2027-12-31",
@@ -247,7 +247,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "For pre and post-exposure prophylaxis",
-    "updatedAt": "2025-09-29T05:00:35.805Z"
+    "updatedAt": "2025-10-15T08:06:42.047Z"
   },
   {
     "id": 12,
@@ -256,7 +256,7 @@
     "manufacturer": "Serum Institute",
     "category": "Additional Routine",
     "batchNumber": "TT012-2024",
-    "dosesInStock": 299,
+    "dosesInStock": 297,
     "minimumStock": 75,
     "unitCost": 8,
     "expiryDate": "2026-01-15",
@@ -271,7 +271,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Essential for maternal and neonatal tetanus prevention",
-    "updatedAt": "2025-10-06T06:22:30.434Z"
+    "updatedAt": "2025-10-20T08:08:28.751Z"
   },
   {
     "id": 13,
@@ -328,7 +328,7 @@
     "manufacturer": "GSK",
     "category": "Additional Routine",
     "batchNumber": "HA016-2024",
-    "dosesInStock": 100,
+    "dosesInStock": 99,
     "minimumStock": 25,
     "unitCost": 65,
     "expiryDate": "2027-12-31",
@@ -344,7 +344,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Highly effective vaccine",
-    "updatedAt": "2025-09-29T05:00:35.826Z"
+    "updatedAt": "2025-10-20T08:08:50.424Z"
   },
   {
     "id": 17,

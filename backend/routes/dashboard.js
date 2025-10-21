@@ -41,7 +41,7 @@ router.get('/stats', async (req, res) => {
       SELECT 
         COUNT(*) as totalCheckups,
         COUNT(CASE WHEN status = 'in-progress' OR status = 'started' THEN 1 END) as activeCheckups,
-        COUNT(CASE WHEN (status = 'completed' OR status = 'vaccination-completed') AND DATE(updatedAt) = CURDATE() THEN 1 END) as completedToday,
+        COUNT(CASE WHEN (status = 'completed' OR status = 'vaccination-completed') AND DATE(CONVERT_TZ(updatedAt, '+00:00', '+08:00')) = DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00')) THEN 1 END) as completedToday,
         COUNT(CASE WHEN status = 'completed' OR status = 'vaccination-completed' THEN 1 END) as totalCompleted,
         COUNT(CASE WHEN startedAt IS NOT NULL THEN 1 END) as doctorStartedCheckups
       FROM check_in_sessions
@@ -50,14 +50,14 @@ router.get('/stats', async (req, res) => {
     // Get daily checkup trends for the current week (Monday to Sunday)
     const [checkupTrends] = await sequelize.query(`
       SELECT 
-        DATE(updatedAt) as date,
-        DAYNAME(updatedAt) as dayName,
+        DATE(CONVERT_TZ(updatedAt, '+00:00', '+08:00')) as date,
+        DAYNAME(CONVERT_TZ(updatedAt, '+00:00', '+08:00')) as dayName,
         COUNT(CASE WHEN status = 'completed' OR status = 'vaccination-completed' THEN 1 END) as completedCheckups
       FROM check_in_sessions 
-      WHERE updatedAt >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
-        AND updatedAt < DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 7 DAY)
+      WHERE CONVERT_TZ(updatedAt, '+00:00', '+08:00') >= DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00')), INTERVAL WEEKDAY(DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00'))) DAY)
+        AND CONVERT_TZ(updatedAt, '+00:00', '+08:00') < DATE_ADD(DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00')), INTERVAL WEEKDAY(DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00'))) DAY), INTERVAL 7 DAY)
         AND (status = 'completed' OR status = 'vaccination-completed')
-      GROUP BY DATE(updatedAt), DAYNAME(updatedAt)
+      GROUP BY DATE(CONVERT_TZ(updatedAt, '+00:00', '+08:00')), DAYNAME(CONVERT_TZ(updatedAt, '+00:00', '+08:00'))
       ORDER BY date
     `);
 
@@ -781,25 +781,25 @@ router.get('/checkup-trends/:period', async (req, res) => {
             SUM(combined.completedCheckups) as completedCheckups
           FROM (
             SELECT 
-              DATE(updatedAt) as date,
-              DAYNAME(updatedAt) as dayName,
+              DATE(CONVERT_TZ(updatedAt, '+00:00', '+08:00')) as date,
+              DAYNAME(CONVERT_TZ(updatedAt, '+00:00', '+08:00')) as dayName,
               COUNT(*) as completedCheckups
             FROM check_in_sessions 
-            WHERE updatedAt >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
-              AND updatedAt < DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 7 DAY)
+            WHERE CONVERT_TZ(updatedAt, '+00:00', '+08:00') >= DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00')), INTERVAL WEEKDAY(DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00'))) DAY)
+              AND CONVERT_TZ(updatedAt, '+00:00', '+08:00') < DATE_ADD(DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00')), INTERVAL WEEKDAY(DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00'))) DAY), INTERVAL 7 DAY)
               AND status = 'completed'
-            GROUP BY DATE(updatedAt), DAYNAME(updatedAt)
+            GROUP BY DATE(CONVERT_TZ(updatedAt, '+00:00', '+08:00')), DAYNAME(CONVERT_TZ(updatedAt, '+00:00', '+08:00'))
             
             UNION ALL
             
             SELECT 
-              DATE(administeredAt) as date,
-              DAYNAME(administeredAt) as dayName,
+              DATE(CONVERT_TZ(administeredAt, '+00:00', '+08:00')) as date,
+              DAYNAME(CONVERT_TZ(administeredAt, '+00:00', '+08:00')) as dayName,
               COUNT(*) as completedCheckups
             FROM vaccinations 
-            WHERE administeredAt >= DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY)
-              AND administeredAt < DATE_ADD(DATE_SUB(CURDATE(), INTERVAL WEEKDAY(CURDATE()) DAY), INTERVAL 7 DAY)
-            GROUP BY DATE(administeredAt), DAYNAME(administeredAt)
+            WHERE CONVERT_TZ(administeredAt, '+00:00', '+08:00') >= DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00')), INTERVAL WEEKDAY(DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00'))) DAY)
+              AND CONVERT_TZ(administeredAt, '+00:00', '+08:00') < DATE_ADD(DATE_SUB(DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00')), INTERVAL WEEKDAY(DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00'))) DAY), INTERVAL 7 DAY)
+            GROUP BY DATE(CONVERT_TZ(administeredAt, '+00:00', '+08:00')), DAYNAME(CONVERT_TZ(administeredAt, '+00:00', '+08:00'))
           ) as combined
           GROUP BY combined.date, combined.dayName
           ORDER BY combined.date

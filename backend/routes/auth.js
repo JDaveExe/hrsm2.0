@@ -217,7 +217,8 @@ router.post(
               firstName: patient.firstName,
               lastName: patient.lastName,
               patientId: patient.id,
-              qrCode: patient.qrCode
+              qrCode: patient.qrCode,
+              dateOfBirth: patient.dateOfBirth // Include for age calculation
             }
           });
         }
@@ -402,13 +403,14 @@ router.post(
             return res.status(400).json({ msg: 'Invalid credentials' });
           }
           
-          // For patient users, fetch the associated Patient record to get patientId
+          // For patient users, fetch the associated Patient record to get patientId and dateOfBirth
           if (user.role === 'patient') {
             const patient = await Patient.findOne({
               where: { userId: user.id }
             });
             if (patient) {
               user.patientId = patient.id;
+              user.dateOfBirth = patient.dateOfBirth; // Include dateOfBirth for age calculation
             }
           }
         } else {
@@ -555,7 +557,8 @@ router.post(
                     firstName: user.firstName,
                     lastName: user.lastName,
                     accessLevel: user.accessLevel || (user.role === 'admin' ? 'Administrator' : user.role === 'management' ? 'Management' : 'Doctor'),
-                    patientId: user.patientId // Include patientId for patient users
+                    patientId: user.patientId, // Include patientId for patient users
+                    dateOfBirth: user.dateOfBirth // Include dateOfBirth for age calculation (patient users only)
                   }
                 });
             }

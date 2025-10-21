@@ -148,7 +148,7 @@ const CheckupManager = () => {
     { value: 'general-checkup', label: 'General Checkup' },
     { value: 'blood-pressure', label: 'Blood Pressure Check' },
     { value: 'vaccination', label: 'Vaccination' },
-    { value: 'pediatric-checkup', label: 'Pediatric Checkup' },
+    // { value: 'pediatric-checkup', label: 'Pediatric Checkup' }, // Temporarily commented out
     { value: 'consultation', label: 'Doctor Consultation' },
     { value: 'follow-up', label: 'Follow-up Visit' },
     { value: 'emergency', label: 'Emergency' }
@@ -1437,9 +1437,9 @@ const CheckupManager = () => {
                 );
               })}
             </ul>
-            <div className="alert alert-warning">
-              <i className="bi bi-exclamation-triangle me-2"></i>
-              <strong>Warning:</strong> This action cannot be undone. All data for these checkups will be permanently removed.
+            <div className="alert alert-info">
+              <i className="bi bi-info-circle me-2"></i>
+              <strong>Note:</strong> This will remove the patient(s) from today's active checkup list. All checkup data and history will be preserved in the database for records and analytics.
             </div>
           </div>
         </Modal.Body>
@@ -1448,11 +1448,11 @@ const CheckupManager = () => {
             Cancel
           </Button>
           <Button 
-            variant="danger" 
+            variant="primary" 
             onClick={confirmRemovePatients}
             disabled={removeCountdown > 0}
           >
-            <i className="bi bi-trash me-1"></i>
+            <i className="bi bi-check-circle me-1"></i>
             {removeCountdown > 0 ? `Confirm Removal (${removeCountdown}s)` : 'Confirm Removal'}
           </Button>
         </Modal.Footer>
@@ -1501,6 +1501,7 @@ const CheckupManager = () => {
               <thead>
                 <tr>
                   <th>Date & Time</th>
+                  <th>Context</th>
                   <th>Temperature</th>
                   <th>Heart Rate</th>
                   <th>Blood Pressure</th>
@@ -1522,6 +1523,19 @@ const CheckupManager = () => {
                           {record.createdAt ? new Date(record.createdAt).toLocaleTimeString() : ''}
                         </small>
                       </div>
+                    </td>
+                    <td>
+                      {record.serviceType === 'vaccination' ? (
+                        <Badge bg="info" className="text-white">
+                          <i className="bi bi-shield-plus me-1"></i>
+                          Vaccination
+                        </Badge>
+                      ) : (
+                        <Badge bg="secondary" className="text-white">
+                          <i className="bi bi-clipboard2-pulse me-1"></i>
+                          Checkup
+                        </Badge>
+                      )}
                     </td>
                     <td>
                       <Badge bg={getVitalStatus('temperature', record.temperature)}>

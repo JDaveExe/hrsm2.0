@@ -11,6 +11,8 @@ const AuditLogger = require('../utils/auditLogger');
 // Data file paths
 const vaccinesDataPath = path.join(__dirname, '../data/vaccines.json');
 const medicationsDataPath = path.join(__dirname, '../data/medications.json');
+const medicalSuppliesDataPath = path.join(__dirname, '../data/medical_supplies.json');
+const supplyUsageLogDataPath = path.join(__dirname, '../data/supply_usage_log.json');
 
 // Helper function to read JSON data
 const readJsonFile = async (filePath) => {
@@ -826,6 +828,265 @@ router.get('/vaccine-category-distribution', async (req, res) => {
       message: 'Error fetching vaccine category distribution',
       error: error.message
     });
+  }
+});
+
+// ==================== MEDICAL SUPPLIES ROUTES ====================
+
+// Get all medical supplies
+router.get('/medical-supplies', async (req, res) => {
+  try {
+    const supplies = await readJsonFile(medicalSuppliesDataPath);
+    res.json(supplies);
+  } catch (error) {
+    console.error('Error fetching medical supplies:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get medical supply by ID
+router.get('/medical-supplies/:id', async (req, res) => {
+  try {
+    const supplies = await readJsonFile(medicalSuppliesDataPath);
+    const supply = supplies.find(s => s.id === parseInt(req.params.id));
+    
+    if (!supply) {
+      return res.status(404).json({ error: 'Medical supply not found' });
+    }
+    
+    res.json(supply);
+  } catch (error) {
+    console.error('Error fetching medical supply:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Create new medical supply
+router.post('/medical-supplies', auth, async (req, res) => {
+  try {
+    const supplies = await readJsonFile(medicalSuppliesDataPath);
+    const newSupply = {
+      id: supplies.length > 0 ? Math.max(...supplies.map(s => s.id)) + 1 : 1,
+      ...req.body,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    supplies.push(newSupply);
+    await writeJsonFile(medicalSuppliesDataPath, supplies);
+    
+    // Log audit trail
+    await AuditLogger.logInventoryAction(req, 'medical_supply_created', {
+      supplyId: newSupply.id,
+      supplyName: newSupply.name,
+      category: newSupply.category,
+      initialStock: newSupply.unitsInStock
+    });
+    
+    res.status(201).json(newSupply);
+  } catch (error) {
+    console.error('Error creating medical supply:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Update medical supply
+router.put('/medical-supplies/:id', auth, async (req, res) => {
+  try {
+    const supplies = await readJsonFile(medicalSuppliesDataPath);
+    const index = supplies.findIndex(s => s.id === parseInt(req.params.id));
+    
+    if (index === -1) {
+      return res.status(404).json({ error: 'Medical supply not found' });
+    }
+    
+    const oldSupply = { ...supplies[index] };
+    supplies[index] = {
+      ...supplies[index],
+      ...req.body,
+      id: supplies[index].id,
+      createdAt: supplies[index].createdAt,
+      updatedAt: new Date().toISOString()
+    };
+    
+    await writeJsonFile(medicalSuppliesDataPath, supplies);
+    
+    // Log audit trail
+    await AuditLogger.logInventoryAction(req, 'medical_supply_updated', {
+      supplyId: supplies[index].id,
+      supplyName: supplies[index].name,
+      oldStock: oldSupply.unitsInStock,
+      newStock: supplies[index].unitsInStock
+    });
+    
+    res.json(supplies[index]);
+  } catch (error) {
+    console.error('Error updating medical supply:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delete medical supply
+router.delete('/medical-supplies/:id', auth, async (req, res) => {
+  try {
+    const supplies = await readJsonFile(medicalSuppliesDataPath);
+    const index = supplies.findIndex(s => s.id === parseInt(req.params.id));
+    
+    if (index === -1) {
+      return res.status(404).json({ error: 'Medical supply not found' });
+    }
+    
+    const deletedSupply = supplies[index];
+    supplies.splice(index, 1);
+    await writeJsonFile(medicalSuppliesDataPath, supplies);
+    
+    // Log audit trail
+    await AuditLogger.logInventoryAction(req, 'medical_supply_deleted', {
+      supplyId: deletedSupply.id,
+      supplyName: deletedSupply.name
+    });
+    
+    res.json({ message: 'Medical supply deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting medical supply:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Add stock to medical supply
+router.post('/medical-supplies/:id/add-stock', auth, async (req, res) => {
+  try {
+    const { quantityToAdd, notes } = req.body;
+    const supplies = await readJsonFile(medicalSuppliesDataPath);
+    const index = supplies.findIndex(s => s.id === parseInt(req.params.id));
+    
+    if (index === -1) {
+      return res.status(404).json({ error: 'Medical supply not found' });
+    }
+    
+    const oldStock = supplies[index].unitsInStock;
+    supplies[index].unitsInStock += parseInt(quantityToAdd);
+    supplies[index].updatedAt = new Date().toISOString();
+    
+    await writeJsonFile(medicalSuppliesDataPath, supplies);
+    
+    // Log audit trail
+    await AuditLogger.logInventoryAction(req, 'medical_supply_stock_added', {
+      supplyId: supplies[index].id,
+      supplyName: supplies[index].name,
+      quantityAdded: quantityToAdd,
+      oldStock: oldStock,
+      newStock: supplies[index].unitsInStock,
+      notes: notes || 'Stock replenishment'
+    });
+    
+    res.json(supplies[index]);
+  } catch (error) {
+    console.error('Error adding stock:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ==================== DAILY USAGE LOG ROUTES ====================
+
+// Log daily consumption
+router.post('/medical-supplies/usage-log', auth, async (req, res) => {
+  try {
+    const { usageDate, usageItems, notes } = req.body;
+    const usageLogs = await readJsonFile(supplyUsageLogDataPath);
+    const supplies = await readJsonFile(medicalSuppliesDataPath);
+    
+    // Create new usage log entry
+    const newLogEntry = {
+      id: usageLogs.length > 0 ? Math.max(...usageLogs.map(l => l.id)) + 1 : 1,
+      usageDate: usageDate || new Date().toISOString().split('T')[0],
+      loggedByUserId: req.user?.id || 1,
+      loggedByName: req.user?.name || 'Management',
+      notes: notes || '',
+      items: [],
+      createdAt: new Date().toISOString()
+    };
+    
+    // Process each usage item and deduct from stock
+    for (const item of usageItems) {
+      const supplyIndex = supplies.findIndex(s => s.id === parseInt(item.supplyId));
+      
+      if (supplyIndex !== -1) {
+        const supply = supplies[supplyIndex];
+        const quantityUsed = parseFloat(item.quantityUsed);
+        
+        // Deduct from stock
+        const oldStock = supply.unitsInStock;
+        supply.unitsInStock = Math.max(0, supply.unitsInStock - quantityUsed);
+        supply.updatedAt = new Date().toISOString();
+        
+        // Add to log entry
+        newLogEntry.items.push({
+          supplyId: supply.id,
+          supplyName: supply.name,
+          quantityUsed: quantityUsed,
+          unit: supply.unitOfMeasure,
+          oldStock: oldStock,
+          newStock: supply.unitsInStock
+        });
+      }
+    }
+    
+    // Save updated supplies and log
+    await writeJsonFile(medicalSuppliesDataPath, supplies);
+    usageLogs.push(newLogEntry);
+    await writeJsonFile(supplyUsageLogDataPath, usageLogs);
+    
+    // Log audit trail
+    await AuditLogger.logInventoryAction(req, 'medical_supply_daily_usage_logged', {
+      logId: newLogEntry.id,
+      usageDate: newLogEntry.usageDate,
+      itemsCount: newLogEntry.items.length,
+      totalQuantity: newLogEntry.items.reduce((sum, item) => sum + item.quantityUsed, 0)
+    });
+    
+    res.status(201).json({
+      message: 'Daily usage logged successfully',
+      log: newLogEntry
+    });
+  } catch (error) {
+    console.error('Error logging daily usage:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get all usage logs
+router.get('/medical-supplies/usage-log', async (req, res) => {
+  try {
+    const usageLogs = await readJsonFile(supplyUsageLogDataPath);
+    res.json(usageLogs.reverse()); // Most recent first
+  } catch (error) {
+    console.error('Error fetching usage logs:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get usage logs by date range
+router.get('/medical-supplies/usage-log/range', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const usageLogs = await readJsonFile(supplyUsageLogDataPath);
+    
+    let filteredLogs = usageLogs;
+    
+    if (startDate) {
+      filteredLogs = filteredLogs.filter(log => log.usageDate >= startDate);
+    }
+    
+    if (endDate) {
+      filteredLogs = filteredLogs.filter(log => log.usageDate <= endDate);
+    }
+    
+    res.json(filteredLogs.reverse());
+  } catch (error) {
+    console.error('Error fetching usage logs by range:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 

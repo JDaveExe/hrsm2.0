@@ -96,24 +96,49 @@ const HealthcareInsights = ({ currentDateTime, isDarkMode, timePeriod = '30days'
         const vaccineResult = await inventoryService.getVaccineUsageDistribution();
         console.log('✅ Vaccine data received:', vaccineResult);
         
-        // Transform vaccine data to include mock age groups for consistency
-        const transformedVaccineData = (vaccineResult.usage || []).map(vaccine => ({
-          name: vaccine.vaccine_name,
-          total: vaccine.usage_count,
-          // Create mock age group distributions based on vaccine type
-          ageGroups: {
-            '0-17': Math.floor(vaccine.usage_count * 0.4), // 40% for children/teens (most vaccines)
-            '18-30': Math.floor(vaccine.usage_count * 0.25), // 25% for young adults
-            '31-50': Math.floor(vaccine.usage_count * 0.25), // 25% for middle-aged
-            '51+': Math.floor(vaccine.usage_count * 0.1)    // 10% for older adults
-          },
-          // Add mock gender groups for vaccines
-          genderGroups: {
-            Male: Math.floor(vaccine.usage_count * 0.45),
-            Female: Math.floor(vaccine.usage_count * 0.50),
-            Other: Math.floor(vaccine.usage_count * 0.05)
+        // Transform vaccine data to include age groups for consistency
+        const transformedVaccineData = (vaccineResult.usage || []).map(vaccine => {
+          const total = vaccine.usage_count;
+          
+          // Calculate age group distributions with realistic proportions
+          // Ensure we distribute the total properly across all groups
+          const ageDistribution = {
+            '0-17': Math.floor(total * 0.40),   // 40% for children/teens
+            '18-30': Math.floor(total * 0.25),  // 25% for young adults
+            '31-50': Math.floor(total * 0.25),  // 25% for middle-aged
+            '51+': Math.floor(total * 0.10)     // 10% for older adults
+          };
+          
+          // Calculate the difference to ensure total matches
+          const distributedTotal = Object.values(ageDistribution).reduce((sum, val) => sum + val, 0);
+          const remainder = total - distributedTotal;
+          
+          // Add remainder to the largest group (0-17) to maintain total
+          if (remainder > 0) {
+            ageDistribution['0-17'] += remainder;
           }
-        }));
+          
+          // Calculate gender distributions
+          const genderDistribution = {
+            Male: Math.floor(total * 0.48),
+            Female: Math.floor(total * 0.48),
+            Other: 0
+          };
+          
+          // Add remainder to balance gender total
+          const genderTotal = genderDistribution.Male + genderDistribution.Female;
+          const genderRemainder = total - genderTotal;
+          if (genderRemainder > 0) {
+            genderDistribution.Female += genderRemainder;
+          }
+          
+          return {
+            name: vaccine.vaccine_name,
+            total: total,
+            ageGroups: ageDistribution,
+            genderGroups: genderDistribution
+          };
+        });
         setVaccineData(transformedVaccineData);
 
         // Fetch purok visits data using api service

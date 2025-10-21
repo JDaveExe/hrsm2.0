@@ -3,21 +3,36 @@ import axios from '../services/axiosConfig';
 // Function to get the authorization token from sessionStorage (consistent with AuthContext)
 const getAuthToken = () => {
   try {
+    console.log('🔍 getAuthToken() called');
+    
     // First try to get from window global (set by AuthContext)
     if (window.__authToken) {
+      console.log('  ✅ Found token in window.__authToken');
       return window.__authToken;
     }
+    console.log('  ❌ No token in window.__authToken');
     
     // Fallback to sessionStorage (used by AuthContext)
     const authData = sessionStorage.getItem('authData');
     if (authData) {
       const parsed = JSON.parse(authData);
-      return parsed ? parsed.token : null;
+      if (parsed && parsed.token) {
+        console.log('  ✅ Found token in sessionStorage.authData');
+        return parsed.token;
+      }
     }
+    console.log('  ❌ No token in sessionStorage.authData');
     
     // Final fallback to localStorage
     const localAuthData = JSON.parse(localStorage.getItem('auth') || 'null');
-    return localAuthData ? localAuthData.token : null;
+    if (localAuthData && localAuthData.token) {
+      console.log('  ✅ Found token in localStorage.auth');
+      return localAuthData.token;
+    }
+    console.log('  ❌ No token in localStorage.auth');
+    
+    console.warn('  ⚠️ NO TOKEN FOUND ANYWHERE!');
+    return null;
   } catch (error) {
     console.error('Error getting auth token:', error);
     return null;
@@ -195,12 +210,19 @@ const autosortPatients = async () => {
  */
 const createPatient = async (patientData) => {
   try {
+    const authHeader = getAuthHeader();
+    console.log('🔍 createPatient DEBUG:');
+    console.log('  Auth token exists:', !!getAuthToken());
+    console.log('  Auth header:', authHeader);
+    console.log('  Patient data:', patientData);
+    
     const response = await axios.post('/api/patients', patientData, {
-      headers: getAuthHeader(),
+      headers: authHeader,
     });
     return response.data;
   } catch (error) {
     console.error('Error creating patient:', error.response ? error.response.data : error.message);
+    console.error('Full error:', error);
     throw error;
   }
 };

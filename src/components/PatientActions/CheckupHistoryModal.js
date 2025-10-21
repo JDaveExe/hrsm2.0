@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button, Table } from 'react-bootstrap';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import sealMainImage from '../../images/sealmain.png';
+import sealGovImage from '../../images/sealgov.png';
 import './styles/ActionModals.css';
 
 const CheckupHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = false }) => {
@@ -130,7 +134,555 @@ const CheckupHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = false
   };
 
   const handleExportHistory = () => {
-    alert('Checkup history exported successfully!');
+    try {
+      // Create new PDF document
+      const doc = new jsPDF();
+      
+      // Add header with health center name
+      doc.setFontSize(18);
+      doc.setTextColor(14, 165, 233); // Blue color
+      doc.text('HEALTH CENTER', 105, 15, { align: 'center' });
+      
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text('Checkup History Report', 105, 25, { align: 'center' });
+      
+      // Add horizontal line
+      doc.setDrawColor(14, 165, 233);
+      doc.setLineWidth(0.5);
+      doc.line(20, 30, 190, 30);
+      
+      // Patient Information Section
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text('Patient Information', 20, 40);
+      
+      doc.setFont(undefined, 'normal');
+      doc.setFontSize(10);
+      const patientName = getPatientFullName(selectedPatient);
+      const patientAge = getPatientAge(selectedPatient);
+      const patientID = selectedPatient?.patientId || selectedPatient?.id || 'N/A';
+      
+      doc.text(`Name: ${patientName}`, 20, 48);
+      doc.text(`Patient ID: ${patientID}`, 20, 54);
+      doc.text(`Age: ${patientAge} years old`, 120, 48);
+      doc.text(`Gender: ${selectedPatient?.gender || 'N/A'}`, 120, 54);
+      
+      // Visit Statistics
+      const totalVisits = checkupHistory.length;
+      const thisYearVisits = checkupHistory.filter(r => {
+        const recordDate = new Date(r.date);
+        const currentYear = new Date().getFullYear();
+        return recordDate.getFullYear() === currentYear;
+      }).length;
+      
+      const last90DaysVisits = checkupHistory.filter(r => {
+        const recordDate = new Date(r.date);
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+        return recordDate >= ninetyDaysAgo;
+      }).length;
+      
+      const last30DaysVisits = checkupHistory.filter(r => {
+        const recordDate = new Date(r.date);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        return recordDate >= thirtyDaysAgo;
+      }).length;
+      
+      doc.text(`Total Visits: ${totalVisits}`, 20, 60);
+      doc.text(`This Year: ${thisYearVisits}`, 70, 60);
+      doc.text(`Last 90 Days: ${last90DaysVisits}`, 120, 60);
+      doc.text(`Last 30 Days: ${last30DaysVisits}`, 170, 60);
+      
+      // Checkup History Table
+      doc.setFont(undefined, 'bold');
+      doc.setFontSize(12);
+      doc.text('Checkup History', 20, 72);
+      
+      // Prepare table data
+      const tableData = checkupHistory.map(record => [
+        formatDate(record.date),
+        formatTime(record.time),
+        record.purpose || record.serviceType || 'General Checkup',
+        record.doctor || record.assignedDoctor || 'N/A'
+      ]);
+      
+      // Add table using autoTable
+      autoTable(doc, {
+        startY: 78,
+        head: [['Date', 'Time', 'Purpose of Visit', 'Doctor Assisted']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: [14, 165, 233],
+          textColor: 255,
+          fontSize: 10,
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        bodyStyles: {
+          fontSize: 9,
+          textColor: 50
+        },
+        alternateRowStyles: {
+          fillColor: [245, 247, 250]
+        },
+        columnStyles: {
+          0: { cellWidth: 30, halign: 'center' },
+          1: { cellWidth: 25, halign: 'center' },
+          2: { cellWidth: 60 },
+          3: { cellWidth: 45 }
+        },
+        margin: { left: 20, right: 20 }
+      });
+      
+      // Add footer with export info
+      const pageCount = doc.internal.getNumberOfPages();
+      const exportDate = new Date().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+      const exportTime = new Date().toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+      });
+      
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(128, 128, 128);
+        doc.text(`Exported on ${exportDate} at ${exportTime}`, 20, 285);
+        doc.text(`Page ${i} of ${pageCount}`, 190, 285, { align: 'right' });
+      }
+      
+      // Save the PDF
+      const fileName = `Checkup_History_${patientID}_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(fileName);
+      
+      console.log('PDF exported successfully:', fileName);
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      alert('Failed to export checkup history. Please try again.');
+    }
+  };
+
+  const handlePrintClinicalNotes = () => {
+    try {
+      if (!selectedRecord) {
+        alert('No clinical record selected');
+        return;
+      }
+
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Please allow popups to print clinical notes');
+        return;
+      }
+
+      const patientName = getPatientFullName(selectedPatient);
+      const patientAge = getPatientAge(selectedPatient);
+      const patientID = selectedPatient?.patientId || selectedPatient?.id || 'N/A';
+
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Clinical Notes - ${patientName}</title>
+          <style>
+            @media print {
+              @page {
+                size: letter;
+                margin: 15mm;
+              }
+              body {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+            }
+
+            body { 
+              font-family: 'Arial', 'Segoe UI', sans-serif; 
+              margin: 0;
+              padding: 20mm;
+              color: #333;
+              line-height: 1.6;
+              font-size: 12pt;
+            }
+            
+            /* Government Header - Matching Reports Style */
+            .government-header {
+              text-align: center;
+              padding: 15px 0;
+              border-bottom: 3px solid #28a745;
+              margin-bottom: 25px;
+            }
+            
+            .government-header-content {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              max-width: 800px;
+              margin: 0 auto;
+              padding: 0 15px;
+            }
+            
+            .government-seal, .barangay-seal {
+              width: 60px;
+              height: 60px;
+              object-fit: contain;
+            }
+            
+            .government-text {
+              flex: 1;
+              text-align: center;
+              padding: 0 15px;
+            }
+            
+            .government-title {
+              font-size: 22px;
+              font-weight: bold;
+              color: #1a472a;
+              margin: 0 0 3px 0;
+              letter-spacing: 0.5px;
+            }
+            
+            .government-subtitle {
+              font-size: 16px;
+              font-weight: 600;
+              color: #28a745;
+              margin: 0 0 3px 0;
+            }
+            
+            .government-tagline {
+              font-size: 10px;
+              color: #666;
+              font-style: italic;
+              margin: 0;
+            }
+
+            /* Document Title */
+            .document-title {
+              text-align: center;
+              margin: 18px 0 15px 0;
+              padding: 12px;
+              background: #f0fdf4;
+              border-left: 4px solid #10b981;
+            }
+
+            .document-title h1 {
+              color: #10b981;
+              font-size: 20px;
+              margin: 0 0 5px 0;
+              font-weight: bold;
+            }
+
+            .document-date {
+              color: #666;
+              font-size: 11px;
+              margin: 0;
+            }
+
+            /* Patient Information */
+            .patient-info {
+              background: #f8f9fa;
+              padding: 15px;
+              border-radius: 6px;
+              margin-bottom: 18px;
+              border: 1px solid #dee2e6;
+            }
+
+            .patient-info h3 {
+              color: #10b981;
+              font-size: 16px;
+              margin: 0 0 15px 0;
+              padding-bottom: 10px;
+              border-bottom: 2px solid #10b981;
+            }
+
+            .info-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 12px;
+            }
+
+            .info-item {
+              display: flex;
+              padding: 8px 0;
+            }
+
+            .info-label {
+              font-weight: 600;
+              color: #495057;
+              min-width: 120px;
+            }
+
+            .info-value {
+              color: #212529;
+            }
+
+            /* Clinical Section */
+            .clinical-section {
+              margin-bottom: 18px;
+              page-break-inside: avoid;
+            }
+
+            .section-title {
+              font-size: 13px;
+              font-weight: bold;
+              color: #fff;
+              padding: 8px 12px;
+              margin: 0 0 10px 0;
+              border-radius: 4px;
+            }
+
+            .section-title.complaint { background: #3b82f6; }
+            .section-title.symptoms { background: #f59e0b; }
+            .section-title.diagnosis { background: #10b981; }
+            .section-title.treatment { background: #8b5cf6; }
+            .section-title.prescription { background: #ef4444; }
+            .section-title.notes { background: #64748b; }
+
+            .section-content {
+              padding: 12px;
+              background: #ffffff;
+              border: 1px solid #dee2e6;
+              border-radius: 4px;
+              min-height: 50px;
+              line-height: 1.6;
+            }
+
+            .section-content p {
+              margin: 0;
+              color: #212529;
+            }
+
+            .prescription-list {
+              list-style: none;
+              padding: 0;
+              margin: 10px 0;
+            }
+
+            .prescription-item {
+              padding: 10px;
+              margin: 8px 0;
+              background: #fef2f2;
+              border-left: 4px solid #ef4444;
+              border-radius: 4px;
+            }
+
+            .prescription-name {
+              font-weight: 600;
+              color: #991b1b;
+              font-size: 13px;
+            }
+
+            .prescription-dosage {
+              color: #666;
+              font-size: 11px;
+              margin-top: 4px;
+            }
+
+            /* Footer */
+            .document-footer {
+              margin-top: 15px;
+              padding-top: 10px;
+              border-top: 2px solid #dee2e6;
+              text-align: center;
+              page-break-inside: avoid;
+            }
+
+            .print-info {
+              font-size: 9px;
+              color: #999;
+              line-height: 1.4;
+            }
+
+            /* Print Optimization */
+            @media print {
+              @page {
+                margin-top: 10mm;
+                margin-bottom: 10mm;
+              }
+
+              body {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+
+              /* Hide URL and page title in header/footer */
+              @page {
+                margin-header: 0;
+                margin-footer: 0;
+              }
+
+              /* Reduce spacing between sections */
+              .clinical-section {
+                margin-bottom: 15px;
+              }
+
+              /* Keep footer with content */
+              .document-footer {
+                page-break-inside: avoid;
+                page-break-before: avoid;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <!-- Government Header -->
+          <div class="government-header">
+            <div class="government-header-content">
+              <div class="government-seal-container">
+                <img src="${sealGovImage}" alt="Government Seal" class="government-seal" />
+              </div>
+              <div class="government-text">
+                <h1 class="government-title">BARANGAY MAYBUNGA</h1>
+                <h2 class="government-subtitle">HEALTHCARE MANAGEMENT SYSTEM</h2>
+                <p class="government-tagline">Digital Health Services for the Community</p>
+              </div>
+              <div class="barangay-seal-container">
+                <img src="${sealMainImage}" alt="Barangay Maybunga Seal" class="barangay-seal" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Document Title -->
+          <div class="document-title">
+            <h1>📋 Clinical Notes & Medical Record</h1>
+            <div class="document-date">
+              ${formatDate(selectedRecord.date)} at ${formatTime(selectedRecord.time)}
+            </div>
+          </div>
+
+          <!-- Patient Information -->
+          <div class="patient-info">
+            <h3>👤 Patient Information</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Full Name:</span>
+                <span class="info-value">${patientName}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Patient ID:</span>
+                <span class="info-value">${patientID}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Age:</span>
+                <span class="info-value">${patientAge} years old</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Gender:</span>
+                <span class="info-value">${selectedPatient?.gender || 'N/A'}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Doctor:</span>
+                <span class="info-value">${selectedRecord.doctor || selectedRecord.assignedDoctor || 'N/A'}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Purpose of Visit:</span>
+                <span class="info-value">${selectedRecord.purpose || selectedRecord.serviceType || 'General Checkup'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chief Complaint -->
+          <div class="clinical-section">
+            <div class="section-title complaint">💬 Chief Complaint</div>
+            <div class="section-content">
+              <p>${selectedRecord.chiefComplaint || selectedRecord.notes || 'No chief complaint recorded.'}</p>
+            </div>
+          </div>
+
+          <!-- Present Symptoms -->
+          <div class="clinical-section">
+            <div class="section-title symptoms">🌡️ Present Symptoms</div>
+            <div class="section-content">
+              <p>${selectedRecord.presentSymptoms || 'No symptoms recorded.'}</p>
+            </div>
+          </div>
+
+          <!-- Diagnosis -->
+          <div class="clinical-section">
+            <div class="section-title diagnosis">🩺 Diagnosis</div>
+            <div class="section-content">
+              <p>${selectedRecord.diagnosis || 'No diagnosis recorded.'}</p>
+            </div>
+          </div>
+
+          <!-- Treatment Plan -->
+          <div class="clinical-section">
+            <div class="section-title treatment">📋 Treatment Plan</div>
+            <div class="section-content">
+              <p>${selectedRecord.treatmentPlan || 'No treatment plan recorded.'}</p>
+            </div>
+          </div>
+
+          <!-- Prescription -->
+          <div class="clinical-section">
+            <div class="section-title prescription">💊 Prescription</div>
+            <div class="section-content">
+              ${selectedRecord.prescription && selectedRecord.prescription !== 'N/A' ? 
+                `<ul class="prescription-list">
+                  ${selectedRecord.prescription.split('\n').filter(line => line.trim()).map(line => 
+                    `<li class="prescription-item">
+                      <div class="prescription-name">${line}</div>
+                    </li>`
+                  ).join('')}
+                </ul>` 
+                : '<p>No prescription given.</p>'
+              }
+            </div>
+          </div>
+
+          <!-- Additional Doctor Notes -->
+          ${selectedRecord.doctorNotes ? `
+          <div class="clinical-section">
+            <div class="section-title notes">📝 Additional Doctor's Notes</div>
+            <div class="section-content">
+              <p>${selectedRecord.doctorNotes}</p>
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Footer -->
+          <div class="document-footer">
+            <div class="print-info">
+              Document generated on ${new Date().toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })} at ${new Date().toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: true 
+              })}
+              <br>
+              Barangay Maybunga Healthcare Management System | Digital Health Records
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      
+      // Wait for images to load before printing
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 250);
+      };
+
+      console.log('Clinical notes printed successfully');
+    } catch (error) {
+      console.error('Error printing clinical notes:', error);
+      alert('Failed to print clinical notes. Please try again.');
+    }
   };
 
   return (
@@ -727,10 +1279,7 @@ const CheckupHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = false
               border: 'none',
               color: '#ffffff'
             }}
-            onClick={() => {
-              // Print or export this specific checkup notes
-              alert('Clinical notes exported successfully!');
-            }}
+            onClick={handlePrintClinicalNotes}
           >
             <i className="bi bi-printer me-2"></i>
             Print Notes

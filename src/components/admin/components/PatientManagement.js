@@ -50,6 +50,7 @@ const PatientManagement = memo(() => {
   const [qrCodeData, setQRCodeData] = useState('');
   const [patientsWithQR, setPatientsWithQR] = useState(new Set()); // Track patients who have generated QR codes
   const [selectedFamilyForAssignment, setSelectedFamilyForAssignment] = useState(''); // For manual family assignment
+  const [familySearchTerm, setFamilySearchTerm] = useState(''); // For searching families in dropdown
   const [generatedPassword, setGeneratedPassword] = useState(null); // Store generated password for notice
   const [deleteCooldown, setDeleteCooldown] = useState(0); // Cooldown timer for delete button (10 seconds)
   
@@ -649,6 +650,7 @@ const PatientManagement = memo(() => {
   const handleReassignFamily = useCallback(() => {
     setConfirmAction('reassign');
     setSelectedFamilyForAssignment(''); // Clear previous selection
+    setFamilySearchTerm(''); // Clear search term
     setShowConfirmModal(true);
     setShowManageDropdown(false);
   }, []);
@@ -2096,7 +2098,12 @@ const PatientManagement = memo(() => {
       {/* Assign Family Modal */}
       <Modal 
         show={showAssignFamilyModal} 
-        onHide={() => setShowAssignFamilyModal(false)}
+        onHide={() => {
+          setShowAssignFamilyModal(false);
+          setSelectedFamilyForAssignment('');
+          setSelectedUnsortedPatient(null);
+          setFamilySearchTerm('');
+        }}
         centered
       >
         <Modal.Header closeButton>
@@ -2110,28 +2117,114 @@ const PatientManagement = memo(() => {
                 <p className="text-muted mb-0">Select a family to assign this patient to:</p>
               </div>
               <Form>
+                <Form.Group className="mb-3">
+                  <Form.Label>Search Family</Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Type to search family name or ID..."
+                    value={familySearchTerm}
+                    onChange={(e) => setFamilySearchTerm(e.target.value)}
+                  />
+                </Form.Group>
                 <Form.Group>
                   <Form.Label>Select Family</Form.Label>
-                  <Form.Select required>
+                  <Form.Select 
+                    required
+                    value={selectedFamilyForAssignment}
+                    onChange={(e) => setSelectedFamilyForAssignment(e.target.value)}
+                    size="lg"
+                    style={{ maxHeight: '200px', overflowY: 'auto' }}
+                  >
                     <option value="">Choose a family...</option>
-                    {familiesData?.map(family => (
-                      <option key={family.id} value={family.id}>
-                        {family.familyName} (ID: {family.id}) - {getFamilyMemberCount(family)} members
-                      </option>
-                    ))}
+                    {familiesData
+                      ?.filter(family => {
+                        if (!familySearchTerm) return true;
+                        const searchLower = familySearchTerm.toLowerCase();
+                        return (
+                          family.familyName?.toLowerCase().includes(searchLower) ||
+                          family.surname?.toLowerCase().includes(searchLower) ||
+                          family.id?.toString().includes(searchLower)
+                        );
+                      })
+                      .map(family => (
+                        <option key={family.id} value={family.id}>
+                          {family.familyName} (ID: {family.id}) - {getFamilyMemberCount(family)} members
+                        </option>
+                      ))}
                   </Form.Select>
+                  {familySearchTerm && (
+                    <small className="text-muted mt-1 d-block">
+                      {familiesData?.filter(family => {
+                        const searchLower = familySearchTerm.toLowerCase();
+                        return (
+                          family.familyName?.toLowerCase().includes(searchLower) ||
+                          family.surname?.toLowerCase().includes(searchLower) ||
+                          family.id?.toString().includes(searchLower)
+                        );
+                      }).length || 0} families found
+                    </small>
+                  )}
                 </Form.Group>
               </Form>
             </div>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowAssignFamilyModal(false)}>
+          <Button variant="secondary" onClick={() => {
+            setShowAssignFamilyModal(false);
+            setSelectedFamilyForAssignment('');
+            setSelectedUnsortedPatient(null);
+            setFamilySearchTerm('');
+          }}>
             Cancel
           </Button>
-          <Button variant="primary">
+          <Button 
+            variant="primary"
+            disabled={!selectedFamilyForAssignment || loading}
+            onClick={async () => {
+              if (!window.__authToken) {
+                setAlert({ type: 'warning', message: 'Please log in again to assign patient.' });
+                return;
+              }
+
+              const originalLogout = window.__authLogout;
+              window.__authLogout = null;
+
+              try {
+                setLoading(true);
+                
+                if (!selectedFamilyForAssignment) {
+                  setAlert({ type: 'danger', message: 'Please select a family to assign the patient to.' });
+                  return;
+                }
+
+                await adminService.assignPatientToFamily(selectedUnsortedPatient.id, selectedFamilyForAssignment);
+                
+                await Promise.all([
+                  fetchAllPatients(),
+                  fetchAllFamilies(),
+                  fetchUnsortedMembers()
+                ]);
+                
+                setShowAssignFamilyModal(false);
+                setSelectedFamilyForAssignment('');
+                setSelectedUnsortedPatient(null);
+                setFamilySearchTerm('');
+                setAlert({ 
+                  type: 'success', 
+                  message: `${selectedUnsortedPatient.firstName} ${selectedUnsortedPatient.lastName} has been successfully assigned to the selected family!` 
+                });
+              } catch (error) {
+                console.error('Error assigning patient to family:', error);
+                setAlert({ type: 'danger', message: 'Error assigning patient. Please try again.' });
+              } finally {
+                setLoading(false);
+                window.__authLogout = originalLogout;
+              }
+            }}
+          >
             <i className="bi bi-person-check me-1"></i>
-            Assign to Family
+            {loading ? 'Assigning...' : 'Assign to Family'}
           </Button>
         </Modal.Footer>
       </Modal>
@@ -2349,6 +2442,21 @@ const PatientManagement = memo(() => {
                   
                   <div className="mt-3">
                     <label style={{color: 'var(--text-primary)', fontWeight: 'bold'}}>
+                      Search Family:
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control mt-2 mb-2"
+                      placeholder="Type to search family name or ID..."
+                      value={familySearchTerm}
+                      onChange={(e) => setFamilySearchTerm(e.target.value)}
+                      style={{
+                        background: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        border: '1px solid var(--border-color)'
+                      }}
+                    />
+                    <label style={{color: 'var(--text-primary)', fontWeight: 'bold'}}>
                       Select New Family:
                     </label>
                     <select 
@@ -2363,7 +2471,16 @@ const PatientManagement = memo(() => {
                     >
                       <option value="">Choose a family...</option>
                       {familiesData
-                        .filter(family => family.id !== selectedPatient?.familyId)
+                        .filter(family => {
+                          if (family.id === selectedPatient?.familyId) return false;
+                          if (!familySearchTerm) return true;
+                          const searchLower = familySearchTerm.toLowerCase();
+                          return (
+                            family.familyName?.toLowerCase().includes(searchLower) ||
+                            family.surname?.toLowerCase().includes(searchLower) ||
+                            family.id?.toString().includes(searchLower)
+                          );
+                        })
                         .map(family => (
                           <option key={family.id} value={family.id}>
                             {family.familyName} ({family.surname})
@@ -2371,6 +2488,19 @@ const PatientManagement = memo(() => {
                         ))
                       }
                     </select>
+                    {familySearchTerm && (
+                      <small style={{color: 'var(--text-secondary)'}} className="mt-1 d-block">
+                        {familiesData.filter(family => {
+                          if (family.id === selectedPatient?.familyId) return false;
+                          const searchLower = familySearchTerm.toLowerCase();
+                          return (
+                            family.familyName?.toLowerCase().includes(searchLower) ||
+                            family.surname?.toLowerCase().includes(searchLower) ||
+                            family.id?.toString().includes(searchLower)
+                          );
+                        }).length} families found
+                      </small>
+                    )}
                   </div>
                 </>
               ) : (

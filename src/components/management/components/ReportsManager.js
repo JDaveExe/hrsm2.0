@@ -764,6 +764,7 @@ const ReportsManager = ({ isDarkMode }) => {
       case 'custom-prescription-analysis':
       case 'custom-vaccine-analysis':
       case 'custom-barangay-analysis':
+      case 'custom-purok-analysis': // Added purok analysis case
         console.log('🎯 Healthcare analytics report case triggered for:', reportType.id);
         
         // Find the healthcare report data for this custom report
@@ -1197,6 +1198,11 @@ const ReportsManager = ({ isDarkMode }) => {
             summary += 'Geographic distribution analysis aids in community health planning and service accessibility assessment.';
             break;
             
+          case 'custom-purok-analysis':
+            summary = `This custom report analyzes patient visits by street location across ${totalRecords} geographic records, grouped by Purok. `;
+            summary += 'Street-level visit tracking helps identify high-activity areas and supports targeted community health outreach programs.';
+            break;
+            
           default:
             summary = `This report provides analytical insights based on ${totalRecords} records. `;
             summary += 'The data visualization helps healthcare administrators make informed decisions for improving service delivery.';
@@ -1490,9 +1496,16 @@ const ReportsManager = ({ isDarkMode }) => {
             
             /* Print Optimizations */
             @media print {
+              @page {
+                margin-header: 0;
+                margin-footer: 0;
+              }
+
               body { 
                 margin: 0;
                 padding: 15mm;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
               }
               
               .government-header {
@@ -2428,29 +2441,59 @@ const ReportsManager = ({ isDarkMode }) => {
                                 <table className="breakdown-table">
                                   <thead>
                                     <tr>
-                                      <th>Item</th>
-                                      <th>Age Group</th>
-                                      <th>Gender</th>
-                                      <th>Count</th>
-                                      {zoomedReport.rawData.dataType === 'diagnosis' && <th>Diagnosis</th>}
-                                      {zoomedReport.rawData.dataType === 'prescription' && <th>Medication</th>}
-                                      {zoomedReport.rawData.dataType === 'vaccine' && <th>Vaccine</th>}
-                                      {zoomedReport.rawData.dataType === 'barangay' && <th>Location</th>}
+                                      {/* Purok data has different structure */}
+                                      {zoomedReport.rawData.dataType === 'purok' ? (
+                                        <>
+                                          <th>Purok</th>
+                                          <th>Street</th>
+                                          <th>Total Visits</th>
+                                          <th>Activity Level</th>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <th>Item</th>
+                                          <th>Age Group</th>
+                                          <th>Gender</th>
+                                          <th>Count</th>
+                                          {zoomedReport.rawData.dataType === 'diagnosis' && <th>Diagnosis</th>}
+                                          {zoomedReport.rawData.dataType === 'prescription' && <th>Medication</th>}
+                                          {zoomedReport.rawData.dataType === 'vaccine' && <th>Vaccine</th>}
+                                          {zoomedReport.rawData.dataType === 'barangay' && <th>Location</th>}
+                                        </>
+                                      )}
                                     </tr>
                                   </thead>
                                   <tbody>
-                                    {zoomedReport.rawData.main.slice(0, 10).map((item, index) => (
-                                      <tr key={index}>
-                                        <td>{index + 1}</td>
-                                        <td>{item.ageGroup || 'N/A'}</td>
-                                        <td>{item.gender || 'N/A'}</td>
-                                        <td>1</td>
-                                        {zoomedReport.rawData.dataType === 'diagnosis' && <td>{item.diagnosis || 'N/A'}</td>}
-                                        {zoomedReport.rawData.dataType === 'prescription' && <td>{item.medication_name || 'N/A'}</td>}
-                                        {zoomedReport.rawData.dataType === 'vaccine' && <td>{item.vaccine_name || 'N/A'}</td>}
-                                        {zoomedReport.rawData.dataType === 'barangay' && <td>{item.barangay || 'N/A'}</td>}
-                                      </tr>
-                                    ))}
+                                    {zoomedReport.rawData.dataType === 'purok' ? (
+                                      // Purok-specific table rows
+                                      zoomedReport.rawData.main.slice(0, 10).map((item, index) => {
+                                        const activityLevel = item.visits > 30 ? 'High Activity' : 
+                                                             item.visits > 10 ? 'Moderate Activity' : 
+                                                             'Low Activity';
+                                        return (
+                                          <tr key={index}>
+                                            <td>{item.purok || 'N/A'}</td>
+                                            <td>{item.street || 'N/A'}</td>
+                                            <td>{item.visits || 0}</td>
+                                            <td>{activityLevel}</td>
+                                          </tr>
+                                        );
+                                      })
+                                    ) : (
+                                      // Standard table rows for other data types
+                                      zoomedReport.rawData.main.slice(0, 10).map((item, index) => (
+                                        <tr key={index}>
+                                          <td>{index + 1}</td>
+                                          <td>{item.ageGroup || 'N/A'}</td>
+                                          <td>{item.gender || 'N/A'}</td>
+                                          <td>1</td>
+                                          {zoomedReport.rawData.dataType === 'diagnosis' && <td>{item.diagnosis || 'N/A'}</td>}
+                                          {zoomedReport.rawData.dataType === 'prescription' && <td>{item.medication_name || 'N/A'}</td>}
+                                          {zoomedReport.rawData.dataType === 'vaccine' && <td>{item.vaccine_name || 'N/A'}</td>}
+                                          {zoomedReport.rawData.dataType === 'barangay' && <td>{item.barangay || 'N/A'}</td>}
+                                        </tr>
+                                      ))
+                                    )}
                                   </tbody>
                                 </table>
                                 {zoomedReport.rawData.main.length > 10 && (

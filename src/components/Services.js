@@ -108,7 +108,7 @@ const Services = () => {
                   </Link>
                   <a href="tel:+639123456789" className="cta-button secondary">
                     <i className="bi bi-telephone"></i>
-                    Call Us: 0912-345-6789
+                    Call Us: 63 026428645
                   </a>
                 </div>
               </div>

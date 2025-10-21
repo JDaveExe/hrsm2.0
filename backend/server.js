@@ -73,6 +73,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/patients', require('./routes/patients'));
 app.use('/api/families', require('./routes/families'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/profile', require('./routes/profile'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/appointments', require('./routes/appointments'));
 app.use('/api/notifications', require('./routes/notifications'));

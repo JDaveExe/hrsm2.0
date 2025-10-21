@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Tabs, Tab, ButtonGroup, Button } from 'react-bootstrap';
 import PrescriptionInventory from './PrescriptionInventory';
 import VaccineInventory from './VaccineInventory';
+import MedicalSuppliesInventory from './MedicalSuppliesInventory';
 import InventoryAnalysis from './InventoryAnalysis';
 import '../styles/InventoryManagement.css';
 
@@ -34,6 +35,14 @@ const InventoryManagement = ({ currentDateTime, isDarkMode, onNavigateToReports 
           }>
           </Tab>
 
+          <Tab eventKey="medical-supplies" title={
+            <span>
+              <i className="bi bi-bandaid me-2"></i>
+              Medical Supplies
+            </span>
+          }>
+          </Tab>
+
           <Tab eventKey="analysis" title={
             <span>
               <i className="bi bi-graph-up me-2"></i>
@@ -56,6 +65,12 @@ const InventoryManagement = ({ currentDateTime, isDarkMode, onNavigateToReports 
         )}
         {activeTab === 'vaccines' && (
           <VaccineInventory 
+            currentDateTime={currentDateTime} 
+            isDarkMode={isDarkMode}
+          />
+        )}
+        {activeTab === 'medical-supplies' && (
+          <MedicalSuppliesInventory 
             currentDateTime={currentDateTime} 
             isDarkMode={isDarkMode}
           />

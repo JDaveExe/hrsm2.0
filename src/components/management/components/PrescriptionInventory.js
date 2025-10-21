@@ -869,8 +869,8 @@ const PrescriptionInventory = ({ currentDateTime, isDarkMode }) => {
                           })}
                         </div>
                       </div>
-                    ) : selectedMedication.batchNumber ? (
-                      // Fallback to legacy single batch display (only if batchNumber exists)
+                    ) : medicationBatches.length === 0 && selectedMedication.batchNumber ? (
+                      // Fallback to legacy single batch display (only if NO batches exist AND batchNumber exists)
                       <>
                         <div className="detail-item">
                           <strong>Batch Number:</strong> {selectedMedication.batchNumber || 'N/A'}

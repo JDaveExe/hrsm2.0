@@ -76,6 +76,14 @@ const ManagementSidebar = memo(({
               <span>Audit Trail</span>
             </Link>
           </li>
+
+          {/* My Profile */}
+          <li className={currentPath === 'My Profile' ? 'active' : ''} onClick={() => handleNavigationClick('My Profile')}>
+            <Link to="#">
+              <i className="bi bi-person-circle"></i>
+              <span>My Profile</span>
+            </Link>
+          </li>
         </ul>
       </div>
 

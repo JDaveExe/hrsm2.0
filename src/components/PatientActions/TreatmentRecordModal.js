@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button } from 'react-bootstrap';
+import sealMainImage from '../../images/sealmain.png';
+import sealGovImage from '../../images/sealgov.png';
 import './styles/ActionModals.css';
 
 const TreatmentRecordModal = ({ show, onHide, selectedPatient, isDarkMode = false }) => {
@@ -95,6 +97,385 @@ const TreatmentRecordModal = ({ show, onHide, selectedPatient, isDarkMode = fals
   const totalPages = Math.ceil(treatmentRecords.length / recordsPerPage);
   const startIndex = (currentPage - 1) * recordsPerPage;
   const paginatedRecords = treatmentRecords.slice(startIndex, startIndex + recordsPerPage);
+
+  // Print individual treatment record
+  const handlePrintRecord = (record) => {
+    try {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Please allow popups to print treatment records');
+        return;
+      }
+
+      const patientName = getPatientFullName(selectedPatient);
+      const patientAge = getPatientAge(selectedPatient);
+      const patientID = selectedPatient?.patientId || selectedPatient?.id || 'N/A';
+
+      const printContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Treatment Record - ${patientName}</title>
+          <style>
+            @media print {
+              @page {
+                size: letter;
+                margin: 10mm 12mm;
+                margin-header: 0;
+                margin-footer: 0;
+              }
+              body {
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              .clinical-section {
+                margin-bottom: 8px;
+              }
+            }
+
+            body { 
+              font-family: 'Arial', sans-serif; 
+              margin: 0;
+              padding: 12mm;
+              color: #333;
+              line-height: 1.4;
+              font-size: 10pt;
+            }
+            
+            /* Compact Government Header */
+            .government-header {
+              text-align: center;
+              padding: 10px 0;
+              border-bottom: 2px solid #28a745;
+              margin-bottom: 12px;
+            }
+            
+            .government-header-content {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              max-width: 750px;
+              margin: 0 auto;
+              padding: 0 10px;
+            }
+            
+            .government-seal, .barangay-seal {
+              width: 50px;
+              height: 50px;
+              object-fit: contain;
+            }
+            
+            .government-text {
+              flex: 1;
+              text-align: center;
+              padding: 0 12px;
+            }
+            
+            .government-title {
+              font-size: 18px;
+              font-weight: bold;
+              color: #1a472a;
+              margin: 0 0 2px 0;
+              letter-spacing: 0.5px;
+            }
+            
+            .government-subtitle {
+              font-size: 14px;
+              font-weight: 600;
+              color: #28a745;
+              margin: 0 0 2px 0;
+            }
+            
+            .government-tagline {
+              font-size: 9px;
+              color: #666;
+              font-style: italic;
+              margin: 0;
+            }
+
+            /* Document Title */
+            .document-title {
+              text-align: center;
+              margin: 10px 0 8px 0;
+              padding: 6px;
+              background: #f8f9fa;
+              border-left: 2px solid #28a745;
+            }
+
+            .document-title h1 {
+              color: #28a745;
+              font-size: 16px;
+              margin: 0 0 3px 0;
+              font-weight: bold;
+            }
+
+            .document-date {
+              color: #666;
+              font-size: 9px;
+              margin: 0;
+            }
+
+            /* Patient Information */
+            .patient-info {
+              background: #f8f9fa;
+              padding: 8px 10px;
+              border-radius: 4px;
+              margin-bottom: 10px;
+              border: 1px solid #dee2e6;
+            }
+
+            .patient-info h3 {
+              color: #28a745;
+              font-size: 12px;
+              margin: 0 0 6px 0;
+              padding-bottom: 5px;
+              border-bottom: 1px solid #28a745;
+            }
+
+            .info-grid {
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 5px;
+            }
+
+            .info-item {
+              display: flex;
+              padding: 3px 0;
+              font-size: 9.5pt;
+            }
+
+            .info-label {
+              font-weight: 600;
+              color: #495057;
+              min-width: 100px;
+              font-size: 9.5pt;
+            }
+
+            .info-value {
+              color: #212529;
+              font-size: 9.5pt;
+            }
+
+            /* Clinical Section - Simplified without colors */
+            .clinical-section {
+              margin-bottom: 10px;
+              page-break-inside: avoid;
+            }
+
+            .section-title {
+              font-size: 11px;
+              font-weight: bold;
+              color: #333;
+              padding: 4px 0;
+              margin: 0 0 5px 0;
+              border-bottom: 1px solid #dee2e6;
+            }
+
+            .section-content {
+              padding: 6px 8px;
+              background: #ffffff;
+              border: 1px solid #e9ecef;
+              border-radius: 3px;
+              min-height: 35px;
+              line-height: 1.4;
+              font-size: 9.5pt;
+            }
+
+            .section-content p {
+              margin: 0;
+              color: #212529;
+            }
+
+            .prescription-list {
+              list-style: none;
+              padding: 0;
+              margin: 5px 0;
+            }
+
+            .prescription-item {
+              padding: 5px 8px;
+              margin: 4px 0;
+              background: #f8f9fa;
+              border-left: 2px solid #6c757d;
+              border-radius: 2px;
+              font-size: 9.5pt;
+            }
+
+            .prescription-name {
+              font-weight: 600;
+              color: #495057;
+              font-size: 9.5pt;
+            }
+
+            /* Footer */
+            .document-footer {
+              margin-top: 10px;
+              padding-top: 6px;
+              border-top: 1px solid #dee2e6;
+              text-align: center;
+              page-break-inside: avoid;
+            }
+
+            .print-info {
+              font-size: 8px;
+              color: #999;
+              line-height: 1.3;
+            }
+          </style>
+        </head>
+        <body>
+          <!-- Compact Government Header -->
+          <div class="government-header">
+            <div class="government-header-content">
+              <div class="government-seal-container">
+                <img src="${sealGovImage}" alt="Government Seal" class="government-seal" />
+              </div>
+              <div class="government-text">
+                <h1 class="government-title">BARANGAY MAYBUNGA</h1>
+                <h2 class="government-subtitle">HEALTHCARE MANAGEMENT SYSTEM</h2>
+                <p class="government-tagline">Digital Health Services for the Community</p>
+              </div>
+              <div class="barangay-seal-container">
+                <img src="${sealMainImage}" alt="Barangay Maybunga Seal" class="barangay-seal" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Document Title -->
+          <div class="document-title">
+            <h1>📋 Treatment Record</h1>
+            <div class="document-date">
+              ${formatDate(record.completedAt || record.updatedAt)} at ${formatTime(record.completedAt || record.updatedAt)}
+            </div>
+          </div>
+
+          <!-- Patient Information -->
+          <div class="patient-info">
+            <h3>👤 Patient Information</h3>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">Full Name:</span>
+                <span class="info-value">${patientName}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Patient ID:</span>
+                <span class="info-value">${patientID}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Age:</span>
+                <span class="info-value">${patientAge} years old</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Gender:</span>
+                <span class="info-value">${selectedPatient?.gender || 'N/A'}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Doctor:</span>
+                <span class="info-value">${record.assignedDoctor || 'N/A'}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Service Type:</span>
+                <span class="info-value">${record.serviceType || 'General Checkup'}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chief Complaint -->
+          <div class="clinical-section">
+            <div class="section-title">Chief Complaint</div>
+            <div class="section-content">
+              <p>${record.chiefComplaint || 'No chief complaint recorded.'}</p>
+            </div>
+          </div>
+
+          <!-- Present Symptoms -->
+          <div class="clinical-section">
+            <div class="section-title">Present Symptoms</div>
+            <div class="section-content">
+              <p>${record.presentSymptoms || 'No symptoms recorded.'}</p>
+            </div>
+          </div>
+
+          <!-- Diagnosis -->
+          <div class="clinical-section">
+            <div class="section-title">Diagnosis</div>
+            <div class="section-content">
+              <p>${record.diagnosis || 'No diagnosis recorded.'}</p>
+            </div>
+          </div>
+
+          <!-- Treatment Plan -->
+          <div class="clinical-section">
+            <div class="section-title">Treatment Plan</div>
+            <div class="section-content">
+              <p>${record.treatmentPlan || 'No treatment plan recorded.'}</p>
+            </div>
+          </div>
+
+          <!-- Prescription -->
+          <div class="clinical-section">
+            <div class="section-title">Prescription</div>
+            <div class="section-content">
+              ${record.prescription && record.prescription !== 'N/A' ? 
+                `<ul class="prescription-list">
+                  ${record.prescription.split('\n').filter(line => line.trim()).map(line => 
+                    `<li class="prescription-item">
+                      <div class="prescription-name">${line}</div>
+                    </li>`
+                  ).join('')}
+                </ul>` 
+                : '<p>No prescription given.</p>'
+              }
+            </div>
+          </div>
+
+          <!-- Additional Doctor Notes -->
+          ${record.doctorNotes ? `
+          <div class="clinical-section">
+            <div class="section-title">Additional Doctor's Notes</div>
+            <div class="section-content">
+              <p>${record.doctorNotes}</p>
+            </div>
+          </div>
+          ` : ''}
+
+          <!-- Footer -->
+          <div class="document-footer">
+            <div class="print-info">
+              Document generated on ${new Date().toLocaleDateString('en-US', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
+              })} at ${new Date().toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: true 
+              })}
+              <br>
+              Barangay Maybunga Healthcare Management System | Digital Health Records
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      
+      // Wait for images to load before printing
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+        }, 250);
+      };
+
+      console.log('Treatment record printed successfully');
+    } catch (error) {
+      console.error('Error printing treatment record:', error);
+      alert('Failed to print treatment record. Please try again.');
+    }
+  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -293,8 +674,22 @@ const TreatmentRecordModal = ({ show, onHide, selectedPatient, isDarkMode = fals
                               </div>
                             </div>
                             
-                            {/* Read-only indicator */}
-                            <div className="read-only-indicator">
+                            {/* Print Button & Read-only indicator */}
+                            <div className="d-flex align-items-center gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handlePrintRecord(record)}
+                                style={{
+                                  background: '#10b981',
+                                  border: 'none',
+                                  color: '#ffffff',
+                                  padding: '6px 12px'
+                                }}
+                                title="Print this record"
+                              >
+                                <i className="bi bi-printer me-1"></i>
+                                Print
+                              </Button>
                               <span 
                                 className="badge"
                                 style={{
@@ -304,7 +699,7 @@ const TreatmentRecordModal = ({ show, onHide, selectedPatient, isDarkMode = fals
                                 }}
                               >
                                 <i className="bi bi-eye-slash me-1"></i>
-                                Read-Only Record
+                                Read-Only
                               </span>
                             </div>
                           </div>
@@ -548,19 +943,6 @@ const TreatmentRecordModal = ({ show, onHide, selectedPatient, isDarkMode = fals
           <i className="bi bi-x-circle me-2"></i>
           Close
         </Button>
-        {treatmentRecords.length > 0 && (
-          <Button 
-            onClick={() => window.print()}
-            style={{
-              background: '#10b981',
-              border: 'none',
-              color: '#ffffff'
-            }}
-          >
-            <i className="bi bi-printer me-2"></i>
-            Print Records
-          </Button>
-        )}
       </Modal.Footer>
     </Modal>
   );

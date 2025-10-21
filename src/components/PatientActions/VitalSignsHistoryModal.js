@@ -47,7 +47,10 @@ const VitalSignsHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = fa
   // Helper function to display empty field value
   const getEmptyFieldDisplay = (record) => {
     return isVaccinationRelated(record.recordedAt) 
-      ? <span className="text-info">vaccination</span> 
+      ? <span className="badge bg-info text-white">
+          <i className="bi bi-shield-plus me-1"></i>
+          vaccination
+        </span> 
       : <span className="text-muted">-</span>;
   };
 
@@ -160,6 +163,7 @@ const VitalSignsHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = fa
               <thead style={{background: isDarkMode ? '#334155' : '#f8f9fa'}}>
                 <tr>
                   <th>Date & Time</th>
+                  <th>Context</th>
                   <th>Temperature</th>
                   <th>Heart Rate</th>
                   <th>Blood Pressure</th>
@@ -180,6 +184,19 @@ const VitalSignsHistoryModal = ({ show, onHide, selectedPatient, isDarkMode = fa
                       <small className="text-muted">
                         {new Date(record.recordedAt).toLocaleTimeString()}
                       </small>
+                    </td>
+                    <td>
+                      {isVaccinationRelated(record.recordedAt) ? (
+                        <span className="badge bg-info text-white">
+                          <i className="bi bi-shield-plus me-1"></i>
+                          Vaccination
+                        </span>
+                      ) : (
+                        <span className="badge bg-secondary text-white">
+                          <i className="bi bi-clipboard2-pulse me-1"></i>
+                          Checkup
+                        </span>
+                      )}
                     </td>
                     <td>
                       <span className={`badge ${getVitalSignBadgeClass('temperature', record.temperature)}`}>

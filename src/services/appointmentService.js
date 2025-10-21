@@ -63,27 +63,50 @@ class AppointmentService {
   async handleResponse(response) {
     if (!response.ok) {
       let errorMessage = 'An error occurred';
+      let errorDetails = null;
+      
       try {
         const errorData = await response.json();
-        errorMessage = errorData.message || errorData.msg || errorData.error || errorMessage;
+        
+        // Handle validation errors (array format from express-validator)
+        if (errorData.errors && Array.isArray(errorData.errors)) {
+          const errorMessages = errorData.errors.map(err => err.msg).join(', ');
+          errorMessage = `Validation error: ${errorMessages}`;
+          errorDetails = errorData.errors;
+        } else {
+          errorMessage = errorData.message || errorData.msg || errorData.error || errorMessage;
+        }
       } catch (parseError) {
         // If response isn't JSON, use status text
         errorMessage = response.statusText || errorMessage;
       }
       
-      // Handle specific status codes
-      if (response.status === 401) {
+      // Handle specific status codes with better messages
+      if (response.status === 400) {
+        // Bad request - validation or business logic error
+        if (!errorMessage || errorMessage === 'An error occurred') {
+          errorMessage = 'Invalid request. Please check your input and try again.';
+        }
+      } else if (response.status === 401) {
         errorMessage = 'Authentication required. Please log in.';
         // Don't redirect automatically - let the component handle it
       } else if (response.status === 403) {
-        errorMessage = 'You do not have permission to access this resource.';
+        errorMessage = 'You do not have permission to perform this action.';
       } else if (response.status === 404) {
         errorMessage = 'The requested resource was not found.';
+      } else if (response.status === 409) {
+        // Conflict - duplicate or constraint violation
+        if (!errorMessage || errorMessage === 'An error occurred') {
+          errorMessage = 'A conflict occurred. This may be a duplicate request.';
+        }
       } else if (response.status >= 500) {
         errorMessage = 'Server error. Please try again later.';
       }
       
-      throw new Error(errorMessage);
+      const error = new Error(errorMessage);
+      error.status = response.status;
+      error.details = errorDetails;
+      throw error;
     }
     
     try {

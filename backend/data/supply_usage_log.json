@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "usageDate": "2025-10-21",
+    "loggedByUserId": 10101,
+    "loggedByName": "Management",
+    "notes": "Test usage log from automated script",
+    "items": [
+      {
+        "supplyId": 1,
+        "supplyName": "Gauze Pads 4x4",
+        "quantityUsed": 10,
+        "unit": "pieces",
+        "oldStock": 500,
+        "newStock": 490
+      }
+    ],
+    "createdAt": "2025-10-21T05:48:36.819Z"
+  },
+  {
+    "id": 2,
+    "usageDate": "2025-10-21",
+    "loggedByUserId": 10101,
+    "loggedByName": "Management",
+    "notes": "Test usage log from automated script",
+    "items": [
+      {
+        "supplyId": 1,
+        "supplyName": "Gauze Pads 4x4",
+        "quantityUsed": 10,
+        "unit": "pieces",
+        "oldStock": 490,
+        "newStock": 480
+      }
+    ],
+    "createdAt": "2025-10-21T05:49:43.104Z"
+  }
+]

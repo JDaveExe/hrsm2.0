@@ -39,8 +39,7 @@
     "form": "Syrup",
     "strength": "250mg/5mL",
     "manufacturer": "Unilab",
-    "batchNumber": "PAR002-2024",
-    "unitsInStock": 199,
+    "unitsInStock": 399,
     "minimumStock": 50,
     "unitCost": 25,
     "sellingPrice": 45,
@@ -57,7 +56,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Pediatric formulation",
-    "updatedAt": "2025-10-06T06:40:28.382Z"
+    "updatedAt": "2025-10-16T00:11:28.567Z"
   },
   {
     "id": 5,
@@ -99,8 +98,7 @@
     "form": "Syrup",
     "strength": "100mg/5mL",
     "manufacturer": "Pfizer",
-    "batchNumber": "IBU006-2024",
-    "unitsInStock": 180,
+    "unitsInStock": 280,
     "minimumStock": 40,
     "unitCost": 45,
     "sellingPrice": 75,
@@ -117,7 +115,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Pediatric NSAID formulation",
-    "updatedAt": "2025-09-29T05:00:35.148Z"
+    "updatedAt": "2025-10-16T00:51:24.583Z"
   },
   {
     "id": 7,
@@ -130,7 +128,7 @@
     "strength": "80mg",
     "manufacturer": "Bayer",
     "batchNumber": "ASP007-2024",
-    "unitsInStock": 500,
+    "unitsInStock": 499,
     "minimumStock": 100,
     "unitCost": 1.2,
     "sellingPrice": 2,
@@ -146,7 +144,8 @@
     "isPrescriptionRequired": false,
     "status": "Available",
     "isActive": true,
-    "notes": "Low-dose for cardiovascular protection"
+    "notes": "Low-dose for cardiovascular protection",
+    "updatedAt": "2025-10-15T07:58:06.050Z"
   },
   {
     "id": 8,
@@ -187,7 +186,7 @@
     "form": "Tablet",
     "strength": "500mg",
     "manufacturer": "Pfizer",
-    "unitsInStock": 500,
+    "unitsInStock": 499,
     "minimumStock": 60,
     "unitCost": 8,
     "sellingPrice": 12,
@@ -204,7 +203,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Effective for menstrual pain",
-    "updatedAt": "2025-10-06T08:31:42.831Z"
+    "updatedAt": "2025-10-15T23:22:28.801Z"
   },
   {
     "id": 10,
@@ -246,7 +245,7 @@
     "strength": "50mg",
     "manufacturer": "Grunenthal",
     "batchNumber": "TRA011-2024",
-    "unitsInStock": 200,
+    "unitsInStock": 198,
     "minimumStock": 40,
     "unitCost": 15,
     "sellingPrice": 25,
@@ -263,7 +262,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Controlled substance, monitor for abuse",
-    "updatedAt": "2025-09-29T05:00:35.202Z"
+    "updatedAt": "2025-10-15T23:18:28.681Z"
   },
   {
     "id": 12,
@@ -396,7 +395,7 @@
     "strength": "10mg",
     "manufacturer": "Johnson & Johnson",
     "batchNumber": "CET016-2024",
-    "unitsInStock": 400,
+    "unitsInStock": 399,
     "minimumStock": 80,
     "unitCost": 3,
     "sellingPrice": 5,
@@ -413,7 +412,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Non-sedating antihistamine",
-    "updatedAt": "2025-09-29T05:00:35.315Z"
+    "updatedAt": "2025-10-16T00:09:49.274Z"
   },
   {
     "id": 17,
@@ -534,36 +533,6 @@
     "notes": "Higher strength PPI for severe cases"
   },
   {
-    "id": 21,
-    "name": "Metformin 500mg",
-    "genericName": "Metformin HCl",
-    "brandName": "Glucophage",
-    "category": "Endocrine & Diabetes",
-    "dosage": "500mg",
-    "form": "Tablet",
-    "strength": "500mg",
-    "manufacturer": "Merck",
-    "batchNumber": "MET021-2024",
-    "unitsInStock": 810,
-    "minimumStock": 160,
-    "unitCost": 2.5,
-    "sellingPrice": 4,
-    "expiryDate": "2025-10-10",
-    "storageConditions": "Store below 30°C",
-    "administrationRoute": "Oral",
-    "indication": "Type 2 diabetes mellitus, PCOS",
-    "dosageInstructions": "Adults: 500mg BID with meals, titrate as needed",
-    "sideEffects": "GI upset, lactic acidosis (rare), vitamin B12 deficiency",
-    "contraindications": "Renal impairment, metabolic acidosis",
-    "interactions": "Contrast agents, alcohol",
-    "precautions": "Monitor renal function, hold before contrast studies",
-    "isPrescriptionRequired": true,
-    "status": "Available",
-    "isActive": true,
-    "notes": "First-line oral antidiabetic medication",
-    "updatedAt": "2025-08-14T16:22:11.082Z"
-  },
-  {
     "id": 22,
     "name": "Metformin 850mg",
     "genericName": "Metformin HCl",
@@ -604,7 +573,7 @@
     "strength": "5mg",
     "manufacturer": "Pfizer",
     "batchNumber": "AML023-2024",
-    "unitsInStock": 698,
+    "unitsInStock": 697,
     "minimumStock": 140,
     "unitCost": 3,
     "sellingPrice": 5,
@@ -621,7 +590,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Long-acting calcium channel blocker",
-    "updatedAt": "2025-10-04T15:58:06.186Z"
+    "updatedAt": "2025-10-16T01:16:31.363Z"
   },
   {
     "id": 24,
@@ -694,7 +663,7 @@
     "strength": "2mg",
     "manufacturer": "GSK",
     "batchNumber": "SAL026-2024",
-    "unitsInStock": 400,
+    "unitsInStock": 398,
     "minimumStock": 80,
     "unitCost": 2.5,
     "sellingPrice": 4,
@@ -711,7 +680,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Short-acting beta-2 agonist bronchodilator",
-    "updatedAt": "2025-09-29T05:00:35.491Z"
+    "updatedAt": "2025-10-15T23:35:02.390Z"
   },
   {
     "id": 27,
@@ -754,7 +723,7 @@
     "strength": "100mcg/dose",
     "manufacturer": "GSK",
     "batchNumber": "SAL028-2024",
-    "unitsInStock": 150,
+    "unitsInStock": 149,
     "minimumStock": 30,
     "unitCost": 180,
     "sellingPrice": 280,
@@ -771,7 +740,7 @@
     "status": "Available",
     "isActive": true,
     "notes": "Fast-acting rescue inhaler for acute symptoms",
-    "updatedAt": "2025-09-29T05:00:35.542Z"
+    "updatedAt": "2025-10-18T10:03:01.227Z"
   },
   {
     "id": 29,
@@ -885,27 +854,6 @@
     "updatedAt": "2025-10-06T08:58:03.342Z",
     "unitsInStock": 125,
     "status": "Low Stock"
-  },
-  {
-    "id": 33,
-    "name": "Test Medication 1759666194491",
-    "genericName": "Test Generic",
-    "brandName": "Test Brand",
-    "category": "Test Category",
-    "dosage": "100mg",
-    "form": "Tablet",
-    "strength": "100mg",
-    "manufacturer": "Test Manufacturer",
-    "batchNumber": "TEST-1759666194491",
-    "unitsInStock": 100,
-    "minimumStock": 20,
-    "unitCost": 10,
-    "sellingPrice": 15,
-    "expiryDate": "2025-12-31",
-    "status": "Available",
-    "isActive": true,
-    "createdAt": "2025-10-05T12:09:54.507Z",
-    "updatedAt": "2025-10-05T12:09:54.507Z"
   },
   {
     "id": 37,

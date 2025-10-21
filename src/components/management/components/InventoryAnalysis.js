@@ -11,14 +11,15 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointEleme
 const InventoryAnalysis = ({ currentDateTime, isDarkMode, timePeriod = '30days', onNavigateToReports }) => {
   const [analyticsData, setAnalyticsData] = useState({});
   const [loading, setLoading] = useState(true);
-  const [realInventoryData, setRealInventoryData] = useState({ vaccines: [], medications: [] });
+  const [realInventoryData, setRealInventoryData] = useState({ vaccines: [], medications: [], medicalSupplies: [] });
   const [prescriptionAnalytics, setPrescriptionAnalytics] = useState(null);
   const [medicineUsageData, setMedicineUsageData] = useState([]);
   const [vaccineUsageData, setVaccineUsageData] = useState([]);
   const [vaccineCategoryData, setVaccineCategoryData] = useState([]);
+  const [medicalSuppliesData, setMedicalSuppliesData] = useState([]);
   const [showFullView, setShowFullView] = useState(false);
   const [prescriptionTrendsPeriod, setPrescriptionTrendsPeriod] = useState('days');
-  const [showDetailModal, setShowDetailModal] = useState(null); // 'categoryDistribution', 'prescriptionUsage', 'vaccineUsage', 'prescriptionSummary'
+  const [showDetailModal, setShowDetailModal] = useState(null); // 'categoryDistribution', 'prescriptionUsage', 'vaccineUsage', 'prescriptionSummary', 'medicalSuppliesSummary'
   
   // Expiring items modal states
   const [showExpiringModal, setShowExpiringModal] = useState(false);
@@ -711,7 +712,7 @@ const InventoryAnalysis = ({ currentDateTime, isDarkMode, timePeriod = '30days',
       
       try {
         // Load real data from inventory service - same pattern as VaccineInventory
-        const [vaccinesData, medicationsData] = await Promise.all([
+        const [vaccinesData, medicationsData, medicalSuppliesDataResponse] = await Promise.all([
           inventoryService.getAllVaccines().catch(err => {
             console.error('Vaccines API error:', err);
             return [];
@@ -719,25 +720,33 @@ const InventoryAnalysis = ({ currentDateTime, isDarkMode, timePeriod = '30days',
           inventoryService.getAllMedications().catch(err => {
             console.error('Medications API error:', err);
             return [];
+          }),
+          inventoryService.getAllMedicalSupplies().catch(err => {
+            console.error('Medical Supplies API error:', err);
+            return [];
           })
         ]);
 
         console.log('📡 API Responses:', { 
           vaccines: Array.isArray(vaccinesData) ? vaccinesData.length : 'Not array',
-          medications: Array.isArray(medicationsData) ? medicationsData.length : 'Not array'
+          medications: Array.isArray(medicationsData) ? medicationsData.length : 'Not array',
+          medicalSupplies: Array.isArray(medicalSuppliesDataResponse) ? medicalSuppliesDataResponse.length : 'Not array'
         });
 
         if (isMounted) {
           setRealInventoryData({
             vaccines: Array.isArray(vaccinesData) ? vaccinesData : [],
-            medications: Array.isArray(medicationsData) ? medicationsData : []
+            medications: Array.isArray(medicationsData) ? medicationsData : [],
+            medicalSupplies: Array.isArray(medicalSuppliesDataResponse) ? medicalSuppliesDataResponse : []
           });
+          setMedicalSuppliesData(Array.isArray(medicalSuppliesDataResponse) ? medicalSuppliesDataResponse : []);
         }
       } catch (error) {
         console.error('Error loading inventory data:', error);
         if (isMounted) {
           // Set empty data on error
-          setRealInventoryData({ vaccines: [], medications: [] });
+          setRealInventoryData({ vaccines: [], medications: [], medicalSupplies: [] });
+          setMedicalSuppliesData([]);
         }
       }
     };
@@ -1564,6 +1573,237 @@ const InventoryAnalysis = ({ currentDateTime, isDarkMode, timePeriod = '30days',
         </Row>
       )}
 
+      {/* Medical Supplies Stock Levels Chart */}
+      {medicalSuppliesData && medicalSuppliesData.length > 0 && (
+        <Row className="mb-4">
+          <Col md={8}>
+            <Card className="border-0 shadow-sm">
+              <Card.Header className="bg-white d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 className="mb-1">
+                    <i className="bi bi-clipboard2-pulse me-2 text-success"></i>
+                    Current Stock Levels (Medical Supplies)
+                  </h5>
+                  <small className="text-muted">
+                    Total supplies: {medicalSuppliesData.length} | 
+                    Total stock: {medicalSuppliesData.reduce((sum, item) => sum + (parseInt(item.unitsInStock) || 0), 0)} units
+                  </small>
+                </div>
+                <div className="d-flex gap-2">
+                  <Button 
+                    variant="outline-success" 
+                    size="sm"
+                    onClick={() => {
+                      const chartData = {
+                        labels: medicalSuppliesData.slice(0, 15).map(item => 
+                          item.name.length > 20 ? item.name.substring(0, 20) + '...' : item.name
+                        ),
+                        datasets: [{
+                          label: 'Stock Level',
+                          data: medicalSuppliesData.slice(0, 15).map(item => parseInt(item.unitsInStock) || 0),
+                          backgroundColor: medicalSuppliesData.slice(0, 15).map(item => {
+                            const stock = parseInt(item.unitsInStock) || 0;
+                            const minStock = parseInt(item.minimumStock) || 50;
+                            const ratio = stock / minStock;
+                            
+                            if (ratio <= 0.25) return '#e74c3c';
+                            if (ratio <= 0.5) return '#f39c12';
+                            if (ratio <= 1) return '#3498db';
+                            return '#2ecc71';
+                          }),
+                          borderColor: '#2c3e50',
+                          borderWidth: 1
+                        }]
+                      };
+                      createCustomReport('medical-supplies-stock', 'Medical Supplies Stock Levels', chartData, onNavigateToReports);
+                    }}
+                    className="d-flex align-items-center"
+                  >
+                    <i className="bi bi-file-plus me-1"></i>
+                    Create Custom Report
+                  </Button>
+                  <Button 
+                    variant="outline-primary" 
+                    size="sm"
+                    onClick={() => setShowDetailModal('medicalSuppliesSummary')}
+                    className="d-flex align-items-center"
+                  >
+                    <i className="bi bi-arrows-fullscreen me-1"></i>
+                    Zoom
+                  </Button>
+                </div>
+              </Card.Header>
+              <Card.Body style={{ height: '400px' }}>
+                <Bar
+                  data={{
+                    labels: medicalSuppliesData.slice(0, 15).map(item => 
+                      item.name.length > 20 ? item.name.substring(0, 20) + '...' : item.name
+                    ),
+                    datasets: [{
+                      label: 'Stock Level',
+                      data: medicalSuppliesData.slice(0, 15).map(item => parseInt(item.unitsInStock) || 0),
+                      backgroundColor: medicalSuppliesData.slice(0, 15).map(item => {
+                        const stock = parseInt(item.unitsInStock) || 0;
+                        const minStock = parseInt(item.minimumStock) || 50;
+                        const ratio = stock / minStock;
+                        
+                        if (ratio <= 0.25) return '#e74c3c'; // Critical - Red
+                        if (ratio <= 0.5) return '#f39c12';  // Warning - Orange
+                        if (ratio <= 1) return '#3498db';    // Low - Blue
+                        return '#2ecc71'; // Good - Green
+                      }),
+                      borderColor: '#2c3e50',
+                      borderWidth: 1
+                    }]
+                  }}
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: { display: false },
+                      tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#fff',
+                        bodyColor: '#fff',
+                        callbacks: {
+                          label: function(context) {
+                            const item = medicalSuppliesData[context.dataIndex];
+                            const stock = parseInt(item.unitsInStock) || 0;
+                            const minStock = parseInt(item.minimumStock) || 50;
+                            return [
+                              `Stock: ${stock} ${item.unitOfMeasure || 'units'}`,
+                              `Min Stock: ${minStock}`,
+                              `Status: ${stock <= minStock * 0.25 ? 'Critical' : stock <= minStock * 0.5 ? 'Warning' : stock <= minStock ? 'Low' : 'Good'}`
+                            ];
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      x: {
+                        grid: { display: false },
+                        ticks: {
+                          maxRotation: 45,
+                          minRotation: 45
+                        },
+                        title: {
+                          display: true,
+                          text: 'Medical Supplies'
+                        }
+                      },
+                      y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0,0,0,0.1)' },
+                        title: {
+                          display: true,
+                          text: 'Stock Quantity'
+                        }
+                      }
+                    }
+                  }}
+                />
+              </Card.Body>
+            </Card>
+          </Col>
+          
+          <Col md={4}>
+            <Card className="border-0 shadow-sm">
+              <Card.Header className="bg-white d-flex justify-content-between align-items-center">
+                <h5 className="mb-0">
+                  <i className="bi bi-clipboard-check me-2 text-success"></i>
+                  Medical Supplies Summary
+                </h5>
+                <Button 
+                  variant="outline-primary" 
+                  size="sm"
+                  onClick={() => setShowDetailModal('medicalSuppliesSummary')}
+                  className="d-flex align-items-center"
+                >
+                  <i className="bi bi-eye me-1"></i>
+                  View Details
+                </Button>
+              </Card.Header>
+              <Card.Body style={{ height: '400px' }}>
+                <div className="d-flex flex-column gap-3 h-100">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span className="text-muted">Total Supplies</span>
+                    <span className="fw-bold fs-5 text-primary">{medicalSuppliesData.length}</span>
+                  </div>
+                  
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span className="text-muted">Total Stock Units</span>
+                    <span className="fw-bold fs-5 text-success">
+                      {medicalSuppliesData.reduce((sum, item) => sum + (parseInt(item.unitsInStock) || 0), 0)}
+                    </span>
+                  </div>
+                  
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span className="text-muted">Low Stock Items</span>
+                    <span className="fw-bold fs-5 text-warning">
+                      {medicalSuppliesData.filter(item => {
+                        const stock = parseInt(item.unitsInStock) || 0;
+                        const minStock = parseInt(item.minimumStock) || 50;
+                        return stock <= minStock;
+                      }).length}
+                    </span>
+                  </div>
+                  
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span className="text-muted">Critical Stock Items</span>
+                    <span className="fw-bold fs-5 text-danger">
+                      {medicalSuppliesData.filter(item => {
+                        const stock = parseInt(item.unitsInStock) || 0;
+                        const minStock = parseInt(item.minimumStock) || 50;
+                        return stock <= minStock * 0.25;
+                      }).length}
+                    </span>
+                  </div>
+                  
+                  <hr className="my-2" />
+                  
+                  <div className="text-center">
+                    <h6 className="text-muted mb-3">Highest Stock Item</h6>
+                    {medicalSuppliesData.length > 0 ? (
+                      <div>
+                        <div className="fw-bold text-primary">
+                          {medicalSuppliesData.reduce((max, item) => 
+                            (parseInt(item.unitsInStock) || 0) > (parseInt(max.unitsInStock) || 0) ? item : max
+                          , medicalSuppliesData[0]).name}
+                        </div>
+                        <small className="text-muted">
+                          {medicalSuppliesData.reduce((max, item) => 
+                            (parseInt(item.unitsInStock) || 0) > (parseInt(max.unitsInStock) || 0) ? item : max
+                          , medicalSuppliesData[0]).unitsInStock} {
+                            medicalSuppliesData.reduce((max, item) => 
+                              (parseInt(item.unitsInStock) || 0) > (parseInt(max.unitsInStock) || 0) ? item : max
+                            , medicalSuppliesData[0]).unitOfMeasure
+                          }
+                        </small>
+                      </div>
+                    ) : (
+                      <span className="text-muted">No data available</span>
+                    )}
+                  </div>
+                  
+                  <div className="text-center mt-auto">
+                    <h6 className="text-muted mb-3">Categories</h6>
+                    <div className="d-flex flex-wrap gap-2 justify-content-center">
+                      {[...new Set(medicalSuppliesData.map(item => item.category))].slice(0, 5).map((category, index) => (
+                        <Badge key={index} bg="info" className="small">
+                          {category} ({medicalSuppliesData.filter(item => item.category === category).length})
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      )}
+
 
 
       {/* Full Inventory View Modal */}
@@ -2224,6 +2464,190 @@ const InventoryAnalysis = ({ currentDateTime, isDarkMode, timePeriod = '30days',
                             </tr>
                           );
                         })}
+                      </tbody>
+                    </Table>
+                  </Card.Body>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {showDetailModal === 'medicalSuppliesSummary' && (
+            <div>
+              <Row>
+                <Col md={6}>
+                  <Card className="border-0 shadow-sm mb-4">
+                    <Card.Header className="bg-success text-white">
+                      <h5 className="mb-0">
+                        <i className="bi bi-clipboard2-pulse me-2"></i>
+                        Overall Statistics
+                      </h5>
+                    </Card.Header>
+                    <Card.Body>
+                      <Row>
+                        <Col sm={6}>
+                          <div className="text-center p-3 border-end">
+                            <div className="display-6 text-success fw-bold">{medicalSuppliesData.length}</div>
+                            <div className="text-muted">Total Supplies</div>
+                          </div>
+                        </Col>
+                        <Col sm={6}>
+                          <div className="text-center p-3">
+                            <div className="display-6 text-primary fw-bold">
+                              {medicalSuppliesData.reduce((sum, item) => sum + (parseInt(item.unitsInStock) || 0), 0)}
+                            </div>
+                            <div className="text-muted">Total Stock Units</div>
+                          </div>
+                        </Col>
+                      </Row>
+                      <hr />
+                      <Row>
+                        <Col sm={6}>
+                          <div className="text-center p-3 border-end">
+                            <div className="h4 text-warning fw-bold">
+                              {medicalSuppliesData.filter(item => {
+                                const stock = parseInt(item.unitsInStock) || 0;
+                                const minStock = parseInt(item.minimumStock) || 50;
+                                return stock <= minStock;
+                              }).length}
+                            </div>
+                            <div className="text-muted">Low Stock Items</div>
+                          </div>
+                        </Col>
+                        <Col sm={6}>
+                          <div className="text-center p-3">
+                            <div className="h4 text-danger fw-bold">
+                              {medicalSuppliesData.filter(item => {
+                                const stock = parseInt(item.unitsInStock) || 0;
+                                const minStock = parseInt(item.minimumStock) || 50;
+                                return stock <= minStock * 0.25;
+                              }).length}
+                            </div>
+                            <div className="text-muted">Critical Items</div>
+                          </div>
+                        </Col>
+                      </Row>
+                    </Card.Body>
+                  </Card>
+                </Col>
+                
+                <Col md={6}>
+                  <Card className="border-0 shadow-sm mb-4">
+                    <Card.Header className="bg-info text-white">
+                      <h5 className="mb-0">
+                        <i className="bi bi-trophy me-2"></i>
+                        Highest Stock Item
+                      </h5>
+                    </Card.Header>
+                    <Card.Body>
+                      {medicalSuppliesData.length > 0 ? (
+                        <div className="text-center">
+                          <div className="display-6 text-success mb-2">📦</div>
+                          <div className="h4 text-primary fw-bold">
+                            {medicalSuppliesData.reduce((max, item) => 
+                              (parseInt(item.unitsInStock) || 0) > (parseInt(max.unitsInStock) || 0) ? item : max
+                            , medicalSuppliesData[0]).name}
+                          </div>
+                          <div className="row mt-3">
+                            <div className="col-6 text-center border-end">
+                              <div className="h5 text-success">
+                                {medicalSuppliesData.reduce((max, item) => 
+                                  (parseInt(item.unitsInStock) || 0) > (parseInt(max.unitsInStock) || 0) ? item : max
+                                , medicalSuppliesData[0]).unitsInStock}
+                              </div>
+                              <small className="text-muted">Stock Level</small>
+                            </div>
+                            <div className="col-6 text-center">
+                              <div className="h5 text-info">
+                                {medicalSuppliesData.reduce((max, item) => 
+                                  (parseInt(item.unitsInStock) || 0) > (parseInt(max.unitsInStock) || 0) ? item : max
+                                , medicalSuppliesData[0]).unitOfMeasure}
+                              </div>
+                              <small className="text-muted">Unit</small>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center text-muted py-4">
+                          <i className="bi bi-clipboard2-pulse display-4 mb-3"></i>
+                          <p>No medical supplies data available</p>
+                        </div>
+                      )}
+                    </Card.Body>
+                  </Card>
+                </Col>
+              </Row>
+              
+              {medicalSuppliesData.length > 0 && (
+                <Card className="border-0 shadow-sm">
+                  <Card.Header className="bg-success text-white">
+                    <h5 className="mb-0">
+                      <i className="bi bi-list-check me-2"></i>
+                      Complete Supplies Inventory
+                    </h5>
+                  </Card.Header>
+                  <Card.Body>
+                    <Table responsive striped hover>
+                      <thead className="table-dark">
+                        <tr>
+                          <th>Supply Name</th>
+                          <th>Category</th>
+                          <th>Stock</th>
+                          <th>Min Stock</th>
+                          <th>Unit</th>
+                          <th>Status</th>
+                          <th>Stock Level</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {medicalSuppliesData
+                          .sort((a, b) => (parseInt(b.unitsInStock) || 0) - (parseInt(a.unitsInStock) || 0))
+                          .map((supply, index) => {
+                            const stock = parseInt(supply.unitsInStock) || 0;
+                            const minStock = parseInt(supply.minimumStock) || 50;
+                            const ratio = stock / minStock;
+                            
+                            let status = 'Good';
+                            let statusBg = 'success';
+                            if (ratio <= 0.25) {
+                              status = 'Critical';
+                              statusBg = 'danger';
+                            } else if (ratio <= 0.5) {
+                              status = 'Warning';
+                              statusBg = 'warning';
+                            } else if (ratio <= 1) {
+                              status = 'Low';
+                              statusBg = 'info';
+                            }
+                            
+                            const stockPercentage = Math.min((stock / minStock) * 100, 200);
+                            
+                            return (
+                              <tr key={supply.id || index}>
+                                <td className="fw-bold">{supply.name}</td>
+                                <td>
+                                  <Badge bg="secondary">{supply.category}</Badge>
+                                </td>
+                                <td>{stock}</td>
+                                <td>{minStock}</td>
+                                <td className="text-muted">{supply.unitOfMeasure}</td>
+                                <td>
+                                  <Badge bg={statusBg}>{status}</Badge>
+                                </td>
+                                <td>
+                                  <div className="d-flex align-items-center">
+                                    <div className="progress me-2" style={{width: '80px', height: '8px'}}>
+                                      <div 
+                                        className={`progress-bar bg-${statusBg}`} 
+                                        style={{width: `${Math.min(stockPercentage, 100)}%`}}
+                                      ></div>
+                                    </div>
+                                    <small>{(ratio * 100).toFixed(0)}%</small>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
                       </tbody>
                     </Table>
                   </Card.Body>
